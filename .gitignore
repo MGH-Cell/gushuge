@@ -1,0 +1,5 @@
+*.zip
+*.pptx
+*docx
+__pycache__/
+publish/
