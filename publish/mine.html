@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='9' fill='%239c3222'/%3E%3Ctext x='32' y='45' font-size='38' text-anchor='middle' fill='%23fdeed6' font-family='serif'%3E我%3C/text%3E%3C/svg%3E">
+<title>我的书案 · 古书阁</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    min-height:100%;
+    background:
+      radial-gradient(ellipse at 50% -10%, #3a2a1a 0%, #221710 46%, #140d07 100%);
+    background-attachment:fixed;
+    font-family:"KaiTi","STKaiti","楷体",serif;
+    color:#3a2a18;
+    padding:26px 10px 40px;
+  }
+
+  /* ===== 宣纸大堂 ===== */
+  #app {
+    position:relative;
+    width:min(1000px,96vw);
+    margin:0 auto;
+    background:linear-gradient(180deg,#f8f0dc,#ede0c0);
+    border:2px solid #8a5a32;
+    border-radius:10px;
+    box-shadow:0 22px 70px rgba(0,0,0,.62), inset 0 0 0 1px rgba(138,90,50,.30), inset 0 0 42px rgba(166,124,62,.14);
+    padding:24px 30px 34px;
+  }
+  #app::before {
+    content:''; position:absolute; inset:6px;
+    border:1px solid rgba(138,90,50,.32); border-radius:6px;
+    pointer-events:none;
+  }
+
+  /* ===== 顶栏 ===== */
+  .topbar { position:relative; padding:2px 4px 0; }
+  .back-shelf {
+    position:absolute; left:2px; top:0;
+    height:38px; padding:0 15px;
+    display:flex; align-items:center; gap:6px;
+    text-decoration:none;
+    color:#f3dca0; background:linear-gradient(180deg,#8a5a34,#6e4522);
+    border:1px solid #caa24e; border-radius:19px;
+    font-family:inherit; font-size:.92rem; letter-spacing:.18rem;
+    box-shadow:0 2px 6px rgba(60,36,14,.45), inset 0 1px 0 rgba(255,236,180,.35);
+    cursor:pointer; z-index:5;
+  }
+  .back-shelf:hover { background:linear-gradient(180deg,#9c6a3c,#7d502a); }
+  .bang-link {
+    position:absolute; right:2px; top:0;
+    height:38px; padding:0 15px;
+    display:flex; align-items:center;
+    text-decoration:none;
+    color:#f3dca0; background:linear-gradient(180deg,#8a5a34,#6e4522);
+    border:1px solid #caa24e; border-radius:19px;
+    font-size:.92rem; letter-spacing:.18rem;
+    box-shadow:0 2px 6px rgba(60,36,14,.45), inset 0 1px 0 rgba(255,236,180,.35);
+    cursor:pointer; z-index:5;
+  }
+  .bang-link:hover { background:linear-gradient(180deg,#9c6a3c,#7d502a); }
+  body.no-api .bang-link { display:none; }
+  .title-wrap { text-align:center; padding:6px 0 2px; }
+  h1 {
+    display:inline-flex; align-items:center; gap:14px;
+    font-size:2.35rem; letter-spacing:.42rem; color:#432810;
+    font-weight:normal;
+  }
+  .seal {
+    flex:0 0 auto;
+    width:44px; height:44px; border-radius:5px;
+    background:linear-gradient(160deg,#c44936,#9c3222);
+    color:#fdeed6; font-size:1.32rem; letter-spacing:0;
+    display:inline-flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 7px rgba(120,40,25,.45), inset 0 0 0 2px rgba(253,238,214,.35);
+    transform:rotate(-6deg);
+  }
+  .subtitle { text-align:center; color:#8a6238; font-size:1rem; letter-spacing:.3rem; margin-top:9px; }
+
+  /* ===== 章节头 ===== */
+  .section-head {
+    display:flex; align-items:center; justify-content:space-between;
+    margin:26px 0 12px; gap:10px; flex-wrap:wrap;
+  }
+  .section-head h2 {
+    font-size:1.3rem; font-weight:normal; letter-spacing:.3rem; color:#432810;
+  }
+  .section-head h2::before {
+    content:'◆'; color:#caa24e; font-size:.8rem; margin-right:10px; vertical-align:2px;
+  }
+  .rule { color:#8a6238; font-size:.84rem; letter-spacing:.06rem; }
+
+  /* ===== 身份卡 ===== */
+  .id-card {
+    display:flex; align-items:center; gap:20px; flex-wrap:wrap;
+    background:linear-gradient(180deg,#fbf3dc,#efdfba);
+    border:1px solid #a5793f; border-radius:10px;
+    padding:20px 24px;
+    box-shadow:0 4px 14px rgba(90,60,25,.16), inset 0 0 0 1px rgba(255,250,230,.5);
+  }
+  .id-seal {
+    flex:0 0 auto; width:74px; height:74px; border-radius:8px;
+    background:linear-gradient(160deg,#c44936,#9c3222); color:#fdeed6;
+    font-size:2.2rem; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 3px 10px rgba(120,40,25,.45), inset 0 0 0 2.5px rgba(253,238,214,.35);
+    transform:rotate(-5deg);
+  }
+  .id-seal.guest { background:linear-gradient(160deg,#8a8478,#6a6558); }
+  .id-main { flex:1 1 240px; min-width:200px; }
+  .id-name { font-size:1.5rem; letter-spacing:.18rem; color:#432810; }
+  .id-sub { font-size:.9rem; color:#8a6238; letter-spacing:.12rem; margin-top:4px; }
+  .id-score { margin-top:8px; font-size:1rem; color:#6b4a2a; letter-spacing:.1rem; }
+  .id-score b { color:#9c3222; font-size:1.35rem; }
+  .id-actions { display:flex; gap:10px; flex-wrap:wrap; }
+  .btn {
+    font-family:inherit; cursor:pointer; text-decoration:none;
+    color:#f3dca0; background:linear-gradient(180deg,#8a5a34,#6e4522);
+    border:1px solid #caa24e; border-radius:18px;
+    font-size:.92rem; letter-spacing:.22rem;
+    padding:8px 20px; display:inline-flex; align-items:center;
+    box-shadow:0 2px 6px rgba(60,36,14,.4), inset 0 1px 0 rgba(255,236,180,.3);
+  }
+  .btn:hover { background:linear-gradient(180deg,#9c6a3c,#7d502a); }
+  .btn-ghost { color:#6e4522; background:transparent; border:1px solid #8a5a32; box-shadow:none; }
+  .btn-ghost:hover { background:rgba(138,90,50,.1); }
+  .btn-red { color:#fdeed6; background:linear-gradient(180deg,#c44936,#9c3222); border-color:#9c3222; box-shadow:0 2px 6px rgba(120,40,25,.4); }
+  .btn-red:hover { background:linear-gradient(180deg,#cf513d,#a83926); }
+
+  /* ===== 总览数字 ===== */
+  .stats { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
+  .stat {
+    text-align:center;
+    background:linear-gradient(180deg,#f6ecd2,#e6d7b2);
+    border:1px solid #a5793f; border-radius:8px;
+    padding:12px 8px 13px;
+    box-shadow:inset 0 0 0 1px rgba(255,250,230,.5), 0 2px 5px rgba(90,60,25,.16);
+  }
+  .stat .lab { font-size:.82rem; color:#8a6238; letter-spacing:.18rem; }
+  .stat .val { font-size:1.7rem; color:#9c3222; line-height:1.4; }
+  .stat .val.gold { color:#9a7420; }
+
+  /* ===== 六卷修习卡 ===== */
+  .piece-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:14px; }
+  .piece-card {
+    background:linear-gradient(180deg,#fbf3dc,#efdfba);
+    border:1px solid #a5793f; border-radius:9px;
+    padding:15px 16px 14px;
+    box-shadow:0 3px 9px rgba(90,60,25,.15), inset 0 0 0 1px rgba(255,250,230,.5);
+    display:flex; flex-direction:column; gap:9px;
+  }
+  .pc-head { display:flex; align-items:center; gap:11px; }
+  .pc-seal {
+    flex:0 0 auto; width:38px; height:38px; border-radius:5px;
+    color:#fdeed6; font-size:1.05rem;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:inset 0 0 0 1.5px rgba(253,238,214,.4);
+  }
+  .pc-seal.s0 { background:linear-gradient(160deg,#9a9488,#7c7568); }
+  .pc-seal.s1 { background:linear-gradient(160deg,#b08a4e,#8a6230); }
+  .pc-seal.s2 { background:linear-gradient(160deg,#c44936,#9c3222); }
+  .pc-seal.s3 { background:linear-gradient(160deg,#e3b64d,#b9861f); }
+  .pc-name { font-size:1.24rem; letter-spacing:.14rem; color:#432810; }
+  .pc-who { font-size:.84rem; color:#8a6238; letter-spacing:.1rem; }
+  .pc-prog {
+    font-size:.92rem; color:#6b4a2a; letter-spacing:.06rem; line-height:1.75;
+    border-top:1px dashed rgba(138,90,50,.4); padding-top:9px;
+  }
+  .pc-prog .litbar {
+    height:6px; border-radius:3px; margin:5px 0 7px;
+    background:rgba(138,90,50,.18); overflow:hidden;
+  }
+  .pc-prog .litfill { height:100%; border-radius:3px;
+    background:linear-gradient(90deg,#c4912e,#e3b64d); transition:width .5s ease; }
+  .pc-foot { margin-top:auto; display:flex; align-items:center; justify-content:space-between; }
+  .tag {
+    font-size:.82rem; letter-spacing:.12rem; padding:2px 12px; border-radius:12px;
+    border:1px solid;
+  }
+  .tag.t0 { color:#7c7568; border-color:#9a9488; background:rgba(154,148,136,.12); }
+  .tag.t1 { color:#8a6238; border-color:#b08a4e; background:rgba(176,138,62,.12); }
+  .tag.t2 { color:#9c3222; border-color:#b03926; background:rgba(196,57,34,.1); }
+  .tag.t3 { color:#7a4d1c; border-color:#c4912e; background:rgba(196,145,46,.14); }
+  .go-btn {
+    font-family:inherit; cursor:pointer; text-decoration:none; font-size:.86rem; letter-spacing:.16rem;
+    color:#f3dca0; background:linear-gradient(180deg,#8a5a34,#6e4522);
+    border:1px solid #caa24e; border-radius:15px; padding:5px 15px;
+    box-shadow:0 2px 5px rgba(60,36,14,.35);
+  }
+  .go-btn:hover { background:linear-gradient(180deg,#9c6a3c,#7d502a); }
+
+  /* ===== 百题坊卡 ===== */
+  .btf-card {
+    display:flex; align-items:center; gap:22px; flex-wrap:wrap;
+    background:linear-gradient(180deg,#fbf3dc,#efdfba);
+    border:1px solid #a5793f; border-radius:10px; padding:20px 24px;
+    box-shadow:0 3px 9px rgba(90,60,25,.15), inset 0 0 0 1px rgba(255,250,230,.5);
+  }
+  .btf-nums { display:flex; gap:26px; flex-wrap:wrap; }
+  .btf-num .v { font-size:1.6rem; color:#9c3222; }
+  .btf-num .v.gold { color:#9a7420; }
+  .btf-num .l { font-size:.84rem; color:#8a6238; letter-spacing:.12rem; }
+  .btf-actions { margin-left:auto; display:flex; gap:10px; flex-wrap:wrap; }
+
+  /* ===== 时间线 ===== */
+  .timeline { margin-top:4px; position:relative; padding-left:24px; }
+  .timeline::before {
+    content:''; position:absolute; left:7px; top:6px; bottom:6px;
+    width:2px; background:linear-gradient(180deg,#c4912e,#8a5a32 70%,rgba(138,90,50,.15));
+    border-radius:2px;
+  }
+  .tl-item { position:relative; padding:6px 0 10px; }
+  .tl-item::before {
+    content:''; position:absolute; left:-22px; top:13px;
+    width:9px; height:9px; border-radius:5px;
+    background:#c44936; box-shadow:0 0 0 2px rgba(253,238,214,.9), 0 0 0 3px rgba(156,50,34,.35);
+  }
+  .tl-item.good::before { background:#c4912e; box-shadow:0 0 0 2px rgba(253,238,214,.9), 0 0 0 3px rgba(154,116,32,.35); }
+  .tl-item.bad::before { background:#8a8478; box-shadow:0 0 0 2px rgba(253,238,214,.9), 0 0 0 3px rgba(110,105,95,.3); }
+  .tl-head { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .tl-txt { font-size:1.02rem; color:#3a2a18; letter-spacing:.05rem; }
+  .tl-txt b { color:#9c3222; }
+  .tl-piece { color:#8a6238; font-size:.88rem; }
+  .tl-time { color:#a08158; font-size:.82rem; margin-left:auto; letter-spacing:.04rem; }
+  .guest-note {
+    text-align:center; color:#6b4a2a; letter-spacing:.14rem; line-height:2;
+    background:rgba(176,57,38,.06); border:1px dashed rgba(156,50,34,.45);
+    border-radius:8px; padding:22px 16px; font-size:1.02rem;
+  }
+  .guest-note a { color:#9c3222; font-weight:bold; text-decoration:underline; text-underline-offset:3px; cursor:pointer; }
+  .empty-note {
+    text-align:center; color:#8a6238; letter-spacing:.14rem;
+    padding:22px 0 18px; line-height:2;
+    background:rgba(202,162,78,.1); border:1px dashed rgba(154,116,32,.5);
+    border-radius:8px;
+  }
+
+  /* ===== 五维学情 ===== */
+  .radar-card {
+    display:flex; align-items:center; gap:24px; flex-wrap:wrap;
+    background:linear-gradient(180deg,#fbf3dc,#efdfba);
+    border:1px solid #a5793f; border-radius:10px; padding:18px 22px 16px;
+    box-shadow:0 3px 9px rgba(90,60,25,.15), inset 0 0 0 1px rgba(255,250,230,.5);
+  }
+  .radar-svg { flex:0 0 auto; width:300px; height:262px; max-width:100%; display:block; }
+  .radar-svg text { font-family:inherit; }
+  .dim-list { flex:1 1 300px; min-width:240px; display:flex; flex-direction:column; gap:6px; }
+  .dim { display:flex; align-items:baseline; gap:9px; font-size:.94rem; color:#5a3c20; line-height:1.75; }
+  .dim .n { flex:0 0 5.2em; letter-spacing:.1rem; color:#6b4a2a; }
+  .dim .v { flex:0 0 3.4em; color:#9c3222; font-size:1.04rem; }
+  .dim .v.none { color:#9a9488; font-size:.88rem; }
+  .dim .e { flex:1 1 auto; font-size:.79rem; color:#8a6238; letter-spacing:.02rem; }
+  .dim.weak .n { color:#9c3222; }
+  .advice {
+    flex:1 1 100%; margin-top:6px; padding-top:10px;
+    border-top:1px dashed rgba(138,90,50,.4);
+    font-size:.92rem; line-height:1.95; color:#5a3c20; letter-spacing:.04rem;
+  }
+  .advice b { color:#9c3222; font-weight:normal; }
+  .advice a { color:#9c3222; text-decoration:underline; text-underline-offset:3px; }
+
+  @media (max-width:640px) {
+    .stats { grid-template-columns:repeat(2,1fr); }
+    .btf-actions { margin-left:0; }
+    .bang-link span { display:none; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="topbar">
+    <a class="back-shelf" href="index.html">← 书阁</a>
+    <a class="bang-link" href="bang.html"><span>学分金榜</span><span style="opacity:.5"> · </span><span>去看榜</span></a>
+    <div class="title-wrap">
+      <h1><span class="seal">我</span>我的书案</h1>
+      <div class="subtitle">展卷留痕 · 寸进自知</div>
+    </div>
+  </div>
+
+  <div class="section-head" style="margin-top:22px">
+    <h2>书生名帖</h2>
+    <span class="rule">本机进度与云端相合</span>
+  </div>
+  <div class="id-card" id="idCard"></div>
+
+  <div class="section-head">
+    <h2>修习总览</h2>
+    <span class="rule">学分 = 完卷×100 ＋ 完美卷×50 ＋ 百题作答×5 ＋ 错题掌握×8</span>
+  </div>
+  <div class="stats" id="stats"></div>
+
+  <div class="section-head">
+    <h2>五维学情</h2>
+    <span class="rule">据注译掌握 · 百题作答 · 闯关记录推算</span>
+  </div>
+  <div class="radar-card" id="radarCard"></div>
+
+  <div class="section-head">
+    <h2>六卷修习</h2>
+    <span class="rule">点亮句读 · 闯关成诵</span>
+  </div>
+  <div class="piece-grid" id="pieceGrid"></div>
+
+  <div class="section-head">
+    <h2>百题坊笔墨</h2>
+    <span class="rule">常识 · 词义 · 翻译 · 句读 · 听辨 · 错题二刷</span>
+  </div>
+  <div class="btf-card" id="btfCard"></div>
+
+  <div class="section-head">
+    <h2>学习足迹</h2>
+    <span class="rule">最近六十条笔墨旧事</span>
+  </div>
+  <div id="histBox"></div>
+</div>
+
+<script>
+'use strict';
+/* 六卷元数据（与 index.html SCROLLS 同源） */
+const PIECES=[
+  {pid:'xst', name:'小石潭记',   who:'唐 · 柳宗元',   url:'xiaoshitan.html'},
+  {pid:'thy', name:'桃花源记',   who:'东晋 · 陶渊明', url:'taohuayuan.html'},
+  {pid:'lsm', name:'陋室铭',     who:'唐 · 刘禹锡',   url:'loushiming.html'},
+  {pid:'als', name:'爱莲说',     who:'北宋 · 周敦颐', url:'ailianshuo.html'},
+  {pid:'cts', name:'记承天寺夜游', who:'北宋 · 苏轼', url:'chengtiansi.html'},
+  {pid:'sx',  name:'三峡',       who:'北魏 · 郦道元', url:'sanxia.html'},
+  {pid:'dxx', name:'答谢中书书', who:'南朝 · 陶弘景', url:'dazhongshushu.html'}
+];
+/* 文鉴堂逐句考点序（与 wenjian.html 数据一一对应）：义/译/析/容 */
+const WJ_TAGSEQ={
+  xst:'义析义译义义析析译析义义析析容容',
+  thy:'容义析义义译义译析译义译析译义义义义译译义义译析',
+  lsm:'义析义析译义析义',
+  als:'析容义义义译译析义析',
+  cts:'容译义析析',
+  sx:'义义义析析析译义析',
+  dxx:'析义译译析析义'
+};
+const PIECE_NAME={}; PIECES.forEach(p=>PIECE_NAME[p.pid]=p.name);
+const EV_TXT={
+  'lit':'点亮了一句原文','examStart':'开始了一场闯关','wrong':'答错一题','finish':'完成了一篇全文闯关',
+  'btf-answered':'百题坊作答','btf-mastered':'攻克了一道错题'
+};
+
+function esc(s){ return String(s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
+function fmtT(ms){
+  if(!ms) return '—';
+  const d=new Date(ms), p=n=>(n<10?'0':'')+n;
+  return (d.getMonth()+1)+'月'+d.getDate()+'日 '+p(d.getHours())+':'+p(d.getMinutes());
+}
+function getToken(){ try{ return localStorage.getItem('gushi_token'); }catch(e){ return null; } }
+
+/* ===== 按账号分档：退出落款时归档并换回游客档案，与 index.html 同规则 ===== */
+function slotKey(o){ return o?('gushi_v1@u:'+o):'gushi_v1@guest'; }
+function readLS(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
+function switchSlot(owner){
+  try{
+    const prev=localStorage.getItem('gushi_owner')||'';
+    const cur=readLS('gushi_v1');
+    if(cur&&cur.v===1&&cur.p) localStorage.setItem(slotKey(prev),JSON.stringify(cur));
+    const nxt=readLS(slotKey(owner));
+    localStorage.setItem('gushi_v1',JSON.stringify(nxt&&nxt.v===1&&nxt.p?nxt:{v:1,p:{}}));
+    localStorage.setItem('gushi_owner',owner||'');
+  }catch(e){}
+}
+/* 纯静态托管标志：探活失败后置 true，隐藏金榜/落款入口 */
+let STATIC=false;
+async function apiAlive(){
+  try{
+    const c=new AbortController(); const iv=setTimeout(()=>c.abort(),2500);
+    const r=await fetch('/api/board',{signal:c.signal,cache:'no-store'});
+    clearTimeout(iv); await r.json(); return true;
+  }catch(e){ return false; }
+}
+function localBlob(){
+  try{ const d=JSON.parse(localStorage.getItem('gushi_v1')); if(d&&d.v===1&&d.p)return d; }catch(e){}
+  return {v:1,p:{},btf:{answered:[],wrong:[],mastered:[]}};
+}
+function nUnique(a){ return new Set(Array.isArray(a)?a:[]).size; }
+
+/* ================= 本地统计 ================= */
+function compute(blob){
+  const p=blob.p||{};
+  let done=0, perfect=0, lit=0, lastTs=0;
+  const rows=PIECES.map(meta=>{
+    const o=p[meta.pid]||{};
+    const litN=nUnique(o.lit);
+    const isDone=!!o.done, isPerfect=!!(isDone&&o.exam&&o.exam.perfect);
+    if(isDone)done++;
+    if(isPerfect)perfect++;
+    lit+=litN;
+    if((o.ts||0)>lastTs)lastTs=o.ts;
+    let stage=0; // 0未启 1修习中 2已读 3完美
+    if(isPerfect)stage=3; else if(isDone)stage=2; else if(litN)stage=1;
+    return {meta:meta, litN:litN, done:isDone, perfect:isPerfect, stage:stage,
+      attempts:(o.exam&&o.exam.attempts)||0, ts:o.ts||0};
+  });
+  const b=blob.btf||{};
+  const answered=nUnique(b.answered), mastered=nUnique(b.mastered), wrong=(b.wrong||[]).length;
+  const yinN=Object.keys(blob.yin||{}).length;
+  const localScore=done*100+perfect*50+answered*5+mastered*8;
+  return {rows:rows, done:done, perfect:perfect, lit:lit, lastTs:lastTs,
+    answered:answered, mastered:mastered, wrong:wrong, yinN:yinN, localScore:localScore};
+}
+
+/* ================= 渲染 ================= */
+function renderIdCard(st, u, score, online){
+  const el=document.getElementById('idCard');
+  if(u){
+    el.innerHTML=
+      '<div class="id-seal">'+esc(u[0]||'书')+'</div>'+
+      '<div class="id-main">'+
+        '<div class="id-name">书生 · '+esc(u)+'</div>'+
+        '<div class="id-sub">'+(online?'云端名帖已合 · 进度同步':'古书阁后端未启 · 暂显本机进度')+'</div>'+
+        '<div class="id-score">学分明细 <b>'+(score==null?'…':score)+'</b>　最近用功 · '+fmtT(st.lastTs)+'</div>'+
+      '</div>'+
+      '<div class="id-actions">'+
+        '<a class="btn" href="bang.html">去看金榜</a>'+
+        '<a class="btn btn-ghost" id="logoutBtn" href="javascript:void(0)">退出落款</a>'+
+      '</div>';
+    document.getElementById('logoutBtn').onclick=()=>{
+      try{ switchSlot(''); localStorage.removeItem('gushi_token'); localStorage.removeItem('gushi_local_user'); }catch(e){}
+      location.reload();
+    };
+  }else{
+    el.innerHTML=
+      '<div class="id-seal guest">客</div>'+
+      '<div class="id-main">'+
+        '<div class="id-name">游客书生</div>'+(
+          '<div class="id-sub">'+(STATIC?'进度存于本设备浏览器 · 无需落款':(online?'未落款 · 进度仅存本机':'古书阁后端未启 · 单机游览'))+'</div>')+
+        '<div class="id-score">本机学分明细 <b>'+st.localScore+'</b></div>'+
+      '</div>'+
+      '<div class="id-actions">'+(STATIC?'':'<a class="btn" href="index.html">回阁落款留名</a>')+'</div>';
+  }
+}
+
+function renderStats(st){
+  const box=document.getElementById('stats');
+  const cells=[
+    ['已读卷', st.done+' / 6', ''],
+    ['完美卷', st.perfect, 'gold'],
+    ['意象入藏', (st.yinN||0)+' / 6', 'gold'],
+    ['点亮句读', st.lit, ''],
+    ['百题留墨', st.answered, ''],
+    ['错题掌握', st.mastered, 'gold']
+  ];
+  box.innerHTML=cells.map(c=>
+    '<div class="stat"><div class="lab">'+c[0]+'</div><div class="val '+c[2]+'">'+c[1]+'</div></div>').join('');
+}
+
+/* ================= 五维学情雷达 ================= */
+function wjStats(blob){
+  const wj=blob.wj||{};
+  const got={义:0,译:0,析:0,容:0}, tot={义:0,译:0,析:0,容:0};
+  Object.keys(WJ_TAGSEQ).forEach(function(pid){
+    const seq=WJ_TAGSEQ[pid];
+    for(let i=0;i<seq.length;i++) tot[seq.charAt(i)]++;
+    const arr=Array.isArray(wj[pid])?wj[pid]:[];
+    arr.forEach(function(i){
+      if(arr.indexOf(i)!==arr.lastIndexOf(i)){ if(arr.indexOf(i)!==i)return; }
+      const t=seq.charAt(i);
+      if(t&&got[t]!=null)got[t]++;
+    });
+  });
+  return {got:got, tot:tot};
+}
+function radarDims(blob){
+  const b=blob.btf||{};
+  const ans=Array.isArray(b.answered)?b.answered:[];
+  const wr=Array.isArray(b.wrong)?b.wrong:[];
+  let aD=0,aL=0,aW=0,aT=0,aC=0,wD=0,wL=0,wW=0,wT=0,wC=0;
+  ans.forEach(function(id){
+    const c=String(id||'').charAt(0);
+    if(c==='d')aD++; else if(c==='l')aL++;
+    else if(c==='w')aW++; else if(c==='t')aT++; else if(c==='c'||c==='a')aC++;
+  });
+  wr.forEach(function(r){
+    const c=String((r&&r.qid)||'').charAt(0);
+    if(c==='d')wD++; else if(c==='l')wL++;
+    else if(c==='w')wW++; else if(c==='t')wT++; else if(c==='c'||c==='a')wC++;
+  });
+  const aDL=aD+aL, wDL=Math.min(wD+wL,aDL);
+  const zy=aDL?Math.max(0,Math.round((1-wDL/aDL)*100)):null;
+  const p=blob.p||{}; let att=0, exW=0;
+  PIECES.forEach(function(m){
+    const o=p[m.pid]||{}, ex=o.exam||{};
+    if(ex.attempts>0){ att+=ex.attempts; exW+=(Array.isArray(ex.wrong)?ex.wrong.length:0); }
+  });
+  const kn=att?Math.max(0,Math.round((1-Math.min(exW,att)/att)*100)):null;
+  const w=wjStats(blob);
+  const pct=function(t){ return w.tot[t]?Math.round(w.got[t]*100/w.tot[t]):null; };
+  /* 文鉴堂通译 + 百题坊相应题型，合并成正确率 */
+  function blend(tag,qn,qw){
+    if(!qn) return pct(tag);
+    const got=w.got[tag]+(qn-Math.min(qw,qn)), den=w.tot[tag]+qn;
+    return den?Math.round(got*100/den):null;
+  }
+  const yi=blend('义',aW,wW), fan=blend('译',aT,wT), shang=pct('析'), rong=blend('容',aC,wC);
+  let cw=0, cs=0;
+  if(kn!=null){ cw+=.65; cs+=kn*.65; }
+  if(rong!=null){ cw+=.35; cs+=rong*.35; }
+  const neirong=cw?Math.round(cs/cw):null;
+  function wjEv(t,qn){ return w.tot[t]?'文鉴堂已通译 '+w.got[t]+' / '+w.tot[t]+' 句'+(qn?'　百题坊 '+qn+' 题':''):(qn?'百题坊 '+qn+' 题':'文鉴堂尚未读此篇'); }
+  return [
+    {n:'字音字形', v:zy,   e:aDL?'百题坊选字/听辨 '+aDL+' 次 · 正确率 '+zy+'%':'尚未做过选字或听辨题'},
+    {n:'词义理解', v:yi,   e:wjEv('义',aW)},
+    {n:'句子翻译', v:fan,  e:wjEv('译',aT)},
+    {n:'内容理解', v:neirong, e:(att?'闯关 '+att+' 次 · 正确率 '+kn+'%':'尚未闯关')+(aC?'　百题坊 '+aC+' 题':'')+(rong!=null?'　注译容类 '+w.got['容']+' / '+w.tot['容']:'')},
+    {n:'赏析鉴赏', v:shang, e:wjEv('析')}
+  ];
+}
+function renderRadar(blob){
+  const box=document.getElementById('radarCard');
+  if(!box)return;
+  box.textContent='';
+  const dims=radarDims(blob);
+  const NS='http://www.w3.org/2000/svg';
+  const W=300,H=262,cx=150,cy=134,R=92,N=5;
+  const svg=document.createElementNS(NS,'svg');
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  svg.setAttribute('class','radar-svg');
+  function pt(i,f){
+    const a=-Math.PI/2+i*2*Math.PI/N;
+    return [cx+Math.cos(a)*R*f, cy+Math.sin(a)*R*f];
+  }
+  function poly(f,stroke,fill,dash){
+    const p=document.createElementNS(NS,'polygon');
+    const pts=[];
+    for(let i=0;i<N;i++){ const q=pt(i,f); pts.push(q[0].toFixed(1)+','+q[1].toFixed(1)); }
+    p.setAttribute('points',pts.join(' '));
+    p.setAttribute('fill',fill||'none');
+    p.setAttribute('stroke',stroke);
+    p.setAttribute('stroke-width','1');
+    if(dash)p.setAttribute('stroke-dasharray',dash);
+    svg.appendChild(p);
+  }
+  poly(1,'rgba(138,90,50,.55)','rgba(255,250,235,.35)');
+  poly(.75,'rgba(138,90,50,.26)');
+  poly(.5,'rgba(138,90,50,.26)');
+  poly(.25,'rgba(138,90,50,.26)');
+  for(let i=0;i<N;i++){
+    const q=pt(i,1), l=document.createElementNS(NS,'line');
+    l.setAttribute('x1',cx); l.setAttribute('y1',cy);
+    l.setAttribute('x2',q[0].toFixed(1)); l.setAttribute('y2',q[1].toFixed(1));
+    l.setAttribute('stroke','rgba(138,90,50,.3)'); l.setAttribute('stroke-width','1');
+    svg.appendChild(l);
+  }
+  /* 数据面 */
+  const dp=document.createElementNS(NS,'polygon');
+  const pts=[];
+  for(let i=0;i<N;i++){
+    const v=Math.max(0,Math.min(100,dims[i].v||0))/100;
+    const q=pt(i,v); pts.push(q[0].toFixed(1)+','+q[1].toFixed(1));
+  }
+  dp.setAttribute('points',pts.join(' '));
+  dp.setAttribute('fill','rgba(196,145,46,.28)');
+  dp.setAttribute('stroke','#a8412e');
+  dp.setAttribute('stroke-width','2');
+  dp.setAttribute('stroke-linejoin','round');
+  svg.appendChild(dp);
+  for(let i=0;i<N;i++){
+    const v=Math.max(0,Math.min(100,dims[i].v||0))/100;
+    const q=pt(i,v), c=document.createElementNS(NS,'circle');
+    c.setAttribute('cx',q[0].toFixed(1)); c.setAttribute('cy',q[1].toFixed(1));
+    c.setAttribute('r',dims[i].v==null?2.6:3.6);
+    c.setAttribute('fill',dims[i].v==null?'#fbf3dc':'#9c3222');
+    c.setAttribute('stroke','#9c3222'); c.setAttribute('stroke-width','1.4');
+    svg.appendChild(c);
+  }
+  /* 轴名 */
+  for(let i=0;i<N;i++){
+    const q=pt(i,1.19);
+    const t=document.createElementNS(NS,'text');
+    t.setAttribute('x',q[0].toFixed(1)); t.setAttribute('y',(q[1]+4).toFixed(1));
+    t.setAttribute('text-anchor', i===0?'middle':(i===1||i===2)?'start':'end');
+    t.setAttribute('font-size','13');
+    t.setAttribute('fill', dims[i].v==null?'#9a9488':'#6b4a2a');
+    t.textContent=dims[i].n;
+    svg.appendChild(t);
+  }
+  box.appendChild(svg);
+
+  const list=document.createElement('div');
+  list.className='dim-list';
+  let low=null;
+  dims.forEach(function(d){ if(d.v!=null&&(low==null||d.v<low.v))low=d; });
+  dims.forEach(function(d){
+    const row=document.createElement('div');
+    row.className='dim'+(low&&low===d?' weak':'');
+    const n=document.createElement('span'); n.className='n'; n.textContent=d.n;
+    const v=document.createElement('span'); v.className='v'+(d.v==null?' none':''); v.textContent=d.v==null?'未测':d.v+'%';
+    const e=document.createElement('span'); e.className='e'; e.textContent=d.e;
+    row.appendChild(n); row.appendChild(v); row.appendChild(e);
+    list.appendChild(row);
+  });
+  box.appendChild(list);
+
+  const adv=document.createElement('div');
+  adv.className='advice';
+  const TIP={
+    '字音字形':'去 <a href="baitifang.html">百题坊</a> 练选字与听辨，先把字形字音抠准。',
+    '词义理解':'去 <a href="wenjian.html">文鉴堂</a> 点句看注释，实词虚词逐字落实。',
+    '句子翻译':'在 <a href="wenjian.html">文鉴堂</a> 逐句对照译文，读通后点「已通译」。',
+    '内容理解':'回卷重闯，并在文鉴堂读「容」类句子，理清行文脉络。',
+    '赏析鉴赏':'读文鉴堂「析」类句子，留意手法与情感的落点。'
+  };
+  adv.innerHTML = low
+    ? '当前最弱一维 · <b>'+low.n+'</b>（'+low.v+'%）　'+TIP[low.n]
+    : '尚无足够笔墨可断　先去 <a href="wenjian.html">文鉴堂</a> 通译两句，或到 <a href="baitifang.html">百题坊</a> 做一组题。';
+  box.appendChild(adv);
+
+  /* 标记最弱一维 */
+  const rows=list.children;
+  dims.forEach(function(d,i){ if(low&&low===d&&rows[i])rows[i].classList.add('weak'); });
+}
+
+const STAGE_TXT=['未启卷','修习中','已读毕','完美卷'];
+function renderPieces(st){
+  const box=document.getElementById('pieceGrid');
+  box.innerHTML=st.rows.map(r=>{
+    const litPct=Math.min(100, r.litN*14); // 每点亮一句约一格进度
+    return '<div class="piece-card">'+
+      '<div class="pc-head">'+
+        '<span class="pc-seal s'+r.stage+'">'+['封','习','读','美'][r.stage]+'</span>'+
+        '<span><span class="pc-name">'+r.meta.name+'</span><div class="pc-who">'+r.meta.who+'</div></span>'+
+      '</div>'+
+      '<div class="pc-prog">'+
+        '<div class="litbar"><div class="litfill" style="width:'+litPct+'%"></div></div>'+
+        '点亮句读 <b>'+r.litN+'</b> 句 · 闯关 <b>'+r.attempts+'</b> 次'+
+        (r.ts?' · 近功 '+fmtT(r.ts):'')+
+      '</div>'+
+      '<div class="pc-foot">'+
+        '<span class="tag t'+r.stage+'">'+STAGE_TXT[r.stage]+'</span>'+
+        '<a class="go-btn" href="'+r.meta.url+'">'+(r.stage===0?'前去展卷':'继续展卷')+' →</a>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function renderBtf(st){
+  const box=document.getElementById('btfCard');
+  box.innerHTML=
+    '<div style="flex:0 0 auto;width:47px;height:47px;border-radius:6px;background:linear-gradient(160deg,#c44936,#9c3222);color:#fdeed6;font-size:1.45rem;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 2px rgba(253,238,214,.35);transform:rotate(-4deg)">坊</div>'+
+    '<div class="btf-nums">'+
+      '<span class="btf-num"><span class="v">'+st.answered+'</span> <span class="l">百题留墨</span></span>'+
+      '<span class="btf-num"><span class="v gold">'+st.mastered+'</span> <span class="l">错题掌握</span></span>'+
+      '<span class="btf-num"><span class="v" style="color:'+(st.wrong?'#9c3222':'#8a6238')+'">'+st.wrong+'</span> <span class="l">待刷错题</span></span>'+
+    '</div>'+
+    '<div class="btf-actions">'+
+      (st.wrong?'<a class="btn btn-red" href="baitifang.html">错题二刷</a>':'')+
+      '<a class="btn btn-ghost" href="baitifang.html">入百题坊</a>'+
+    '</div>';
+}
+
+/* ================= 足迹（登录后拉云端） ================= */
+async function loadHistory(u){
+  const box=document.getElementById('histBox');
+  const t=getToken();
+  if(!t||!u){
+    box.innerHTML=STATIC
+      ? '<div class="empty-note">单机版 · 学习进度已记录在上方修习卡与百题坊笔墨中（存于本设备浏览器）</div>'
+      : '<div class="guest-note">游客尚未落款 · <a href="index.html">回书阁登记入阁</a>后，云端学习足迹便记于此</div>';
+    return;
+  }
+  try{
+    const res=await fetch('/api/history?token='+encodeURIComponent(t));
+    const data=await res.json();
+    if(!data.ok||!(data.rows||[]).length){
+      box.innerHTML='<div class="empty-note">足迹尚空白 · 去点亮第一句古文吧</div>';
+      return;
+    }
+    let html='<div class="timeline">';
+    data.rows.slice(0,60).forEach(r=>{
+      const piece=PIECE_NAME[r.k]||'';
+      const cls=r.ev==='finish'||r.ev==='btf-mastered'?'good':r.ev==='wrong'?'bad':'';
+      let txt=EV_TXT[r.ev]||r.ev;
+      if(r.ev==='lit'&&r.v) txt='点亮原文（第 '+r.v+' 句）';
+      if(r.ev==='btf-answered') txt+=r.v?' · 答对':' · 答错';
+      html+='<div class="tl-item '+cls+'">'+
+        '<div class="tl-head">'+
+          '<span class="tl-txt"><b>'+esc(data.u)+'</b> '+esc(txt)+'</span>'+
+          (piece?'<span class="tl-piece">《'+piece+'》</span>':'')+
+          '<span class="tl-time">'+fmtT(r.t)+'</span>'+
+        '</div>'+
+      '</div>';
+    });
+    html+='</div>';
+    box.innerHTML=html;
+  }catch(e){
+    box.innerHTML='<div class="empty-note">古书阁后端未启 · 云端足迹暂不可见</div>';
+  }
+}
+
+/* ================= 启动：先渲染本机，再尝试云端 ================= */
+(async function boot(){
+  const st=compute(localBlob());
+  renderStats(st);
+  renderRadar(localBlob());
+  renderPieces(st);
+  renderBtf(st);
+  const t=getToken();
+  if(!t){
+    if(!(await apiAlive())){ STATIC=true; document.body.classList.add('no-api'); }
+    renderIdCard(st,null,null,false); loadHistory(null,null);
+    return;
+  }
+  renderIdCard(st,'…',null,true);
+  try{
+    const res=await fetch('/api/me?token='+encodeURIComponent(t));
+    const data=await res.json();
+    if(data.ok){
+      renderIdCard(st,data.u,data.score,true);
+      loadHistory(data.u);
+    }else{
+      try{ localStorage.removeItem('gushi_token'); localStorage.removeItem('gushi_local_user'); }catch(e){}
+      if(!(await apiAlive())){ STATIC=true; document.body.classList.add('no-api'); }
+      renderIdCard(st,null,null,false);
+      loadHistory(null,null);
+    }
+  }catch(e){
+    STATIC=true; document.body.classList.add('no-api');
+    renderIdCard(st,null,null,false);
+    loadHistory(null,null);
+  }
+})();
+</script>
+</body>
+</html>

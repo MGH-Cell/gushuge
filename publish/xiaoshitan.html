@@ -1,0 +1,2534 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小石潭记 · 像素寻幽</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#0a0e10;
+    font-family:"KaiTi","STKaiti","楷体",serif; user-select:none; }
+  #wrap { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; }
+  #game {
+    image-rendering: auto;
+    background:#000; cursor:pointer;
+  }
+
+  /* ===== 星露谷式对话框 ===== */
+  #dialog {
+    position:fixed; left:50%; bottom:3.5%; transform:translateX(-50%) translateY(24px);
+    width:min(820px,94vw);
+    background:linear-gradient(180deg,#fbf4e2,#f2e8d0);
+    border:1px solid rgba(94,72,42,.55);
+    border-radius:10px;
+    box-shadow:0 10px 32px rgba(43,36,27,.4), inset 0 0 0 1px rgba(138,106,62,.25);
+    padding:16px 22px 18px 128px;
+    color:#3a2a18;
+    z-index:30;
+    opacity:0; pointer-events:none;
+    transition:opacity .18s ease, transform .18s ease;
+  }
+  #dialog.show { opacity:1; transform:translateX(-50%) translateY(0); pointer-events:auto; }
+  #portrait-box {
+    position:absolute; left:18px; top:50%; transform:translateY(-58%);
+    width:88px; height:88px;
+    background:#f1e8d3;
+    border:1px solid rgba(94,72,42,.5); border-radius:6px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:inset 0 0 0 1px rgba(138,106,62,.25);
+  }
+  #portrait { width:72px; height:72px; }
+  #nameplate {
+    position:absolute; top:-16px; left:14px;
+    background:#a8412e; color:#fbeeda;
+    font-size:1.05rem; font-weight:bold; letter-spacing:.15rem;
+    padding:2px 16px; border-radius:5px;
+    box-shadow:0 2px 0 rgba(94,72,42,.45);
+  }
+  #dialog-orig {
+    font-size:1.04rem; line-height:1.6; letter-spacing:.06rem;
+    color:#a8412e; margin:2px 0 4px; min-height:1.5em;
+    display:none;
+  }
+  #dialog-orig.show { display:block; }
+  #dialog-orig::before {
+    content:'原文'; font-size:.72rem; letter-spacing:.1rem;
+    border:1px solid rgba(168,65,46,.55); border-radius:4px;
+    padding:0 5px; margin-right:8px; opacity:.9;
+  }
+  #dialog-text {
+    font-size:1.24rem; line-height:1.68; letter-spacing:.04rem;
+    min-height:4.2em; text-shadow:none;
+  }
+  #next-arrow {
+    position:absolute; right:16px; bottom:10px;
+    width:0; height:0;
+    border-left:9px solid transparent; border-right:9px solid transparent;
+    border-top:13px solid #a8412e;
+    animation:arrowBounce .7s ease-in-out infinite;
+    opacity:0; transition:opacity .2s;
+  }
+  #next-arrow.show { opacity:1; }
+  @keyframes arrowBounce { 0%,100%{transform:translateY(0);} 50%{transform:translateY(5px);} }
+
+  /* 闯关选项 */
+  #quiz-opts { display:none; margin-top:8px; flex-direction:column; gap:7px; }
+  #quiz-opts.show { display:flex; }
+  #quiz-opts button {
+    font-family:inherit; font-size:1.02rem; letter-spacing:.05rem; text-align:left;
+    padding:7px 14px; border-radius:8px; cursor:pointer;
+    border:1px solid rgba(94,72,42,.4);
+    background:rgba(252,247,233,.95); color:#2e2820;
+    transition:background .12s, transform .12s;
+  }
+  #quiz-opts button:hover { background:rgba(168,65,46,.1); border-color:#a8412e;}
+  #quiz-opts button.ok { background:#e3ecdf; border-color:#355c35; }
+  #quiz-opts button.bad { opacity:.55; text-decoration:line-through; color:#8c7d63; background:rgba(252,247,233,.6); border-color:rgba(94,72,42,.25);}
+
+  /* 提示 */
+  #hint {
+    position:fixed; top:52px; left:50%; transform:translateX(-50%);
+    color:#2e2820; font-size:.95rem; letter-spacing:.2rem;
+    background:rgba(252,247,233,.96); padding:5px 18px; border-radius:14px;
+    z-index:20; opacity:0; transition:opacity .4s; pointer-events:none; border:1px solid rgba(94,72,42,.35);}
+  #hint.show { opacity:1; }
+
+  /* 标题 */
+  #title {
+    position:fixed; inset:0; z-index:50;
+    background:radial-gradient(1100px 520px at 78% -8%, rgba(255,250,238,.85) 0%, rgba(255,250,238,0) 60%),linear-gradient(180deg,#f6efdd 0%,#f1e8d3 52%,#e9dfc7 100%);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    color:#2e2820; transition:opacity .8s;
+  }
+  #title::after { content:''; position:absolute; inset:0; pointer-events:none; opacity:.5; background:repeating-linear-gradient(0deg, rgba(120,95,55,.025) 0 1px, transparent 1px 3px),repeating-linear-gradient(90deg, rgba(120,95,55,.02) 0 1px, transparent 1px 3px); }
+  #title h1 {
+    font-size:5.2rem; letter-spacing:1rem; text-shadow:2px 2px 0 rgba(122,90,46,.16);
+    animation:tIn 2s ease; color:#2b241b;}
+  @keyframes tIn { from{opacity:0;transform:translateY(-30px);} to{opacity:1;transform:none;} }
+  #title .sub { font-size:1.2rem; letter-spacing:.4rem; margin:.8rem 0 .4rem; color:#7a6c52;}
+  #title .author { font-size:.95rem; margin-bottom:3rem; color:#8c7d63;}
+  #start {
+    font-family:inherit; font-size:1.3rem; letter-spacing:.5rem;
+    padding:.7rem 2.6rem; border-radius:26px; cursor:pointer;
+    background:#7a5a36; color:#fbeeda; border:1px solid #5e3a1c;
+    animation:pulse 1.8s ease-in-out infinite;
+  }
+  #start:hover { background:#8a6a42; }
+  @keyframes pulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.06);} }
+  #title .tip { margin-top:2.4rem; font-size:.9rem; color:#8c7d63; letter-spacing:.15rem; }
+
+  /* 音乐 */
+  #music {
+    position:fixed; top:14px; right:14px; z-index:60;
+    width:42px; height:42px; border-radius:50%;
+    background:rgba(252,247,233,.94); color:#a8412e; border:1px solid rgba(94,72,42,.4);
+    font-size:1.1rem; cursor:pointer; line-height:1;
+    box-shadow:0 2px 8px rgba(94,72,42,.18);
+  }
+
+  /* 返回书阁 */
+  #back-shelf {
+    position:fixed; top:14px; left:14px; z-index:60;
+    height:42px; padding:0 16px; border-radius:21px;
+    background:rgba(252,247,233,.94); color:#a8412e; border:1px solid rgba(94,72,42,.4);
+    font-family:inherit; font-size:.92rem; letter-spacing:.18rem;
+    cursor:pointer; line-height:1; text-decoration:none;
+    display:flex; align-items:center; box-shadow:0 2px 8px rgba(94,72,42,.18);
+  }
+  #back-shelf:hover { background:rgba(238,228,200,.97); color:#a8412e;}
+
+  /* 过场黑幕 */
+  #fade {
+    position:fixed; inset:0; background:#2b241b; z-index:35;
+    opacity:0; pointer-events:none; transition:opacity .6s;
+  }
+  #fade.on { opacity:1; }
+
+  /* 序章·宣纸 */
+  #prologue {
+    position:fixed; inset:0; z-index:55; display:none;
+    align-items:center; justify-content:center;
+    background:rgba(43,36,27,.5);
+  }
+  #prologue.show { display:flex; }
+  .paper {
+    width:min(580px,90vw);
+    background:linear-gradient(180deg,#f3e8cc,#e8d8b2);
+    border:1px solid rgba(94,72,42,.5); border-radius:6px;
+    box-shadow:0 24px 60px rgba(43,36,27,.32), inset 0 0 0 1px rgba(138,106,62,.2);
+    padding:30px 36px 26px; color:#3a2a14; position:relative;
+  }
+  .paper::before, .paper::after {
+    content:''; position:absolute; left:0; right:0; height:6px;
+    background:repeating-linear-gradient(90deg,#7a5a2c 0 26px,#8f6e3c 26px 52px);
+  }
+  .paper::before { top:-3px; } .paper::after { bottom:-3px; }
+  .paper h2 { font-size:1.7rem; letter-spacing:.5rem; text-align:center; margin-bottom:4px; }
+  .paper .kicker { text-align:center; font-size:.86rem; letter-spacing:.3rem; color:#7a5a2c; margin-bottom:18px; }
+  .paper p { font-size:1.06rem; line-height:2.0; letter-spacing:.06rem; }
+  .paper p+p { margin-top:10px; }
+  .paper .em { color:#9a3820; font-weight:bold; }
+  #unroll {
+    display:block; margin:22px auto 0;
+    font-family:inherit; font-size:1.05rem; letter-spacing:.4rem;
+    padding:.55rem 2.2rem; border-radius:22px; cursor:pointer;
+    background:#7a5a36; color:#fbeeda; border:1px solid #5e3a1c;
+  }
+  #unroll:hover { background:#8a6a42; }
+
+  /* 顶部原文名句 HUD */
+  #hud {
+    position:fixed; top:12px; left:50%; transform:translateX(-50%);
+    z-index:15; max-width:92vw;
+    background:rgba(252,247,233,.95);
+    border:1px solid rgba(94,72,42,.4); border-radius:8px;
+    padding:5px 18px;
+    color:#5e4e36; font-size:.92rem; letter-spacing:.12rem;
+    opacity:0; transition:opacity .5s; pointer-events:none;
+    text-align:center;
+  }
+  #hud.show { opacity:1; }
+  #hud .steps { color:#a8412e; margin-left:10px; font-size:.84rem; letter-spacing:.05rem; }
+
+  /* 文言知识小卡 */
+  #note {
+    position:fixed; top:66px; right:14px; z-index:25;
+    width:min(290px,78vw);
+    background:rgba(243,232,204,.96);
+    border:2px solid #8a6a38; border-radius:8px;
+    color:#3a2a14; padding:10px 14px 11px;
+    box-shadow:0 8px 26px rgba(0,0,0,.45);
+    opacity:0; transform:translateX(18px); pointer-events:none;
+    transition:opacity .25s, transform .25s;
+  }
+  #note.show { opacity:1; transform:none; }
+  #note .n-title { font-size:1rem; font-weight:bold; letter-spacing:.1rem; color:#9a3820; }
+  #note .n-orig { font-size:1.02rem; color:#5a3a18; margin:3px 0 4px; letter-spacing:.08rem; }
+  #note .n-text { font-size:.9rem; line-height:1.65; }
+  #note .n-say {
+    position:absolute; top:7px; right:9px; width:20px; height:20px;
+    border:1px solid rgba(154,56,32,.5); border-radius:4px;
+    background:rgba(255,248,230,.85); color:#9a3820;
+    font-size:12px; line-height:1; cursor:pointer; pointer-events:auto;
+    padding:0; display:flex; align-items:center; justify-content:center;
+  }
+  #note .n-say:hover { background:#f3e2b4; }
+
+  /* 结局卷轴 */
+  #scroll {
+    position:fixed; inset:0; z-index:45; display:none;
+    align-items:center; justify-content:center;
+    background:rgba(43,36,27,.5);
+  }
+  #scroll.show { display:flex; }
+  #scroll-inner {
+    height:min(88vh,620px);
+    display:flex; flex-direction:row-reverse; gap:0;
+    background:linear-gradient(180deg,#e8d8b0,#dcc694);
+    border:4px solid #6e4e24; border-radius:8px;
+    box-shadow:0 24px 60px rgba(43,36,27,.4);
+    padding:22px 26px; overflow-x:auto; overflow-y:hidden;
+  }
+  .s-col {
+    writing-mode:vertical-rl;
+    font-family:"KaiTi","STKaiti","楷体",serif;
+    color:#3a2812;
+    padding:0 9px;
+    letter-spacing:.1rem;
+    font-size:1.06rem; line-height:1.52;
+    max-height:100%;
+    opacity:0; animation:colIn .7s forwards;
+    white-space:nowrap;
+  }
+  .s-col.head { font-size:1.9rem; letter-spacing:.6rem; color:#2a1808; font-weight:bold; padding:0 16px; }
+  .s-col.sign { color:#5a3a18; }
+  @keyframes colIn { to{opacity:1;} }
+  .s-col .lit { color:#a8412e; font-weight:bold;
+    text-shadow:none; }
+  .s-seal {
+    writing-mode:vertical-rl;
+    display:flex; align-items:center; justify-content:center;
+    padding:0 8px;
+  }
+  .seal {
+    writing-mode:vertical-rl;
+    background:#a8412e; color:#f6e8c8;
+    border:1px solid rgba(94,30,20,.55); border-radius:4px;
+    font-size:1.05rem; letter-spacing:.35rem;
+    padding:10px 6px; line-height:1.5;
+    transform:rotate(-8deg) scale(0);
+    box-shadow:0 2px 6px rgba(0,0,0,.4);
+    font-weight:bold;
+  }
+  .seal.stamp { animation:stamp .5s cubic-bezier(.2,1.6,.4,1) forwards; }
+  @keyframes stamp { to{transform:rotate(-8deg) scale(1);} }
+  #scroll-tools {
+    position:fixed; bottom:18px; left:50%; transform:translateX(-50%);
+    display:flex; gap:14px; z-index:46;
+  }
+  #scroll-tools button {
+    font-family:inherit; font-size:1rem; letter-spacing:.3rem;
+    padding:.55rem 2rem; border-radius:22px; cursor:pointer;
+    background:rgba(243,232,204,.92); border:1px solid rgba(94,72,42,.55); color:#3a2a14;
+  }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="game" width="960" height="540"></canvas></div>
+
+<div id="dialog">
+  <div id="nameplate">旁白</div>
+  <div id="portrait-box"><canvas id="portrait" width="48" height="48"></canvas></div>
+  <div id="dialog-orig"></div>
+  <div id="dialog-text"></div>
+  <div id="quiz-opts"></div>
+  <div id="next-arrow"></div>
+</div>
+<div id="hint"></div>
+<a id="back-shelf" href="index.html">← 书阁</a>
+<button id="music">♪</button>
+
+<div id="title">
+  <h1>小石潭记</h1>
+  <div class="sub">像素点击 · 竹潭寻幽</div>
+  <div class="author">— 唐 · 柳宗元 · 永州八记 —</div>
+  <button id="start">入 梦</button>
+  <div class="tip">西行百二十步 · 闻水声伐竹取道 · 寻四石观潭鱼 · 望溪源坐石题字</div>
+</div>
+
+<div id="fade"></div>
+
+<!-- 顶部原文名句 -->
+<div id="hud"></div>
+<!-- 文言知识小卡 -->
+<div id="note">
+  <div class="n-title"></div>
+  <div class="n-orig"></div>
+  <div class="n-text"></div>
+  <button class="n-say" type="button" title="朗读原文">🔊</button>
+</div>
+
+<!-- 序章 -->
+<div id="prologue">
+  <div class="paper">
+    <h2>序</h2>
+    <div class="kicker">唐 · 柳宗元 · 永州八记</div>
+    <p>柳宗元，字子厚，唐代文学家，<span class="em">「唐宋八大家」</span>之一。</p>
+    <p>他参与的政治革新失败后，被贬为永州司马，在荒僻的永州一住十年。胸中块垒，尽付山水——其间写下八篇游记，世称<span class="em">《永州八记》</span>。</p>
+    <p>《小石潭记》全名《至小丘西小石潭记》，是八记中最清、也最冷的一篇。今日你我便循着他的脚步，西行百二十步，去听那一片水声。</p>
+    <button id="unroll">启 卷 西 行</button>
+  </div>
+</div>
+
+<!-- 结局卷轴 -->
+<div id="scroll">
+  <div id="scroll-inner"></div>
+  <div id="scroll-tools">
+    <button id="scroll-say" type="button">🔊 朗读全文</button>
+    <button onclick="SAYSTOP();try{localStorage.setItem('gushi_btf_target','xst')}catch(e){};location.href='baitifang.html';">去百题坊答题 · 学完本篇</button>
+    <button onclick="SAYSTOP();location.reload()">收 卷 再 读</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ===== 学习进度（本地存储）+ 朗读 ===== */
+(function(){
+  const KEY='gushi_v1', PIECE='xst';
+  function load(){ try{ const d=JSON.parse(localStorage.getItem(KEY)); return (d&&d.v===1&&d.p)?d:{v:1,p:{}}; }catch(e){ return {v:1,p:{}}; } }
+  function save(d){ try{ localStorage.setItem(KEY,JSON.stringify(d)); }catch(e){} }
+  function mine(d){ return d.p[PIECE]||(d.p[PIECE]={lit:[],done:false,ts:0,exam:{attempts:0,wrong:[],perfect:false}}); }
+  let wrongThisExam=0;
+  /* 朗读正音（教材注音，TTS 易错字→同音字）：为wéi 见jiàn 乐lè 篁huáng 冽liè 卷quán 坻chí 嵁kān 差互cī 佁yǐ 俶chù 翕xī 悄怆qiǎochuàng（词组键先于单字应用） */
+  const FIX={'明灭可见':'明灭可建','下见':'下建','心乐':'心勒','相乐':'相勒','翠蔓':'翠腕','珮':'佩','为':'唯','篁':'皇','冽':'列','卷石底':'全石底','坻':'池','嵁':'堪','差互':'疵互','佁':'以','俶':'怵','翕':'息','悄':'巧','怆':'创','斗折':'陡折'};
+  function trk(ev,v){
+    try{
+      const t=localStorage.getItem('gushi_token');
+      if(!t)return;
+      fetch('/api/track',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({token:t,ev:ev,k:PIECE,v:v||0,t:Date.now(),
+          blob:ev==='lit'?null:(function(){try{return JSON.parse(localStorage.getItem('gushi_v1'))}catch(e){return null}})()})});
+    }catch(e){}
+  }
+  window.PROG={
+    lit(id){ if(!id)return; const d=load(),o=mine(d); if(!o.lit.includes(id)){o.lit.push(id);save(d);trk('lit');} },
+    examStart(){ wrongThisExam=0; const d=load(),o=mine(d); o.exam.attempts++; save(d); trk('examStart'); },
+    wrong(k,q,you,right){ wrongThisExam++; const d=load(),o=mine(d); o.exam.wrong.push({k:k||'',q:q||'',you:you==null?'':String(you),right:right||'',ts:Date.now()}); if(o.exam.wrong.length>60)o.exam.wrong=o.exam.wrong.slice(-60); save(d); trk('wrong'); },
+    finish(){ const d=load(),o=mine(d); o.clear=true; o.ts=Date.now(); o.exam.perfect=(wrongThisExam===0); wrongThisExam=0; save(d); trk('finish'); }
+  };
+  /* 真人感朗读引擎 v2：优选神经网络声线 · 古文句读停顿 · 标点语调 · 抗 cancel 吞音 */
+  (function(){
+    let bestVoice=null;
+    function pickVoice(){
+      try{
+        const vs=window.speechSynthesis.getVoices()||[];
+        let best=null,bs=-99;
+        for(const v of vs){
+          if(!/zh|Chinese|cmn/i.test(v.lang+v.name))continue;
+          const t=v.name||''; let s=0;
+          if(/online|natural|neural|google/i.test(t))s+=12;
+          if(/云希|云健|云扬|晓晓|晓伊|晓秋|Yunxi|Yunjian|Yunyang|Xiaoxiao|Xiaoyi|Xiaoyou/i.test(t))s+=8;
+          if(/zh-CN|zh_CN|cmn-Hans/i.test(v.lang))s+=2;
+          if(/Huihui|Kangkang|Zhiyu|Yaoyao|Desktop/i.test(t))s-=6;
+          if(s>bs){bs=s;best=v;}
+        }
+        if(best)bestVoice=best;
+      }catch(e){}
+    }
+    try{ pickVoice(); window.speechSynthesis.addEventListener('voiceschanged',pickVoice); }catch(e){}
+    let seq=0, kick=null;
+    function clearKick(){ if(kick){ clearTimeout(kick); kick=null; } }
+    function run(ss,my,items){
+      let i=0;
+      function go(){
+        if(my!==seq||i>=items.length)return;
+        const it=items[i++];
+        const u=new SpeechSynthesisUtterance(it.t);
+        u.lang='zh-CN'; u.rate=it.rate; u.pitch=it.pitch; u.volume=1;
+        if(bestVoice)u.voice=bestVoice;
+        let done=false, started=false, timer=null;
+        function guard(){
+          if(done||my!==seq)return;
+          done=true; clearTimeout(timer);
+          if(!started){
+            /* start 迟迟不来＝引擎空窗卡死：cancel 唤醒后留 300ms 恢复窗口 */
+            try{ ss.cancel(); }catch(e){}
+            kick=setTimeout(go,300);
+          }else{
+            /* 已在朗读但 end 不来：不打断声音，静默推进（新句自然顶替/排队） */
+            kick=setTimeout(go,it.pause);
+          }
+        }
+        timer=setTimeout(guard,4000);
+        u.onstart=function(){ started=true; clearTimeout(timer); timer=setTimeout(guard,Math.max(12000,it.t.length*620)); };
+        u.onend=function(){ if(done)return; done=true; clearTimeout(timer); kick=setTimeout(go,it.pause); };
+        u.onerror=function(){ if(done)return; done=true; clearTimeout(timer); kick=setTimeout(go,260); };
+        try{ ss.resume(); }catch(e){}
+        ss.speak(u);
+      }
+      kick=setTimeout(go,120);   /* 首句延迟 120ms：避开 cancel() 异步吞音窗口 */
+    }
+    window.SAY=function(text){
+      try{
+        if(!('speechSynthesis' in window))return;
+        const ss=window.speechSynthesis, my=++seq;
+        clearKick();
+        ss.cancel();
+        let s=String(text).replace(/\s+/g,'');
+        if(!s)return;
+        for(const k in FIX)s=s.split(k).join(FIX[k]);
+        if(!bestVoice)pickVoice();
+        const parts=s.match(/[^。！？；，、：,.!?;:]+[。！？；，、：,.!?;:]?/g)||[s];
+        /* 逗号短句并入整句，朗读更连贯 */
+        const groups=[]; let buf='';
+        for(const p1 of parts){
+          const p2=p1.trim(); if(!p2)continue;
+          buf+=p2;
+          if(/[。！？；!?;]$/.test(p2)){ groups.push(buf); buf=''; }
+        }
+        if(buf)groups.push(buf);
+        const items=[];
+        for(const p0 of groups){
+          const p=p0.trim(); if(!p)continue;
+          const end=p.slice(-1), core=p.replace(/[。！？；，、：,.!?;:]+$/,'');
+          let rate=1.02, pitch=1;
+          if(/[？?]/.test(end)){ pitch=1.1; rate=1.0; }
+          else if(/[！!]/.test(end)){ pitch=.94; rate=.98; }
+          else if(/[。；;]/.test(end)){ pitch=.985; rate=.98; }
+          if(/[也矣焉耳哉]$/.test(core))rate-=.03;
+          const pause=/[。！？；;!?]/.test(end)?140:(/[，、：,:]/.test(end)?60:40);
+          items.push({t:p,rate:rate,pitch:pitch,pause:pause});
+          if(items.length>=80)break;
+        }
+        run(ss,my,items);
+      }catch(e){}
+    };
+    window.SAYSTOP=function(){ seq++; clearKick(); try{ if('speechSynthesis' in window)window.speechSynthesis.cancel(); }catch(e){} };
+  })();
+})();
+/* ================= 基础 ================= */
+const cv = document.getElementById('game');
+const g = cv.getContext('2d');
+g.scale(2,2);
+g.imageSmoothingEnabled = true;
+const W = 480, H = 270;
+
+function fit() {
+  const s = Math.min(window.innerWidth / W, window.innerHeight / H);
+  cv.style.width = (W * s) + 'px';
+  cv.style.height = (H * s) + 'px';
+}
+window.addEventListener('resize', fit); fit();
+
+let CUR = g;
+function px(x,y,w,h,c){ CUR.fillStyle=c; CUR.fillRect(x|0,y|0,Math.round(w),Math.round(h)); }
+function rnd(a,b){ return a + Math.random()*(b-a); }
+function clamp(v,a,b){ return v<a?a:v>b?b:v; }
+function dist(ax,ay,bx,by){ return Math.hypot(ax-bx,ay-by); }
+
+/* —— 美术工具 —— */
+function hexRGB(h){ return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]; }
+function rgbLerp(a,b,t){ return 'rgb('+a.map((v,i)=>Math.round(v+(b[i]-v)*t)).join(',')+')'; }
+/* —— 平滑 2D 绘制工具（矢量填充，抗锯齿，不再像素块拼接） —— */
+function vband(y0,y1,c1,c2){
+  const gr=CUR.createLinearGradient(0,y0,0,y1);
+  gr.addColorStop(0,c1); gr.addColorStop(1,c2);
+  CUR.fillStyle=gr; CUR.fillRect(0,y0,W,y1-y0+1);
+}
+function disc(cx,cy,r,c){
+  CUR.fillStyle=c; CUR.beginPath(); CUR.arc(cx,cy,r,0,Math.PI*2); CUR.fill();
+}
+function softGlow(cx,cy,r,c1,c2){
+  const gr=CUR.createRadialGradient(cx,cy,0,cx,cy,r);
+  gr.addColorStop(0,c1); gr.addColorStop(1,c2||'rgba(255,255,255,0)');
+  CUR.fillStyle=gr; CUR.beginPath(); CUR.arc(cx,cy,r,0,Math.PI*2); CUR.fill();
+}
+function shadow(cx,cy,rx,ry,a=.26){
+  CUR.save(); CUR.translate(cx,cy); CUR.scale(rx,ry);
+  const gr=CUR.createRadialGradient(0,0,0,0,0,1);
+  gr.addColorStop(0,'rgba(22,14,8,'+a+')');
+  gr.addColorStop(.62,'rgba(22,14,8,'+(a*.5)+')');
+  gr.addColorStop(1,'rgba(22,14,8,0)');
+  CUR.fillStyle=gr; CUR.beginPath(); CUR.arc(0,0,1,0,Math.PI*2); CUR.fill();
+  CUR.restore();
+}
+function tuft(x,y,c='#4f7a34'){
+  CUR.save(); CUR.strokeStyle=c; CUR.lineWidth=.8; CUR.lineCap='round';
+  for(let i=-1;i<=1;i++){
+    CUR.beginPath(); CUR.moveTo(x+i*1.3,y);
+    CUR.quadraticCurveTo(x+i*2.4,y-3.2, x+i*3.6+(i<0?-1:1),y-5.4+(i===0?1:0));
+    CUR.stroke();
+  }
+  CUR.restore();
+}
+function hash(i){ const v=Math.sin(i*127.1+311.7)*43758.5453; return v-Math.floor(v); }
+function cloud(x,y,s=1){
+  CUR.save(); CUR.globalAlpha=.92;
+  ellipseFill(x+9*s,y+2.2*s,9.5*s,2.6*s,'rgba(255,255,255,.55)');
+  ellipseFill(x+4*s,y+.4*s,5.2*s,3.2*s,'#ffffff');
+  ellipseFill(x+10.5*s,y-2.2*s,6.2*s,3.8*s,'#ffffff');
+  ellipseFill(x+17*s,y+.8*s,6.4*s,2.4*s,'rgba(255,255,255,.8)');
+  CUR.restore();
+}
+function ellipseFill(cx,cy,rx,ry,c){
+  CUR.fillStyle=c; CUR.beginPath(); CUR.ellipse(cx,cy,Math.max(.2,rx),Math.max(.2,ry),0,0,Math.PI*2); CUR.fill();
+}
+function rockFill(cx,cy,rx,ry,c1,c2){
+  const rg=CUR.createRadialGradient(cx-rx*.4,cy-ry*.9,Math.max(.5,ry*.2),cx,cy,Math.max(rx,ry));
+  rg.addColorStop(0,c2); rg.addColorStop(1,c1);
+  CUR.fillStyle=rg;
+  CUR.beginPath(); CUR.ellipse(cx,cy,rx,ry,0,0,Math.PI*2); CUR.fill();
+}
+function mount(cx,base,w,h,main,dark,cap){
+  const gr=CUR.createLinearGradient(cx-w*.5,base-h,cx+w*.5,base);
+  gr.addColorStop(0,cap); gr.addColorStop(.42,main); gr.addColorStop(1,dark);
+  CUR.fillStyle=gr;
+  CUR.beginPath();
+  CUR.moveTo(cx-w,base);
+  CUR.quadraticCurveTo(cx-w*.5,base-h*.42,cx-w*.16,base-h*.9);
+  CUR.quadraticCurveTo(cx-w*.04,base-h*1.02,cx+w*.06,base-h*.82);
+  CUR.quadraticCurveTo(cx+w*.36,base-h*.4,cx+w*.62,base-h*.62);
+  CUR.quadraticCurveTo(cx+w*.86,base-h*.3,cx+w,base);
+  CUR.closePath(); CUR.fill();
+  /* 山脊淡墨线 */
+  CUR.save(); CUR.strokeStyle='rgba(70,86,80,.28)'; CUR.lineWidth=.8;
+  CUR.beginPath(); CUR.moveTo(cx-w,base);
+  CUR.quadraticCurveTo(cx-w*.5,base-h*.42,cx-w*.16,base-h*.9);
+  CUR.quadraticCurveTo(cx-w*.04,base-h*1.02,cx+w*.06,base-h*.82);
+  CUR.quadraticCurveTo(cx+w*.36,base-h*.4,cx+w*.62,base-h*.62);
+  CUR.quadraticCurveTo(cx+w*.86,base-h*.3,cx+w,base);
+  CUR.stroke(); CUR.restore();
+}
+function boulder(x,y,w){
+  const gr=CUR.createLinearGradient(0,y-w*.55,0,y+2);
+  gr.addColorStop(0,'#7d7568'); gr.addColorStop(.55,'#6a6258'); gr.addColorStop(1,'#463f38');
+  CUR.fillStyle=gr;
+  CUR.beginPath();
+  CUR.moveTo(x,y);
+  CUR.quadraticCurveTo(x-w*.1,y-w*.55,x+w*.34,y-w*.58);
+  CUR.quadraticCurveTo(x+w*.92,y-w*.5,x+w,y-1);
+  CUR.quadraticCurveTo(x+w*.6,y+2,x,y);
+  CUR.closePath(); CUR.fill();
+  CUR.save(); CUR.globalAlpha=.5; CUR.strokeStyle='#948c80'; CUR.lineWidth=1;
+  CUR.beginPath(); CUR.moveTo(x+w*.24,y-w*.44); CUR.quadraticCurveTo(x+w*.52,y-w*.52,x+w*.72,y-w*.42); CUR.stroke();
+  CUR.restore();
+  tuft(x+w-2,y,'#5a7040'); tuft(x+1,y+1,'#4a6034');
+}
+function leafBlob(cx,cy,r,c1,c2){
+  const gr=CUR.createRadialGradient(cx-r*.34,cy-r*.42,r*.12,cx,cy,r*1.04);
+  gr.addColorStop(0,c2); gr.addColorStop(.62,c1); gr.addColorStop(1,'rgba(40,74,34,.96)');
+  CUR.fillStyle=gr; CUR.beginPath(); CUR.arc(cx,cy,r,0,Math.PI*2); CUR.fill();
+}
+function greenTree(x,y){
+  shadow(x,y+2,13,3.6,.2);
+  const tg=CUR.createLinearGradient(x-2,0,x+2,0);
+  tg.addColorStop(0,'#4a2c12'); tg.addColorStop(.5,'#5f3c1a'); tg.addColorStop(1,'#46290f');
+  CUR.fillStyle=tg;
+  CUR.beginPath(); CUR.moveTo(x-2.1,y+1);
+  CUR.quadraticCurveTo(x-1.3,y-8,x-.9,y-13);
+  CUR.lineTo(x+1.5,y-13);
+  CUR.quadraticCurveTo(x+1.5,y-7,x+2.3,y+1);
+  CUR.closePath(); CUR.fill();
+  CUR.strokeStyle='#5a3818'; CUR.lineWidth=1.5; CUR.lineCap='round';
+  CUR.beginPath(); CUR.moveTo(x,y-8.4); CUR.quadraticCurveTo(x-4.6,y-10.4,x-7.6,y-12.2); CUR.stroke();
+  CUR.beginPath(); CUR.moveTo(x,y-9.2); CUR.quadraticCurveTo(x+4.6,y-11.6,x+7.6,y-13.2); CUR.stroke();
+  leafBlob(x,y-20,12.4,'#3c7438','#5c9a50');
+  leafBlob(x-9,y-15,7.6,'#3f7c3c','#569349');
+  leafBlob(x+9,y-16,7.6,'#3f7c3c','#569349');
+  leafBlob(x,y-11.6,8.2,'#458240','#62a256');
+  leafBlob(x-3,y-25,7.4,'#4b8a42','#74bc6a');
+  leafBlob(x+6,y-23,5.6,'#4b8a42','#74bc6a');
+  CUR.save(); CUR.globalAlpha=.55; disc(x-5,y-27,2.2,'#8ed07e'); disc(x+4.4,y-19,1.4,'#8ed07e'); CUR.restore();
+}
+function bareTree(x,y){
+  shadow(x,y+1,9,2.6,.16);
+  CUR.save(); CUR.strokeStyle='#3a2e26'; CUR.lineCap='round';
+  CUR.lineWidth=2.6; CUR.beginPath(); CUR.moveTo(x,y); CUR.lineTo(x,y-15.5); CUR.stroke();
+  CUR.lineWidth=1.8;
+  CUR.beginPath(); CUR.moveTo(x,y-11.6); CUR.quadraticCurveTo(x-5,y-13,x-8.8,y-13.4); CUR.stroke();
+  CUR.beginPath(); CUR.moveTo(x,y-13.2); CUR.quadraticCurveTo(x+4.6,y-14.4,x+8.6,y-15); CUR.stroke();
+  CUR.lineWidth=1.1;
+  CUR.beginPath(); CUR.moveTo(x-4.4,y-12.6); CUR.quadraticCurveTo(x-7,y-14.6,x-10.6,y-15.2); CUR.stroke();
+  CUR.beginPath(); CUR.moveTo(x+4,y-14); CUR.quadraticCurveTo(x+7,y-16,x+10,y-17.4); CUR.stroke();
+  CUR.beginPath(); CUR.moveTo(x-1.4,y-15.2); CUR.quadraticCurveTo(x-1.2,y-18,x-2.6,y-20); CUR.stroke();
+  CUR.restore();
+}
+
+/* —— 竹 —— */
+function bamboo(x,baseY,h,w,c1,c2,c3){
+  const r=Math.max(.8,w/2);
+  const gr=CUR.createLinearGradient(x-r,0,x+r,0);
+  gr.addColorStop(0,c3); gr.addColorStop(.3,c1); gr.addColorStop(.72,c2); gr.addColorStop(1,c3);
+  CUR.fillStyle=gr;
+  CUR.beginPath();
+  CUR.moveTo(x-r,baseY);
+  CUR.lineTo(x-r,baseY-h+r);
+  CUR.quadraticCurveTo(x-r,baseY-h,x,baseY-h);
+  CUR.quadraticCurveTo(x+r,baseY-h,x+r,baseY-h+r);
+  CUR.lineTo(x+r,baseY);
+  CUR.closePath(); CUR.fill();
+  for(let yy=baseY-8; yy>baseY-h+3; yy-=9){
+    CUR.save();
+    CUR.strokeStyle='rgba(34,62,28,.4)'; CUR.lineWidth=.9;
+    CUR.beginPath(); CUR.moveTo(x-r-.4,yy); CUR.lineTo(x+r+.4,yy); CUR.stroke();
+    CUR.strokeStyle='rgba(255,255,255,.26)'; CUR.lineWidth=.7;
+    CUR.beginPath(); CUR.moveTo(x-r*.6,yy+.9); CUR.quadraticCurveTo(x,yy+1.5,x+r*.6,yy+.9); CUR.stroke();
+    CUR.restore();
+  }
+}
+function bambooLeaves(x,y,n,seed){
+  CUR.save(); CUR.lineCap='round';
+  for(let i=0;i<n;i++){
+    const a=hash(seed*3.7+i)*6.28, len=5+hash(i*9.1+seed)*8;
+    const ex=x+Math.cos(a)*len, ey=y+Math.sin(a)*len*.45;
+    const mx=(x+ex)/2, my=(y+ey)/2-2;
+    CUR.strokeStyle='rgba(88,150,66,.9)'; CUR.lineWidth=1.7;
+    CUR.beginPath(); CUR.moveTo(x,y); CUR.quadraticCurveTo(mx,my,ex,ey); CUR.stroke();
+    CUR.strokeStyle='rgba(146,206,116,.8)'; CUR.lineWidth=.75;
+    CUR.beginPath(); CUR.moveTo(x,y); CUR.quadraticCurveTo(mx,my-.9,ex,ey); CUR.stroke();
+  }
+  CUR.restore();
+}
+
+/* ================= 音频 ================= */
+let actx=null, masterGain=null, musicOn=false, mTimer=null;
+function audioInit(){
+  if(actx) return;
+  actx = new (window.AudioContext||window.webkitAudioContext)();
+  masterGain = actx.createGain();
+  masterGain.gain.value = .2; masterGain.connect(actx.destination);
+}
+function tone(freq, t, dur, vol=.15, type='sine', dest){
+  dest = dest||masterGain;
+  const o=actx.createOscillator(), gn=actx.createGain();
+  o.type=type; o.frequency.value=freq;
+  gn.gain.setValueAtTime(0,t);
+  gn.gain.linearRampToValueAtTime(vol,t+.02);
+  gn.gain.exponentialRampToValueAtTime(.001,t+dur);
+  o.connect(gn); gn.connect(dest); o.start(t); o.stop(t+dur+.05);
+}
+function blipSound(){
+  if(!actx||!musicOn) return;
+  tone(680+Math.random()*120, actx.currentTime, .05, .04, 'square');
+}
+function chime(){
+  if(!actx||!musicOn) return;
+  const t=actx.currentTime;
+  tone(523.25,t,.18,.12); tone(659.25,t+.09,.25,.12); tone(783.99,t+.18,.35,.1);
+}
+// 如鸣珮环——水声清音
+function peihuan(){
+  if(!actx||!musicOn) return;
+  const t=actx.currentTime, S=[523.25,587.33,659.25,783.99,880];
+  const f=S[(Math.random()*S.length)|0];
+  tone(f,t,.5,.045); tone(f*1.5,t+.07,.45,.028); tone(f*.75,t+.13,.6,.02,'triangle');
+}
+// 伐竹
+function cutSound(){
+  if(!actx||!musicOn) return;
+  const t=actx.currentTime;
+  tone(150,t,.09,.14,'square');
+  tone(70,t,.12,.1,'triangle');
+}
+// 盖印
+function sealSound(){
+  if(!actx||!musicOn) return;
+  const t=actx.currentTime;
+  tone(98,t,.22,.18,'triangle');
+  setTimeout(()=>{ if(actx) tone(147,actx.currentTime,.3,.1,'triangle'); },90);
+}
+const SCALE=[261.63,293.66,329.63,392,440,523.25,587.33,659.25];
+const BASS=[130.81,146.83,164.81,196,220];
+const MELODY=[[5,1],[4,1],[3,1],[2,1],[3,2],[5,1],[3,1],[4,1],[3,1],[2,1],[1,1],[2,2],[4,1],[2,1],
+ [3,1],[4,1],[5,1],[6,1],[5,2],[3,1],[5,1],[4,1],[3,1],[4,1],[5,1],[3,2],[2,1],[1,1],
+ [1,2],[2,1],[3,1],[4,2],[3,1],[2,1],[1,4]];
+let mIdx=0; const BEAT=.55;
+function schedMusic(){
+  if(!musicOn||!actx) return;
+  const [idx,beats]=MELODY[mIdx], f=SCALE[idx-1], t=actx.currentTime;
+  tone(f,t,beats*BEAT,.12);
+  tone(f*2,t+.05,beats*BEAT*.6,.04);
+  if(mIdx%4===0) tone(BASS[(Math.random()*BASS.length)|0],t,BEAT*4,.09,'triangle');
+  mIdx=(mIdx+1)%MELODY.length;
+  mTimer=setTimeout(schedMusic, beats*BEAT*1000);
+}
+document.getElementById('music').addEventListener('click', e=>{
+  e.stopPropagation(); audioInit();
+  if(actx.state==='suspended') actx.resume();
+  if(musicOn){ musicOn=false; clearTimeout(mTimer); e.target.textContent='♪'; }
+  else{ musicOn=true; mIdx=0; schedMusic(); e.target.textContent='♫'; }
+});
+
+/* ================= 像素小人 ================= */
+const CHARS = {
+  liu:{ hair:'#181820', skin:'#edc49c', shade:'#d2a47c', blush:'#e08888',
+    cloth:'#3e6e6e', cloth2:'#2e5454', panel:'#528282', inner:'#e6deca',
+    belt:'#223038', buckle:'#c8a84a', legs:'#2c3a3c', shoe:'#1c2426', futou:true },
+  wu:{ hair:'#241a10', skin:'#eec29a', shade:'#d4a47a', blush:'#e08888',
+    cloth:'#8a5f36', cloth2:'#6c4a2a', panel:'#a87c4a', inner:'#eee2c6',
+    belt:'#4a3018', buckle:'#d8b060', legs:'#3c2c18', shoe:'#241808' },
+  zongxuan:{ hair:'#1a1410', skin:'#f0c8a0', shade:'#d6a87c', blush:'#e89090',
+    cloth:'#4a5f8e', cloth2:'#38486e', panel:'#5e739e', inner:'#e8e0cc',
+    belt:'#2a3450', buckle:'#c8c090', legs:'#2c3448', shoe:'#181e2c' },
+  xiaosheng:{ hair:'#1a1008', skin:'#f4d0a8', shade:'#dcaa82', blush:'#f08080',
+    cloth:'#b8862e', cloth2:'#94691f', panel:'#d0a04a', inner:'#f4e6bc',
+    belt:'#7a5218', buckle:'#ffd94d', legs:'#3a2810', shoe:'#221408', child:true },
+  narrator:{ hair:'#3a2418', skin:'#f0c8a0', shade:'#d8a070', blush:'#e88888',
+    cloth:'#6a4a8a', cloth2:'#523870', panel:'#7e5ea0', inner:'#e8dcf0',
+    belt:'#3a2458', buckle:'#ffd94d', legs:'#2a1a3a', shoe:'#1a1028' }
+};
+
+// 原点在脚底中心；四方向 + 摆臂摆腿 + 呼吸起伏
+function rrectP(ctx,x,y,w,h,r){
+  const k=Math.min(r,Math.abs(w)/2,Math.abs(h)/2);
+  ctx.beginPath();
+  ctx.moveTo(x+k,y);
+  ctx.lineTo(x+w-k,y); ctx.quadraticCurveTo(x+w,y,x+w,y+k);
+  ctx.lineTo(x+w,y+h-k); ctx.quadraticCurveTo(x+w,y+h,x+w-k,y+h);
+  ctx.lineTo(x+k,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-k);
+  ctx.lineTo(x,y+k); ctx.quadraticCurveTo(x,y,x+k,y);
+  ctx.closePath();
+}
+function rrect(x,y,w,h,r){ rrectP(CUR,x,y,w,h,r); }
+function limb(x0,y0,x1,y1,w,col){
+  CUR.strokeStyle=col; CUR.lineWidth=w; CUR.lineCap='round';
+  CUR.beginPath(); CUR.moveTo(x0,y0); CUR.lineTo(x1,y1); CUR.stroke();
+}
+function eyeAt(ex,ey){
+  CUR.fillStyle='#fff8ee';
+  CUR.beginPath(); CUR.ellipse(ex,ey,.78,1.02,0,0,6.2832); CUR.fill();
+  CUR.fillStyle='#2a1a12';
+  CUR.beginPath(); CUR.ellipse(ex,ey,.42,.6,0,0,6.2832); CUR.fill();
+  CUR.fillStyle='rgba(255,255,255,.85)';
+  CUR.beginPath(); CUR.arc(ex-.16,ey-.28,.19,0,6.2832); CUR.fill();
+}
+
+function drawHuman(cx, cy, o){
+  const c = CHARS[o.type] || CHARS.narrator;
+  const sc = c.child ? .82 : 1;
+  const moving=!!o.moving, f=o.frame||0, dir=o.dir||'d';
+  const idle = moving?0:((f>>4)&1);
+  const ph = moving ? (f%4) : 0;
+  const sw = moving ? [0,1,0,-1][ph] : 0;            // 手臂前后摆动
+  const bob = moving ? ((ph%2)?-.55:0) : -idle*.7;   // 步伐起伏
+  const br = moving ? 0 : Math.sin(f*.07)*.3;        // 站立呼吸
+
+  CUR.save(); CUR.translate(cx,cy); CUR.scale(sc,sc);
+  shadow(0,0,8.4,2.7,.3);
+  CUR.translate(0,bob);
+
+  /* —— 腿脚 —— */
+  const liftL = moving&&ph===1?1.1:0;
+  const liftR = moving&&ph===3?1.1:0;
+  const sgn = dir==='l'?-1:(dir==='r'?1:0);
+  const fxL = -2.4 + sgn*sw*.9, fxR = 2.4 + sgn*sw*.9;
+  limb(-2.2,-5.4, fxL, -1.4-liftL, 2.5, c.legs);
+  limb( 2.2,-5.4, fxR, -1.4-liftR, 2.5, c.legs);
+  CUR.fillStyle=c.shoe;
+  CUR.beginPath(); CUR.ellipse(fxL-.2,-.75-liftL,2.15,1.15,0,0,6.2832); CUR.fill();
+  CUR.beginPath(); CUR.ellipse(fxR+.2,-.75-liftR,2.15,1.15,0,0,6.2832); CUR.fill();
+  CUR.fillStyle='rgba(255,255,255,.16)';
+  CUR.beginPath(); CUR.ellipse(fxL-.4,-1.1-liftL,1.1,.42,0,0,6.2832); CUR.fill();
+  CUR.beginPath(); CUR.ellipse(fxR,-1.1-liftR,1.1,.42,0,0,6.2832); CUR.fill();
+
+  /* —— 长袍 —— */
+  const robe=CUR.createLinearGradient(0,-17.2,0,-2.4);
+  robe.addColorStop(0,c.panel); robe.addColorStop(.52,c.cloth); robe.addColorStop(1,c.cloth2);
+  CUR.fillStyle=robe;
+  CUR.beginPath();
+  CUR.moveTo(-4.7,-16.3);
+  CUR.bezierCurveTo(-5.9,-13.2,-6.9,-7.4,-7.3,-3.0);
+  CUR.quadraticCurveTo(-3.7,-1.5,0,-1.5);
+  CUR.quadraticCurveTo(3.7,-1.5,7.3,-3.0);
+  CUR.bezierCurveTo(6.9,-7.4,5.9,-13.2,4.7,-16.3);
+  CUR.quadraticCurveTo(2.3,-17.4,0,-17.4);
+  CUR.quadraticCurveTo(-2.3,-17.4,-4.7,-16.3);
+  CUR.closePath(); CUR.fill();
+  /* 衣襟 */
+  CUR.fillStyle=c.panel;
+  CUR.beginPath();
+  CUR.moveTo(-2.0,-16.0); CUR.quadraticCurveTo(-2.7,-9.4,-2.3,-2.1);
+  CUR.lineTo(2.3,-2.1); CUR.quadraticCurveTo(2.7,-9.4,2.0,-16.0);
+  CUR.closePath(); CUR.fill();
+  /* 交领 */
+  CUR.fillStyle=c.inner;
+  CUR.beginPath();
+  CUR.moveTo(-3.3,-16.9); CUR.quadraticCurveTo(-1.6,-13.4,0,-11.9);
+  CUR.quadraticCurveTo(1.6,-13.4,3.3,-16.9);
+  CUR.quadraticCurveTo(0,-15.9,-3.3,-16.9);
+  CUR.closePath(); CUR.fill();
+  /* 腰带 */
+  CUR.fillStyle=c.belt; rrect(-5.6,-8.6,11.2,2.3,.9); CUR.fill();
+  CUR.fillStyle=c.buckle; rrect(-1.3,-8.8,2.6,2.7,.6); CUR.fill();
+  CUR.strokeStyle='rgba(30,20,12,.18)'; CUR.lineWidth=.7;
+  CUR.beginPath(); CUR.moveTo(-6.9,-3.4); CUR.quadraticCurveTo(0,-2.1,6.9,-3.4); CUR.stroke();
+
+  /* —— 手臂 —— */
+  limb(-4.5,-14.9,-6.3,-9.4+sw*.95,2.6,c.cloth2);
+  limb( 4.5,-14.9, 6.3,-9.4-sw*.95,2.6,c.cloth2);
+  CUR.fillStyle=c.skin;
+  CUR.beginPath(); CUR.arc(-6.3,-8.9+sw*.95,1.25,0,6.2832); CUR.fill();
+  CUR.beginPath(); CUR.arc( 6.3,-8.9-sw*.95,1.25,0,6.2832); CUR.fill();
+
+  /* —— 头 —— */
+  const hy=-21.0+br;
+  CUR.fillStyle=c.shade; rrect(-1.7,-18.1,3.4,2.6,.9); CUR.fill();   // 颈
+  if(dir==='u'){
+    CUR.fillStyle=c.hair;
+    CUR.beginPath(); CUR.ellipse(0,hy,4.2,4.5,0,0,6.2832); CUR.fill();
+    CUR.beginPath(); CUR.arc(0,hy-4.0,1.9,0,6.2832); CUR.fill();
+    CUR.fillStyle='rgba(255,255,255,.10)';
+    CUR.beginPath(); CUR.ellipse(-1.5,hy-1.6,1.15,2.0,-.32,0,6.2832); CUR.fill();
+  }else{
+    CUR.fillStyle=c.hair;
+    CUR.beginPath(); CUR.ellipse(0,hy-.7,4.2,4.55,0,0,6.2832); CUR.fill();
+    CUR.fillStyle=c.skin;
+    CUR.beginPath(); CUR.ellipse(0,hy+1.0,3.55,3.6,0,0,6.2832); CUR.fill();
+    /* 鬓发（朝向侧收窄） */
+    CUR.fillStyle=c.hair;
+    const lw = dir==='l'?.6:1.1, rw = dir==='r'?.6:1.1;
+    CUR.beginPath(); CUR.ellipse(-3.55,hy+1.2,lw,2.45,.10,0,6.2832); CUR.fill();
+    CUR.beginPath(); CUR.ellipse( 3.55,hy+1.2,rw,2.45,-.10,0,6.2832); CUR.fill();
+    CUR.strokeStyle='rgba(255,255,255,.10)'; CUR.lineWidth=.6; CUR.lineCap='round';
+    CUR.beginPath(); CUR.arc(-1.3,hy-1.9,2.5,Math.PI*.92,Math.PI*1.42); CUR.stroke();
+    /* 五官 */
+    const ox = dir==='l'?-.75:(dir==='r'?.75:0);
+    if(dir==='d'){ eyeAt(-1.45,hy+.9); eyeAt(1.45,hy+.9); }
+    else if(dir==='l'){ eyeAt(-1.5,hy+.9); }
+    else{ eyeAt(1.5,hy+.9); }
+    CUR.fillStyle='rgba(226,118,118,.38)';
+    CUR.beginPath(); CUR.ellipse(-2.35+ox*.5,hy+2.15,.95,.58,0,0,6.2832); CUR.fill();
+    CUR.beginPath(); CUR.ellipse( 2.35+ox*.5,hy+2.15,.95,.58,0,0,6.2832); CUR.fill();
+    CUR.strokeStyle='#a8584a'; CUR.lineWidth=.6; CUR.lineCap='round';
+    CUR.beginPath(); CUR.arc(ox*1.1,hy+1.95,1.0,.28,Math.PI-.28); CUR.stroke();
+  }
+  /* 幞头（唐代官帽） */
+  if(c.futou){
+    CUR.fillStyle='#14141c';
+    rrect(-5.0,hy-4.9,10.0,3.7,1.3); CUR.fill();
+    rrect(-7.7,hy-4.4,3.4,1.6,.8); CUR.fill();
+    rrect( 4.3,hy-4.4,3.4,1.6,.8); CUR.fill();
+    CUR.fillStyle='#2e2e3e'; rrect(-3.4,hy-4.6,6.8,1.0,.5); CUR.fill();
+  }
+  CUR.restore();
+}
+
+/* ================= 头像（24x24） ================= */
+const pcv = document.getElementById('portrait');
+const pg = pcv.getContext('2d'); pg.scale(2,2); pg.imageSmoothingEnabled=true;
+function drawPortrait(type){
+  const x=pg, S=24;
+  x.clearRect(0,0,S,S);
+  const c=CHARS[type]||CHARS.narrator;
+
+  if(type==='narrator'){
+    const b=x.createLinearGradient(0,0,S,S);
+    b.addColorStop(0,'#f8ecd0'); b.addColorStop(1,'#e0c493');
+    x.fillStyle=b; x.fillRect(0,0,S,S);
+    x.fillStyle='rgba(255,255,255,.30)'; x.fillRect(1.6,1.6,S-3.2,S-3.2);
+    x.fillStyle='#7c5528';
+    rrectP(x,-.6,1.0,S+1.2,2.6,1.1); x.fill();
+    rrectP(x,-.6,S-3.6,S+1.2,2.6,1.1); x.fill();
+    x.fillStyle='#cf9f5e';
+    rrectP(x,.2,1.4,S-.4,.7,.3); x.fill();
+    rrectP(x,.2,S-3.2,S-.4,.7,.3); x.fill();
+    x.strokeStyle='#5a4028'; x.lineWidth=.85; x.lineCap='round';
+    for(let i=0;i<4;i++){
+      const yy=5.6+i*1.95;
+      x.beginPath(); x.moveTo(4.2,yy);
+      x.lineTo(4.2+(i===3?5.5:12.2-i*1.3),yy); x.stroke();
+    }
+    x.fillStyle='#b8382a'; rrectP(x,15.4,14.4,4.6,4.6,.8); x.fill();
+    x.strokeStyle='#ef8a6a'; x.lineWidth=.7;
+    x.beginPath(); x.moveTo(16.6,15.6); x.lineTo(19.2,18.2);
+    x.moveTo(19.2,15.6); x.lineTo(16.6,18.2); x.stroke();
+    return;
+  }
+
+  /* 底：柔光 */
+  const bg=x.createRadialGradient(12,8,2,12,12,15);
+  bg.addColorStop(0,'#4a4272'); bg.addColorStop(.6,'#2e2850'); bg.addColorStop(1,'#1c1732');
+  x.fillStyle=bg; x.fillRect(0,0,S,S);
+  const gl=x.createRadialGradient(12,10,0,12,10,9);
+  gl.addColorStop(0,'rgba(255,240,200,.20)'); gl.addColorStop(1,'rgba(255,240,200,0)');
+  x.fillStyle=gl; x.fillRect(0,0,S,S);
+
+  /* 肩与袍 */
+  x.fillStyle=c.cloth2;
+  x.beginPath(); x.moveTo(2.0,S);
+  x.bezierCurveTo(2.2,18.4,5.4,16.6,8.6,16.2);
+  x.lineTo(15.4,16.2);
+  x.bezierCurveTo(18.6,16.6,21.8,18.4,22.0,S);
+  x.closePath(); x.fill();
+  const robe=x.createLinearGradient(0,16,0,S);
+  robe.addColorStop(0,c.cloth); robe.addColorStop(1,c.cloth2);
+  x.fillStyle=robe;
+  x.beginPath(); x.moveTo(3.2,S);
+  x.bezierCurveTo(3.4,19.0,6.2,17.2,8.8,16.8);
+  x.lineTo(15.2,16.8);
+  x.bezierCurveTo(17.8,17.2,20.6,19.0,20.8,S);
+  x.closePath(); x.fill();
+  /* 衣襟 */
+  x.fillStyle=c.panel;
+  x.beginPath(); x.moveTo(8.6,16.6);
+  x.quadraticCurveTo(11.2,19.4,12,21.4);
+  x.quadraticCurveTo(12.8,19.4,15.4,16.6);
+  x.quadraticCurveTo(12,17.4,8.6,16.6);
+  x.closePath(); x.fill();
+  /* 交领 */
+  x.fillStyle=c.inner;
+  x.beginPath(); x.moveTo(9.0,16.4);
+  x.quadraticCurveTo(10.6,18.6,12,19.6);
+  x.quadraticCurveTo(13.4,18.6,15.0,16.4);
+  x.quadraticCurveTo(12,17.2,9.0,16.4);
+  x.closePath(); x.fill();
+  x.fillStyle=c.belt; rrectP(x,3.6,20.9,16.8,1.5,.7); x.fill();
+  x.fillStyle=c.buckle; rrectP(x,10.9,20.7,2.2,1.9,.5); x.fill();
+
+  /* 颈 */
+  x.fillStyle=c.shade; rrectP(x,9.8,13.8,4.4,3.4,1.2); x.fill();
+
+  /* 头 */
+  x.fillStyle=c.hair;
+  x.beginPath(); x.ellipse(12,9.4,5.5,5.7,0,0,6.2832); x.fill();
+  x.fillStyle=c.skin;
+  x.beginPath(); x.ellipse(12,10.6,4.7,4.85,0,0,6.2832); x.fill();
+  x.fillStyle=c.hair;
+  x.beginPath(); x.ellipse(7.7,10.9,1.5,2.9,.12,0,6.2832); x.fill();
+  x.beginPath(); x.ellipse(16.3,10.9,1.5,2.9,-.12,0,6.2832); x.fill();
+  x.strokeStyle='rgba(255,255,255,.13)'; x.lineWidth=.9; x.lineCap='round';
+  x.beginPath(); x.arc(9.8,7.4,3.1,Math.PI*.92,Math.PI*1.4); x.stroke();
+  /* 眼 */
+  const eye=function(ex,ey){
+    x.fillStyle='#fff8ee';
+    x.beginPath(); x.ellipse(ex,ey,1.0,1.25,0,0,6.2832); x.fill();
+    x.fillStyle='#2a1a12';
+    x.beginPath(); x.ellipse(ex,ey,.52,.72,0,0,6.2832); x.fill();
+    x.fillStyle='rgba(255,255,255,.9)';
+    x.beginPath(); x.arc(ex-.2,ey-.35,.22,0,6.2832); x.fill();
+  };
+  eye(9.9,10.5); eye(14.1,10.5);
+  /* 眉 */
+  x.strokeStyle=c.hair; x.lineWidth=.7;
+  x.beginPath(); x.moveTo(8.6,8.9); x.quadraticCurveTo(9.9,8.4,11.1,8.9); x.stroke();
+  x.beginPath(); x.moveTo(12.9,8.9); x.quadraticCurveTo(14.1,8.4,15.4,8.9); x.stroke();
+  /* 腮红 */
+  x.fillStyle='rgba(232,120,120,.34)';
+  x.beginPath(); x.ellipse(8.5,12.9,1.35,.85,0,0,6.2832); x.fill();
+  x.beginPath(); x.ellipse(15.5,12.9,1.35,.85,0,0,6.2832); x.fill();
+  /* 鼻嘴 */
+  x.strokeStyle=c.shade; x.lineWidth=.6;
+  x.beginPath(); x.moveTo(12,11.4); x.lineTo(11.6,12.2); x.stroke();
+  x.strokeStyle='#a8584a'; x.lineWidth=.8;
+  x.beginPath(); x.arc(12,13.4,1.25,.30,Math.PI-.30); x.stroke();
+  /* 幞头 */
+  if(c.futou){
+    x.fillStyle='#14141c';
+    rrectP(x,6.0,3.6,12.0,4.2,1.6); x.fill();
+    rrectP(x,2.4,4.5,4.0,2.0,.9); x.fill();
+    rrectP(x,17.6,4.5,4.0,2.0,.9); x.fill();
+    x.fillStyle='#2e2e3e'; rrectP(x,8.2,4.1,7.6,1.1,.5); x.fill();
+  }
+}
+
+/* ================= 场景定义 ================= */
+const EXITS=[
+  {x:466,y:150,w:14,h:120},
+  {x:466,y:150,w:14,h:120},
+  {x:466,y:150,w:14,h:120},
+  null
+];const BACK_EXITS=EXITS.map(function(e,i){ if(i===0) return null; var ref=e||EXITS[i-1]||{y:150,w:14,h:120}; return {x:0,y:ref.y,w:ref.w,h:ref.h}; });
+
+let tFrame=0;
+
+/* —— 互动热点数据 —— */
+// 幕1：拦路竹丛
+const BAMBOO_HOT=[{x:150,y:222},{x:252,y:216},{x:350,y:221}];
+// 幕2：卷石底以出——坻屿嵁岩（gx/gy 为玩家走近后的站立点）
+const STONES=[
+  {id:'chi', x:150,y:216, gx:84,gy:246, title:'坻（chí）· 水中高地', orig:'为坻',
+   text:'石底翻卷露出水面，成了水中小块高地，叫做「坻」。'},
+  {id:'yu',  x:228,y:212, gx:252,gy:256, title:'屿（yǔ）· 小岛', orig:'为屿',
+   text:'隆起成小小岛屿的，叫做「屿」。一石之微，竟自成洲。'},
+  {id:'kan', x:112,y:235, gx:108,gy:252, title:'嵁（kān）· 不平的岩石', orig:'为嵁',
+   text:'凹凸不平、嶙峋陡峭的岩石，叫做「嵁」。'},
+  {id:'yan', x:272,y:241, gx:278,gy:254, title:'岩（yán）· 高耸的石崖', orig:'为岩',
+   text:'层叠高耸如崖岸的，叫做「岩」。四字写尽石之百态。'}
+];
+// 幕3：溪源
+const SRC_HOT={x:328,y:156,w:74,h:44};
+const SIT_HOT={x:226,y:240,w:34,h:18};
+const WALL_HOT={x:332,y:224,w:26,h:26};
+
+function grassTex(y0,y1,n,dark,light){
+  for(let i=0;i<n;i++){
+    const x=hash(i*3.1)*W, y=y0+hash(i*7.3)*(y1-y0);
+    CUR.fillStyle= i%3?dark:light;
+    CUR.beginPath(); CUR.ellipse(x,y,.95,.5,0,0,6.2832); CUR.fill();
+  }
+}
+
+/* —— 静态背景（离屏缓存） —— */
+function drawStatic(idx){
+  if(idx===0){ // 篁竹道
+    vband(0,146,'#f4f7e6','#cfe4cd');
+    softGlow(392,26,46,'rgba(255,246,202,.55)');
+    disc(392,24,9.6,'#fff8d2'); disc(392,24,6.6,'#fffdf0');
+    cloud(104,28,1.25); cloud(296,42,.95);
+    /* 天际灌木带 */
+    for(let i=0;i<34;i++){
+      const x=hash(i*2.7)*W, y=138+hash(i*5.1)*6;
+      CUR.save(); CUR.globalAlpha=.55;
+      ellipseFill(x,y,10+hash(i*3)*16,4+hash(i*7)*3, i%2?'#a9c98e':'#8fb478');
+      CUR.restore();
+    }
+    /* 远竹如烟 */
+    CUR.save(); CUR.globalAlpha=.34;
+    for(let i=0;i<46;i++){
+      const x=hash(i*3)*W, h2=68+hash(i*7)*62;
+      bamboo(x,146,h2,2.4,'#9cc084','#b2d49a','#87ae70');
+    }
+    CUR.restore();
+    /* 地面 */
+    vband(142,270,'#9ac473','#5f9147');
+    for(let i=0;i<44;i++){
+      const x=hash(i*4.7)*W, y=150+hash(i*2.3)*112;
+      CUR.save(); CUR.globalAlpha=.13;
+      ellipseFill(x,y,16+hash(i)*26,6+hash(i*3)*9, i%2?'#d3e6ac':'#4c7a38');
+      CUR.restore();
+    }
+    /* 小径：平滑弧线 */
+    CUR.save(); CUR.lineCap='round';
+    CUR.beginPath();
+    CUR.moveTo(-8,248);
+    CUR.bezierCurveTo(120,244,200,238,272,231);
+    CUR.bezierCurveTo(344,224,424,214,492,203);
+    CUR.lineWidth=24; CUR.strokeStyle='rgba(120,96,56,.24)'; CUR.stroke();
+    CUR.lineWidth=20; CUR.strokeStyle='#cbbb92'; CUR.stroke();
+    CUR.lineWidth=13; CUR.strokeStyle='#ddcda6'; CUR.stroke();
+    CUR.lineWidth=1.4; CUR.strokeStyle='rgba(255,250,224,.6)'; CUR.stroke();
+    CUR.restore();
+    /* 路边碎石 */
+    for(let i=0;i<26;i++){
+      const t=hash(i*3.3), x=t*W;
+      const y=244-Math.sin(t*1.9)*22 + (hash(i*5)>0.5?9:-9);
+      CUR.save(); CUR.globalAlpha=.55;
+      ellipseFill(x,y,1.6+hash(i*7)*2,1+hash(i*2)*.9, i%2?'#b9a67c':'#cdbd96');
+      CUR.restore();
+    }
+    /* 草丛 */
+    for(let i=0;i<24;i++) tuft(110+hash(i*4)*270, 196+hash(i*7)*66, i%2?'#54803c':'#47702f');
+    /* 近景竹林（左右合围） */
+    [[6,4],[22,3],[40,5],[58,3],[74,4]].forEach(([bx,n],k)=>{
+      for(let j=0;j<n;j++) bamboo(bx+j*5,268,180+hash(k*7+j)*86,4.4,'#4e8a3c','#6fae58','#33652a');
+      bambooLeaves(bx+6,86+hash(k)*40,7,k*11);
+    });
+    [[398,3],[416,4],[436,5],[456,3],[470,4]].forEach(([bx,n],k)=>{
+      for(let j=0;j<n;j++) bamboo(bx+j*5,268,170+hash(k*9+j)*92,4.4,'#467e34','#66a050','#2e5a24');
+      bambooLeaves(bx+6,92+hash(k)*36,7,k*13+5);
+    });
+    bambooLeaves(60,60,9,7); bambooLeaves(430,54,9,9);
+    boulder(108,238,11); boulder(356,230,10);
+  }
+  if(idx===1){ // 伐竹取道 · 下见小潭
+    vband(0,134,'#eef4e6','#b9d6b4');
+    cloud(90,26,1.1); cloud(350,36,.9);
+    mount(120,132,92,24,'#a9bcaa','#93a795','#cfdfcb');
+    mount(340,132,78,20,'#a9bcaa','#93a795','#cfdfcb');
+    /* 远岸薄雾 */
+    CUR.save(); CUR.globalAlpha=.35;
+    ellipseFill(240,128,250,8,'#eaf3e6');
+    CUR.restore();
+    vband(132,270,'#8fbc6c','#5f9142');
+    for(let i=0;i<30;i++){
+      const x=hash(i*3.9)*W, y=140+hash(i*6.1)*118;
+      CUR.save(); CUR.globalAlpha=.12;
+      ellipseFill(x,y,18+hash(i)*24,6+hash(i*4)*8, i%2?'#cfe4a8':'#4f7c3a');
+      CUR.restore();
+    }
+    /* 渐疏的竹 */
+    [[10,3],[30,4],[54,2],[96,3],[128,2],[420,3],[444,4],[466,2]].forEach(([bx,n],k)=>{
+      for(let j=0;j<n;j++) bamboo(bx+j*5,268,150+hash(k*5+j)*100,4.2,'#4e8a3c','#6fae58','#33652a');
+      bambooLeaves(bx+6,100+hash(k)*50,6,k*17);
+    });
+    /* 溪涧 */
+    const wg=CUR.createLinearGradient(0,232,0,270);
+    wg.addColorStop(0,'#7fb6c4'); wg.addColorStop(.55,'#5d94a8'); wg.addColorStop(1,'#487e92');
+    CUR.fillStyle=wg;
+    CUR.beginPath(); CUR.ellipse(200,252,152,21,0,0,Math.PI*2); CUR.fill();
+    CUR.save(); CUR.globalAlpha=.5;
+    ellipseFill(200,248,132,12,'#a9d4dc');
+    CUR.restore();
+    for(let i=0;i<16;i++){
+      CUR.save(); CUR.globalAlpha=.45;
+      CUR.strokeStyle='#eafcff'; CUR.lineWidth=.9; CUR.lineCap='round';
+      const x=76+hash(i)*244, y=242+hash(i*3)*14, w2=8+hash(i*7)*14;
+      CUR.beginPath(); CUR.moveTo(x,y); CUR.quadraticCurveTo(x+w2/2,y-1.4,x+w2,y); CUR.stroke();
+      CUR.restore();
+    }
+    boulder(58,244,10); boulder(338,244,11); boulder(312,238,8);
+    /* 初现小潭（右侧） */
+    const pg2=CUR.createLinearGradient(0,200,0,230);
+    pg2.addColorStop(0,'#7cb6c4'); pg2.addColorStop(.6,'#5b9fb0'); pg2.addColorStop(1,'#457d90');
+    CUR.fillStyle=pg2;
+    CUR.beginPath(); CUR.ellipse(398,214,60,15,0,0,Math.PI*2); CUR.fill();
+    CUR.save(); CUR.globalAlpha=.55;
+    ellipseFill(398,212,44,8,'#b6dce4');
+    CUR.restore();
+    /* 潭岸石缘 */
+    CUR.save(); CUR.strokeStyle='rgba(110,102,92,.55)'; CUR.lineWidth=2.4;
+    CUR.beginPath(); CUR.ellipse(398,214,60,15,0,0,Math.PI*2); CUR.stroke(); CUR.restore();
+    for(let i=0;i<8;i++){
+      CUR.save(); CUR.globalAlpha=.5;
+      const x=344+hash(i)*108, y=204+hash(i*5)*14;
+      CUR.strokeStyle='#f2ffff'; CUR.lineWidth=.9;
+      CUR.beginPath(); CUR.moveTo(x,y); CUR.quadraticCurveTo(x+4,y-1,x+8,y); CUR.stroke();
+      CUR.restore();
+    }
+    greenTree(268,168); greenTree(180,160); greenTree(360,158);
+    for(let i=0;i<10;i++) tuft(240+hash(i*3)*200,180+hash(i*7)*44, i%2?'#54803c':'#47702f');
+  }
+  if(idx===2){ // 石潭 · 全石以为底
+    vband(0,126,'#e4f1e9','#a7cdbd');
+    softGlow(76,24,40,'rgba(255,246,202,.5)');
+    disc(76,22,9.2,'#fff8d2'); disc(76,22,6.2,'#fffdf0');
+    cloud(250,20,1.05); cloud(390,32,.85);
+    mount(150,124,96,22,'#a6c0ae','#8fa899','#cfdfcd');
+    mount(390,124,82,19,'#a6c0ae','#8fa899','#cfdfcd');
+    CUR.save(); CUR.globalAlpha=.32;
+    ellipseFill(250,120,260,7,'#edf6ea'); CUR.restore();
+    vband(124,162,'#9cc47c','#74a354');
+    for(let i=0;i<26;i++){
+      const x=hash(i*2.9)*W, y=128+hash(i*4.3)*32;
+      CUR.save(); CUR.globalAlpha=.16;
+      ellipseFill(x,y,12+hash(i)*18,4+hash(i*5)*4, i%2?'#d3e7ae':'#5d8b42');
+      CUR.restore();
+    }
+    vband(162,270,'#8fbf62','#5c9040');
+    for(let i=0;i<34;i++){
+      const x=hash(i*4.1)*W, y=168+hash(i*6.7)*96;
+      CUR.save(); CUR.globalAlpha=.12;
+      ellipseFill(x,y,16+hash(i)*24,5+hash(i*3)*7, i%2?'#d0e6a6':'#4c7a34');
+      CUR.restore();
+    }
+    /* 青树翠蔓 */
+    greenTree(300,150); greenTree(420,146); greenTree(60,148); greenTree(150,142);
+    /* 翠蔓垂拂 */
+    for(let i=0;i<15;i++){
+      const vx=14+i*32+hash(i)*10, vy=116+hash(i*5)*34, vl=12+hash(i*9)*24;
+      CUR.save(); CUR.strokeStyle='rgba(78,124,60,.85)'; CUR.lineWidth=.9; CUR.lineCap='round';
+      CUR.beginPath(); CUR.moveTo(vx,vy);
+      CUR.bezierCurveTo(vx+2,vy+vl*.4, vx-2,vy+vl*.72, vx+1,vy+vl);
+      CUR.stroke();
+      CUR.strokeStyle='rgba(126,186,100,.85)'; CUR.lineWidth=1.5;
+      for(let k=6;k<vl;k+=7){
+        CUR.beginPath(); CUR.moveTo(vx,vy+k);
+        CUR.quadraticCurveTo(vx+3,vy+k+1,vx+4.6,vy+k+3.4); CUR.stroke();
+      }
+      CUR.restore();
+    }
+    /* 石潭：深浅渐变 + 透底石纹 */
+    const wgr=CUR.createRadialGradient(176,214,10,185,226,126);
+    wgr.addColorStop(0,'#8fd0d6'); wgr.addColorStop(.5,'#63a9b4'); wgr.addColorStop(1,'#3f7c8e');
+    CUR.fillStyle=wgr;
+    CUR.beginPath(); CUR.ellipse(185,226,124,31,0,0,Math.PI*2); CUR.fill();
+    CUR.save(); CUR.globalAlpha=.34; CUR.strokeStyle='#2e5f70'; CUR.lineWidth=1.2;
+    for(let k=1;k<4;k++){
+      CUR.beginPath(); CUR.ellipse(185,226,124-k*20,31-k*6,0,0,Math.PI*2); CUR.stroke();
+    }
+    CUR.restore();
+    /* 水底碎石 */
+    for(let i=0;i<22;i++){
+      const a=hash(i*3)*6.28, rr=hash(i*7)*96;
+      CUR.save(); CUR.globalAlpha=.3;
+      ellipseFill(185+Math.cos(a)*rr, 224+Math.sin(a)*rr*.24, 3+hash(i)*5, 1.4+hash(i*5)*1.6, '#b8b0a0');
+      CUR.restore();
+    }
+    /* 坻屿嵁岩（卷石底以出） */
+    rockFill(150,216,19,7,'#7d7568','#b0a89e');   // 坻
+    rockFill(228,212,12,5.6,'#847c70','#c2baae'); // 屿
+    rockFill(112,235,13,5.6,'#6f675c','#a8a094'); // 嵁
+    rockFill(272,241,16,6.4,'#6f675c','#a8a094'); // 岩
+    rockFill(146,212,3.4,1.6,'#8f877c','#d0c8ba');
+    rockFill(226,208,2.2,1.1,'#8f877c','#d0c8ba');
+    rockFill(268,236,4.4,2,'#8f877c','#d0c8ba');
+    CUR.save(); CUR.globalAlpha=.55;
+    for(let i=0;i<12;i++) ellipseFill(90+hash(i)*190,214+hash(i*3)*22,4+hash(i*5)*6,.8,'#f4ffff');
+    CUR.restore();
+    boulder(64,240,15); boulder(300,244,13); boulder(268,252,10);
+    for(let i=0;i<11;i++) tuft(78+hash(i*4)*260,166+hash(i*7)*32, i%2?'#54803c':'#47702f');
+    /* 岸边小花 */
+    disc(88,196,2.6,'#e88090'); disc(340,206,2.8,'#e8a0b0');
+    disc(88,196,.9,'#fff4e8'); disc(340,206,.9,'#fff4e8');
+  }
+  if(idx===3){ // 潭上远望 · 凄神寒骨
+    vband(0,130,'#c3ced4','#d8dfd8');
+    cloud(110,30,1.5); cloud(320,22,1.35);
+    mount(140,132,112,28,'#94a1aa','#7d8a94','#c4ced5');
+    mount(370,130,86,22,'#94a1aa','#7d8a94','#c4ced5');
+    CUR.save(); CUR.globalAlpha=.4;
+    ellipseFill(160,124,220,10,'#e6ece9'); CUR.restore();
+    vband(130,180,'#77867a','#56635b');
+    for(let i=0;i<14;i++){
+      CUR.save(); CUR.globalAlpha=.09;
+      ellipseFill(hash(i)*W,138+hash(i*9)*36,26+hash(i*2)*22,3+hash(i*5)*3,'#ffffff');
+      CUR.restore();
+    }
+    vband(180,270,'#5c6656','#3f463b');
+    for(let i=0;i<26;i++){
+      CUR.save(); CUR.globalAlpha=.12;
+      ellipseFill(hash(i*3.7)*W,190+hash(i*5.9)*76,20+hash(i)*26,6+hash(i*4)*7,i%2?'#6d7663':'#333a30');
+      CUR.restore();
+    }
+    /* 斗折蛇行的溪流（明灭可见） */
+    const bend=[[330,142],[286,162],[304,186],[252,204],[196,218],[152,238],[104,252]];
+    CUR.save(); CUR.lineCap='round'; CUR.lineJoin='round';
+    CUR.beginPath(); CUR.moveTo(bend[0][0],bend[0][1]);
+    for(let i=1;i<bend.length;i++){
+      const p0=bend[i-1], p1=bend[i];
+      CUR.quadraticCurveTo((p0[0]+p1[0])/2+6,(p0[1]+p1[1])/2-4,p1[0],p1[1]);
+    }
+    CUR.lineWidth=6.5; CUR.strokeStyle='rgba(148,200,208,.5)'; CUR.stroke();
+    CUR.lineWidth=3.4; CUR.strokeStyle='#9ec4c8'; CUR.stroke();
+    CUR.lineWidth=1.2; CUR.strokeStyle='rgba(226,248,248,.75)'; CUR.stroke();
+    CUR.restore();
+    /* 岸势犬牙差互 */
+    for(let i=0;i<20;i++){
+      const bx2=hash(i*3)*W, by2=152+hash(i*7)*96;
+      CUR.save(); CUR.globalAlpha=.55;
+      CUR.fillStyle=i%2?'#5a6256':'#484f44';
+      CUR.beginPath();
+      CUR.moveTo(bx2,by2+3); CUR.lineTo(bx2+3+hash(i)*5,by2); CUR.lineTo(bx2+8+hash(i*3)*5,by2+3);
+      CUR.closePath(); CUR.fill();
+      CUR.restore();
+    }
+    /* 竹树环合 */
+    [[8,4],[26,3],[46,5]].forEach(([bx,n],k)=>{
+      for(let j=0;j<n;j++) bamboo(bx+j*5,272,150+hash(k*3+j)*110,4.2,'#3a4a42','#4a5c50','#2c3830');
+    });
+    [[420,4],[442,5],[462,3]].forEach(([bx,n],k)=>{
+      for(let j=0;j<n;j++) bamboo(bx+j*5,272,140+hash(k*5+j)*118,4.2,'#3a4a42','#4a5c50','#2c3830');
+    });
+    bareTree(90,242); bareTree(370,236); bareTree(180,250);
+    for(let i=0;i<10;i++) tuft(hash(i*2.3)*W,214+hash(i*3)*52,'#4e5844');
+    boulder(130,256,13); boulder(320,250,11);
+    /* 可坐的平石 */
+    rockFill(226,241,19,6.4,'#5d655c','#8a9288');
+    rockFill(226,239,15,4.4,'#5d655c','#9aa296');
+    /* 题字石壁 */
+    CUR.save();
+    const sg=CUR.createLinearGradient(318,204,346,232);
+    sg.addColorStop(0,'#6a7268'); sg.addColorStop(1,'#4c544a');
+    CUR.fillStyle=sg;
+    CUR.beginPath();
+    CUR.moveTo(316,232); CUR.lineTo(320,206); CUR.lineTo(343,204); CUR.lineTo(348,228); CUR.closePath();
+    CUR.fill();
+    CUR.strokeStyle='rgba(148,156,140,.6)'; CUR.lineWidth=.8;
+    CUR.beginPath(); CUR.moveTo(322,210); CUR.lineTo(342,209); CUR.stroke();
+    CUR.beginPath(); CUR.moveTo(321,224); CUR.lineTo(344,223); CUR.stroke();
+    CUR.restore();
+  }
+}
+
+/* —— 鱼群 —— */
+let fishes=[];
+function initFishes(){
+  fishes=[];
+  for(let i=0;i<9;i++){
+    fishes.push({x:rnd(100,280), y:rnd(210,244), tx:0, ty:0, st:'idle', t:rnd(0,80)|0, dir:Math.random()<.5?1:-1});
+  }
+}
+function updateFishes(){
+  const zone = scene===2 && !inDialog && player.x>66 && player.x<306 && player.y>192;
+  fishes.forEach(f=>{
+    f.t++;
+    if(f.st==='idle'){
+      if(zone && Math.random()<.02){
+        f.st='dart';
+        f.tx=clamp(f.x+rnd(-95,95),95,288);
+        f.ty=clamp(f.y+rnd(-22,22),206,246);
+      }
+    } else if(f.st==='dart'){
+      const dx=f.tx-f.x, dy=f.ty-f.y, d=Math.hypot(dx,dy);
+      if(d<2.5){ f.st='settle'; f.t=0; }
+      else { f.x+=dx/d*2.3; f.y+=dy/d*1.15; f.dir=dx>=0?1:-1; }
+    } else {
+      if(f.t>50) f.st='idle';
+    }
+  });
+}
+function drawFish(f){
+  const bob=Math.sin((tFrame+f.t)*.1)*.9;
+  const x=f.x, y=f.y+bob, d=f.dir>=0?1:-1;
+  // 影布石上
+  CUR.save(); CUR.globalAlpha=.14; CUR.fillStyle='#2c3438';
+  CUR.beginPath(); CUR.ellipse(x,y+2.2,4.4,1.25,0,0,6.2832); CUR.fill(); CUR.restore();
+  const c1='#e06a3c', c2='#f0906a', fin='#c8502c';
+  // 尾鳍
+  CUR.fillStyle=fin;
+  CUR.beginPath();
+  CUR.moveTo(x-d*3.2,y);
+  CUR.quadraticCurveTo(x-d*5.0,y-2.3,x-d*5.9,y-2.6);
+  CUR.quadraticCurveTo(x-d*5.3,y,x-d*5.9,y+2.6);
+  CUR.quadraticCurveTo(x-d*5.0,y+2.3,x-d*3.2,y);
+  CUR.closePath(); CUR.fill();
+  // 鱼身
+  const bg=CUR.createLinearGradient(x,y-2.1,x,y+2.1);
+  bg.addColorStop(0,c2); bg.addColorStop(.55,c1); bg.addColorStop(1,'#b8502c');
+  CUR.fillStyle=bg;
+  CUR.beginPath(); CUR.ellipse(x,y,3.9,1.75,0,0,6.2832); CUR.fill();
+  // 背鳍
+  CUR.fillStyle=fin;
+  CUR.beginPath();
+  CUR.moveTo(x-d*1.7,y-1.3); CUR.quadraticCurveTo(x,y-3.2,x+d*1.9,y-1.2);
+  CUR.closePath(); CUR.fill();
+  // 高光与眼
+  CUR.fillStyle='rgba(255,240,225,.55)';
+  CUR.beginPath(); CUR.ellipse(x+d*.4,y-1.0,1.9,.45,0,0,6.2832); CUR.fill();
+  CUR.fillStyle='#222';
+  CUR.beginPath(); CUR.arc(x+d*2.5,y-.45,.45,0,6.2832); CUR.fill();
+}
+
+/* —— 动态层 —— */
+function drawDynamic(idx){
+  if(idx===0){
+    // 竹间天光
+    CUR.save();
+    CUR.globalAlpha=.10+.04*Math.sin(tFrame*.03);
+    for(let i=0;i<3;i++){
+      const bx=140+i*90+Math.sin(tFrame*.01+i)*8;
+      const lg=CUR.createLinearGradient(0,24,0,152);
+      lg.addColorStop(0,'rgba(255,250,214,.85)');
+      lg.addColorStop(1,'rgba(255,250,214,0)');
+      CUR.fillStyle=lg;
+      CUR.beginPath();
+      CUR.moveTo(bx,24); CUR.lineTo(bx+26,24);
+      CUR.lineTo(bx+19,152); CUR.lineTo(bx+5,152);
+      CUR.closePath(); CUR.fill();
+    }
+    CUR.restore();
+    // 竹叶轻摇
+    for(let i=0;i<6;i++){
+      const lx=110+((tFrame*.12+i*77)%(W-40)), ly=60+hash(i*7)*90;
+      CUR.save(); CUR.globalAlpha=.75;
+      CUR.strokeStyle=i%2?'#6da455':'#7cba62'; CUR.lineWidth=1.2; CUR.lineCap='round';
+      CUR.beginPath(); CUR.moveTo(lx,ly);
+      CUR.quadraticCurveTo(lx+2.6,ly-1.4,lx+5,ly-.2); CUR.stroke();
+      CUR.restore();
+    }
+    // 闻水声——竹深处金色音纹
+    if(heardWater){
+      for(let i=0;i<3;i++){
+        const ph=(tFrame*.014+i*.33)%1;
+        CUR.save(); CUR.globalAlpha=(1-ph)*.6;
+        CUR.strokeStyle='#ffe9a0'; CUR.lineWidth=1;
+        CUR.beginPath(); CUR.ellipse(392,128+Math.sin(i*2)*8,4+ph*14,(4+ph*14)*.4,0,0,7); CUR.stroke();
+        CUR.restore();
+      }
+    }
+  }
+  if(idx===1){
+    // 溪水粼光
+    CUR.save(); CUR.strokeStyle='rgba(255,255,255,.34)'; CUR.lineWidth=1.1; CUR.lineCap='round';
+    for(let i=0;i<14;i++){
+      const wx=(i*37+tFrame*.5)%(W-40)+20, wy=244+(i%4)*4;
+      CUR.beginPath(); CUR.moveTo(wx,wy); CUR.lineTo(wx+6+(i%3)*3,wy); CUR.stroke();
+    }
+    CUR.restore();
+    // 如鸣珮环——金色音纹
+    for(let i=0;i<3;i++){
+      const ph=(tFrame*.014+i*.33)%1;
+      CUR.save(); CUR.globalAlpha=(1-ph)*.55;
+      const rx=110+i*110, ry=220+Math.sin(i*2.1)*8;
+      CUR.strokeStyle='#ffe9a0'; CUR.lineWidth=1;
+      CUR.beginPath(); CUR.ellipse(rx,ry,3+ph*12,(3+ph*12)*.38,0,0,7); CUR.stroke();
+      CUR.restore();
+    }
+  }
+  if(idx===2){
+    // 日光下澈（柔和光柱）
+    CUR.save();
+    CUR.globalAlpha=.08+.03*Math.sin(tFrame*.02);
+    [[150,26],[224,20]].forEach(function(b){
+      const lg=CUR.createLinearGradient(0,200,0,254);
+      lg.addColorStop(0,'rgba(255,242,192,.9)');
+      lg.addColorStop(1,'rgba(255,242,192,0)');
+      CUR.fillStyle=lg;
+      CUR.beginPath();
+      CUR.moveTo(b[0]+2,200); CUR.lineTo(b[0]+b[1]-2,200);
+      CUR.lineTo(b[0]+b[1]+3,254); CUR.lineTo(b[0]-3,254);
+      CUR.closePath(); CUR.fill();
+    });
+    CUR.restore();
+    // 潭中鱼
+    fishes.forEach(drawFish);
+    // 水面微光
+    CUR.save(); CUR.strokeStyle='rgba(255,255,255,.24)'; CUR.lineWidth=1.1; CUR.lineCap='round';
+    for(let i=0;i<6;i++){
+      const wx=(i*53+tFrame*.4)%210+80, wy=212+(i%3)*11;
+      CUR.beginPath(); CUR.moveTo(wx,wy); CUR.lineTo(wx+7,wy); CUR.stroke();
+    }
+    CUR.restore();
+  }
+  if(idx===3){
+    // 明灭可见
+    const gl=.5+.5*Math.sin(tFrame*.05);
+    CUR.save(); CUR.globalAlpha=.25+gl*.35;
+    CUR.strokeStyle='#c2dcd8'; CUR.lineWidth=1.6; CUR.lineCap='round';
+    CUR.beginPath();
+    CUR.moveTo(240,160); CUR.lineTo(284,160);
+    CUR.moveTo(210,190); CUR.lineTo(240,190);
+    CUR.moveTo(150,222); CUR.lineTo(176,222);
+    CUR.stroke(); CUR.restore();
+    // 幽冷雾气
+    CUR.save();
+    for(let i=0;i<3;i++){
+      CUR.globalAlpha=.10+.05*Math.sin(tFrame*.02+i*2);
+      const yy=96+i*46+Math.sin(tFrame*.008+i)*6;
+      ellipseFill(240+Math.sin(tFrame*.006+i*3)*36, yy, 190, 11, '#dce4e0');
+    }
+    CUR.restore();
+  }
+}
+
+/* —— 离屏缓存 —— */
+const sceneCache=[];
+function buildCache(i){
+  const c=document.createElement('canvas'); c.width=W*2; c.height=H*2;
+  const x=c.getContext('2d'); x.scale(2,2); x.imageSmoothingEnabled=true;
+  sceneCache[i]=c; CUR=x; drawStatic(i); CUR=g;
+}
+[0,1,2,3].forEach(buildCache);
+
+/* 出口箭头 */
+function drawNavArrow(tipX,cy,dir){
+  const pu=.9+.1*Math.sin(tFrame*.1);
+  g.globalAlpha=.16; disc(tipX,cy,13,'#ffe98a');
+  g.globalAlpha=pu;
+  const L=15,Hh=8;
+  const baseX=dir>0?tipX-L:tipX+L;
+  const shX=dir>0?baseX-15:baseX-2;
+  px(shX,cy-3,17,6,'#6e4413');
+  px(shX,cy-2,17,4,'#f5b83d');
+  px(shX,cy-2,17,1,'#ffe07a');
+  for(let k=-Hh;k<=Hh;k++){
+    const inset=Math.round(L*Math.abs(k)/Hh), y=cy+k;
+    let x0,x1;
+    if(dir>0){ x0=baseX; x1=tipX-inset; } else { x0=tipX+inset; x1=baseX; }
+    const w=x1-x0+1;
+    px(x0,y,w,1,'#6e4413');
+    if(Math.abs(k)<Hh) px(x0+dir,y,w-2,1,'#f5b83d');
+    if(Math.abs(k)<=3&&Math.abs(k)<Hh-1) px(x0+dir*2,y,w-4,1,'#ffe07a');
+  }
+  g.globalAlpha=1;
+}
+function drawExit(e){ drawNavArrow(e.x+2, e.y+(e.h>>1), 1); }
+function drawBackExit(e){ drawNavArrow(e.x+e.w-2, e.y+(e.h>>1), -1); }
+
+/* 可交互金色光点 */
+function spark(cx,cy,r){
+  const p=.6+.4*Math.sin(tFrame*.14+cx);
+  g.globalAlpha=p;
+  disc(cx,cy,r,'#ffe98a');
+  g.strokeStyle='#fff6c0'; g.lineWidth=1.1; g.lineCap='round';
+  const L=r+3;
+  g.beginPath();
+  g.moveTo(cx-L,cy); g.lineTo(cx-r*.7,cy);
+  g.moveTo(cx+r*.7,cy); g.lineTo(cx+L,cy);
+  g.moveTo(cx,cy-L); g.lineTo(cx,cy-r*.7);
+  g.moveTo(cx,cy+r*.7); g.lineTo(cx,cy+L);
+  g.stroke();
+  g.globalAlpha=1;
+}
+function sparkBox(b){ spark(b.x+b.w/2, b.y+b.h/2, 3); }
+/* 幕1拦路竹丛（含砍倒状态） */
+function drawBambooClusters(){
+  BAMBOO_HOT.forEach((h,i)=>{
+    if(!cutBamboo[i]){
+      for(let j=0;j<5;j++){
+        const bx=h.x-8+j*4+((j%2)?1:0), hh=34+((j*7)%16);
+        bamboo(bx,h.y,hh,3,'#4e8a3c','#6fae58','#33652a');
+      }
+      bambooLeaves(h.x,h.y-30,6,i*9+2);
+      shadow(h.x,h.y+2,11,3,.2);
+      spark(h.x,h.y,2);
+    } else {
+      // 竹桩 + 横倒竹
+      CUR.fillStyle='#5a3a22'; rrect(h.x-3.2,h.y-6.2,3.2,6.2,.8); CUR.fill();
+      CUR.fillStyle='#4e8a3c'; rrect(h.x+1.8,h.y-5.4,3.2,5.4,.8); CUR.fill();
+      CUR.fillStyle='#6fae58'; rrect(h.x+4.6,h.y-3.2,22,3,.9); CUR.fill();
+      CUR.fillStyle='#7cba62'; rrect(h.x+5.4,h.y-3.0,19.8,1.1,.5); CUR.fill();
+      CUR.fillStyle='#3c6a2e';
+      CUR.beginPath(); CUR.ellipse(h.x+27.2,h.y-1.6,1.5,1.3,0,0,6.2832); CUR.fill();
+      CUR.strokeStyle='#5f9c48'; CUR.lineWidth=1.1; CUR.lineCap='round';
+      for(let k=0;k<3;k++){
+        CUR.beginPath(); CUR.moveTo(h.x+8+k*5,h.y-3);
+        CUR.quadraticCurveTo(h.x+10+k*5,h.y-6-k,h.x+13.5+k*5,h.y-6-k);
+        CUR.stroke();
+      }
+      CUR.fillStyle='#cfe0a0';
+      CUR.beginPath(); CUR.ellipse(h.x-1.6,h.y-6.4,1.5,.5,0,0,6.2832); CUR.fill();
+    }
+  });
+}
+/* 幕2奇石光点 */
+function drawStoneSparks(){
+  STONES.forEach(s=>{ if(!foundStones.has(s.id)) spark(s.x,s.y,2); });
+}
+/* 幕3热点与印记 */
+function drawScene3Hot(){
+  if(lookSrcCount<2) sparkBox(SRC_HOT);
+  if(!satDown) sparkBox(SIT_HOT);
+  if(satDown && !inscribed) sparkBox(WALL_HOT);
+  if(inscribed){
+    // 石壁朱印
+    g.fillStyle='#b8392c'; rrectP(g,326,208,12,13,1.8); g.fill();
+    g.fillStyle='#a82e22'; rrectP(g,327.2,209.2,9.6,10.6,1.4); g.fill();
+    g.fillStyle='#d85848'; rrectP(g,326.6,208.6,10.8,1.3,.6); g.fill();
+    g.save();
+    g.fillStyle='#f6e8c8';
+    g.font='10px "KaiTi","STKaiti",serif';
+    g.fillText('記',328,218);
+    g.restore();
+  }
+}
+/* 幕3凄寒滤镜 */
+function drawColdVeil(){
+  g.save();
+  g.fillStyle='rgba(24,44,68,.32)';
+  g.fillRect(0,0,W,H);
+  g.globalAlpha=.5;
+  for(let i=0;i<4;i++){
+    g.globalAlpha=.10+.05*Math.sin(tFrame*.02+i*2);
+    ellipseFill(200+Math.sin(tFrame*.007+i*3)*46, 80+i*44, 210, 12, '#c4d4da');
+  }
+  g.restore();
+  if(lookSrcCount>=2){
+    g.save(); g.globalAlpha=.5+.15*Math.sin(tFrame*.04);
+    ellipseFill(344,150,42,14,'#d8dee0');
+    g.restore();
+  }
+}
+
+/* ================= 实体 ================= */
+const player={ x:30,y:232, tx:30,ty:232, dir:'d', frame:0, moving:false, speed:3.8 };
+let npcs=[];
+const NPC_SETS=[
+  [], [],
+  [
+    {id:'wu', type:'wu', name:'吴武陵', x:318,y:222, dir:'l', frame:0, talked:false,
+     lines:[
+      {who:'吴武陵',type:'wu',orig:'潭中鱼可百许头，皆若空游无所依。',text:'子厚你看，潭中的鱼大约有一百来条，都像在空中游动，什么依靠也没有。'},
+      {who:'吴武陵',type:'wu',orig:'日光下澈，影布石上。',text:'日光直透潭底，鱼的影子映在石头上——分明是水清到了极处，方可称「水尤清冽」。'}
+     ]},
+    {id:'zx', type:'zongxuan', name:'宗玄', x:396,y:226, dir:'l', frame:0, talked:false,
+     lines:[
+      {who:'宗玄',type:'zongxuan',orig:'佁然不动，俶尔远逝，往来翕忽，似与游者相乐。',text:'兄长，鱼儿呆呆地一动不动，忽然又向远处窜去，来来往往轻快敏捷，像在同游人逗乐呢。'},
+      {who:'柳宗元',type:'liu',text:'（走近些，看鱼群「俶尔远逝」——它们果然四散开了。）'},
+      {who:'宗玄',type:'zongxuan',text:'兄长且退开两步，静立片刻，鱼群自会回来。'}
+     ]},
+    {id:'fs', type:'xiaosheng', name:'小生奉壹', x:352,y:246, dir:'l', frame:0, talked:false,
+     lines:[
+      {who:'小生奉壹',type:'xiaosheng',text:'柳先生！方才那条最大的鱼，躲到石头后头去啦！'},
+      {who:'柳宗元',type:'liu',text:'痴儿，鱼正与你嬉戏。你且静静站着，看它可会回来。'},
+      {who:'小生奉壹',type:'xiaosheng',text:'呀，真的回来了！鱼儿是认人的么？'}
+     ]}
+  ],
+  []
+];
+function initScene(idx){
+  npcs = NPC_SETS[idx].map(n=>Object.assign({},n));
+  fishes=[];
+  if(idx===2) initFishes();
+}
+
+/* 落叶（竹叶/树叶） */
+let petals=[];
+let ripples=[];
+const PETAL_COLORS=['#9cc46a','#b4d482','#e0d890','#7aa856'];
+function setPetals(n){
+  while(petals.length<n) petals.push({x:rnd(0,W),y:rnd(0,H),s:rnd(1.2,2.6),vy:rnd(.2,.55),sw:rnd(0,6.28),p:PETAL_COLORS[(Math.random()*4)|0]});
+  petals.length=n;
+}
+const PETAL_COUNT=[12,16,8,10];
+
+/* ================= 游戏状态 ================= */
+let scene=0, started=false;
+let inDialog=false, dlgLines=[], dlgI=0, dlgNPC=null;
+let typing=false, dlgTimer=null, dlgFull='';
+let pendingExit=null, pendingBack=null, quizOpen=false;
+
+/* —— 互动运行时状态 —— */
+let stepAccum=0, heardWater=false, joyShown=false;
+let cutBamboo=[false,false,false];
+let foundStones=new Set();
+let lookSrcCount=0, satDown=false, inscribed=false;
+let litSet=new Set();   // 已在游历中点亮的原文句
+
+const hudEl=document.getElementById('hud');
+const noteEl=document.getElementById('note');
+let noteTimer=null;
+function setHud(html){ hudEl.innerHTML=html; hudEl.classList.add('show'); }
+function showNote(title,orig,text,ms){
+  noteEl.querySelector('.n-title').textContent=title||'';
+  noteEl.querySelector('.n-orig').textContent=orig||'';
+  noteEl.querySelector('.n-text').textContent=text||'';
+  noteEl.classList.add('show');
+  clearTimeout(noteTimer); // 常驻：直至点击下一目标被新卡片替换
+}
+function lit(id){ litSet.add(id); try{ PROG.lit(id); }catch(e){} }
+
+/* —— 知识卡小喇叭：朗读该卡原文 —— */
+(function(){
+  const btn=noteEl.querySelector('.n-say');
+  if(btn) btn.addEventListener('click',function(ev){
+    ev.stopPropagation();
+    try{
+      const o=noteEl.querySelector('.n-orig').textContent;
+      const ti=noteEl.querySelector('.n-title').textContent;
+      const tx=noteEl.querySelector('.n-text').textContent;
+      SAY(o||(ti+'。'+tx));
+    }catch(e){}
+  });
+})();
+
+/* —— 卷轴全文（句 id → 原文） —— */
+const FULLTEXT=[
+  {col:'p1', lines:[
+    ['s1','从小丘西行百二十步，'],
+    ['s2','隔篁竹，闻水声，如鸣珮环，'],
+    ['s3','心乐之。'],
+    ['s4','伐竹取道，下见小潭，水尤清冽。'],
+    ['s5','全石以为底，近岸，'],
+    ['s6','卷石底以出，为坻，为屿，为嵁，为岩。'],
+    ['s7','青树翠蔓，蒙络摇缀，参差披拂。']
+  ]},
+  {col:'p2', lines:[
+    ['s8','潭中鱼可百许头，皆若空游无所依，'],
+    ['s9','日光下澈，影布石上。'],
+    ['s10','佁然不动，俶尔远逝，往来翕忽，似与游者相乐。']
+  ]},
+  {col:'p3', lines:[
+    ['s11','潭西南而望，斗折蛇行，明灭可见。'],
+    ['s12','其岸势犬牙差互，不可知其源。']
+  ]},
+  {col:'p4', lines:[
+    ['s13','坐潭上，四面竹树环合，寂寥无人，凄神寒骨，悄怆幽邃。'],
+    ['s14','以其境过清，不可久居，乃记之而去。']
+  ]},
+  {col:'p5', lines:[
+    ['s15','同游者：吴武陵，龚古，余弟宗玄。'],
+    ['s16','隶而从者，崔氏二小生，曰恕己，曰奉壹。']
+  ]}
+];
+
+const dlgEl=document.getElementById('dialog');
+const dlgText=document.getElementById('dialog-text');
+const dlgOrig=document.getElementById('dialog-orig');
+const dlgName=document.getElementById('nameplate');
+const dlgArrow=document.getElementById('next-arrow');
+const qzBox=document.getElementById('quiz-opts');
+const hintEl=document.getElementById('hint');
+let hintTimer=null;
+
+let objectiveText='';
+function setObjective(t){
+  objectiveText=t||'';
+  clearTimeout(hintTimer);
+  if(objectiveText){ hintEl.textContent=objectiveText; hintEl.classList.add('show'); }
+  else hintEl.classList.remove('show');
+}
+function hint(t,ms){
+  hintEl.textContent=t; hintEl.classList.add('show');
+  clearTimeout(hintTimer);
+  hintTimer=setTimeout(()=>{
+    if(objectiveText) hintEl.textContent=objectiveText;
+    else hintEl.classList.remove('show');
+  },ms||2600);
+}
+
+const fade=document.getElementById('fade');
+function fadeOut(cb){ fade.classList.add('on'); setTimeout(cb,650); }
+function fadeIn(){ setTimeout(()=>fade.classList.remove('on'),120); }
+
+function setHudByScene(){
+  if(scene===0) setHud('从小丘西行百二十步……<span class="steps" id="hud-steps">西行 0 步</span>');
+  if(scene===1) setHud('伐竹取道，下见小潭，水尤清冽。');
+  if(scene===2) setHud('青树翠蔓，蒙络摇缀，参差披拂。');
+  if(scene===3) setHud('潭西南而望，斗折蛇行，明灭可见。');
+}
+function goScene(idx, enterLines, fromRight){
+  fadeOut(()=>{
+    scene=idx;
+    noteEl.classList.remove('show'); // 转场收起知识卡
+    initScene(idx);
+    setPetals(PETAL_COUNT[idx]);
+    if(idx===0){ player.x=30; player.y=232; }
+    if(idx===1){ player.x=26; player.y=230; }
+    if(idx===2){ player.x=36; player.y=240; }
+    if(idx===3){ player.x=400; player.y=230; }
+    player.tx=player.x; player.ty=player.y; player.dir='d';
+    setHudByScene();
+    if(fromRight){ player.x=W-40; player.tx=player.x; player.dir='l'; }
+    fadeIn();
+    if(enterLines && enterLines.length) openDialog(enterLines,null);
+    else afterEnterHint();
+  });
+}
+
+/* ================= 对话框 ================= */
+function openDialog(lines,npc){
+  quizOpen=false; qzBox.classList.remove('show');
+  dlgLines=lines; dlgI=0; dlgNPC=npc;
+  inDialog=true; dlgEl.classList.add('show');
+  showLine();
+}
+function showLine(){
+  const L=dlgLines[dlgI];
+  dlgName.textContent=L.who;
+  drawPortrait(L.type);
+  if(L.orig){ dlgOrig.textContent=L.orig; dlgOrig.classList.add('show'); }
+  else { dlgOrig.textContent=''; dlgOrig.classList.remove('show'); }
+  dlgFull=L.text;
+  typing=true; dlgArrow.classList.remove('show');
+  dlgText.textContent='';
+  let i=0;
+  clearInterval(dlgTimer);
+  dlgTimer=setInterval(()=>{
+    i++;
+    dlgText.textContent=dlgFull.slice(0,i);
+    if(i%2===0) blipSound();
+    if(i>=dlgFull.length){
+      clearInterval(dlgTimer); typing=false;
+      dlgArrow.classList.add('show');
+    }
+  },48);
+}
+function advanceDialog(){
+  if(quizOpen) return;
+  if(typing){
+    clearInterval(dlgTimer);
+    dlgText.textContent=dlgFull; typing=false;
+    dlgArrow.classList.add('show');
+    return;
+  }
+  dlgI++;
+  if(dlgI<dlgLines.length){ showLine(); return; }
+  dlgEl.classList.remove('show'); inDialog=false;
+  if(dlgNPC){
+    dlgNPC.talked=true;
+    if(dlgNPC.id==='wu'){ lit('s8'); lit('s9'); }
+    if(dlgNPC.id==='zx'){ lit('s10'); }
+    if(scene===2 && npcs.every(n=>n.talked) && foundStones.size===STONES.length){
+      chime();
+    } else if(scene===2 && npcs.every(n=>n.talked)){
+      hint('再去潭边看看那些露出水面的奇石吧（共四块）');
+    }
+  }
+  dlgNPC=null;
+  afterEnterHint();
+}
+
+let enterHintKey=-1;
+function afterEnterHint(){
+  if(inDialog) return;
+  if(scene===0) setObjective(heardWater?'「百二十步」已到，向右穿出竹林 →':'点击地面向西行走——要走满「百二十步」');
+  if(scene===1) setObjective(cutBamboo.every(Boolean)?'道路已开，向右缘溪前行 →':'竹丛挡道——点击发光的竹丛，砍竹取道（共三丛）');
+  if(scene===2) setObjective((npcs.every(n=>n.talked)&&foundStones.size===STONES.length)?'石形已辨、三友已访，向右离开石潭 →':'与三位同游者攀谈，再点击潭边闪光的四块奇石');
+  if(scene===3) setObjective(inscribed?'':(satDown?'去闪光的石壁题字为记':'点击上游闪光望一望溪源，再到平石上静坐'));
+}
+
+/* ================= 闯关 ================= */
+const QUIZ=[
+  {q:'「俶尔远逝」中「俶尔」的意思是——', opts:['忽然','安静','缓慢'], a:0,
+   exp:'俶尔：忽然。鱼儿忽然向远处窜去。'},
+  {q:'「斗折蛇行」是形容溪流——', opts:['像北斗般曲折，像蛇爬行般蜿蜒','笔直宽阔，一望到底','水声如打斗般喧腾'], a:0,
+   exp:'斗折蛇行：溪流像北斗七星那样曲折，像蛇爬行那样弯曲。'},
+  {q:'「凄神寒骨，悄怆幽邃」写出了小石潭怎样的氛围？', opts:['冷清寂寥，幽深悲凉','热闹欢快，生机勃勃','温暖明亮，令人流连'], a:0,
+   exp:'以景写情：境过清，故凄神寒骨——寄寓柳宗元被贬永州的孤寂。'}
+];
+let qzList=[], qzI=0, qzLock=false;
+function openQuiz(){
+  try{ PROG.examStart(); }catch(e){}
+  inDialog=true; quizOpen=true;
+  setObjective('');
+  qzList=QUIZ; qzI=0;
+  dlgEl.classList.add('show');
+  showQ();
+}
+function showQ(){
+  const q=qzList[qzI];
+  dlgName.textContent='先生问';
+  drawPortrait('narrator');
+  dlgOrig.textContent=''; dlgOrig.classList.remove('show');
+  dlgText.textContent=q.q;
+  dlgArrow.classList.remove('show');
+  qzBox.innerHTML='';
+  qzBox.classList.add('show');
+  qzLock=false;
+  q.opts.forEach((o,i)=>{
+    const b=document.createElement('button');
+    b.textContent=String.fromCharCode(65+i)+'. '+o;
+    b.addEventListener('click', ev=>{ ev.stopPropagation(); answerQ(i,b); });
+    qzBox.appendChild(b);
+  });
+}
+function answerQ(i,btn){
+  if(qzLock) return;
+  const q=qzList[qzI];
+  if(i===q.a){
+    qzLock=true;
+    btn.classList.add('ok'); chime();
+    setTimeout(()=>{
+      qzI++;
+      if(qzI<qzList.length){ showQ(); }
+      else {
+        qzBox.classList.remove('show');
+        dlgEl.classList.remove('show');
+        inDialog=false; quizOpen=false;
+        try{ PROG.finish(); }catch(e){}
+        chime();
+        setTimeout(showScroll,900);
+      }
+    },750);
+  } else {
+    btn.classList.add('bad'); blipSound();
+    try{ PROG.wrong('choice',q.q,q.opts[i],q.opts[q.a]); }catch(e){}
+  }
+}
+function showScroll(){
+  setObjective('');
+  lit('s15'); lit('s16');
+  const box=document.getElementById('scroll-inner');
+  box.innerHTML='';
+  // 标题列（最右）
+  const head=document.createElement('div');
+  head.className='s-col head'; head.textContent='小石潭记';
+  box.appendChild(head);
+  // 正文按每列 21 字排
+  const PER=21;
+  let cur=null, cnt=0, delay=0;
+  const newCol=()=>{ cur=document.createElement('div'); cur.className='s-col'; box.appendChild(cur); cnt=0; delay++; };
+  const pushCh=(ch,isLit)=>{
+    if(cnt>=PER || !cur) newCol();
+    cur.style.animationDelay=(.1*delay)+'s';
+    if(isLit){ const s=document.createElement('span'); s.className='lit'; s.textContent=ch; cur.appendChild(s); }
+    else cur.appendChild(document.createTextNode(ch));
+    cnt++;
+  };
+  FULLTEXT.forEach(pg=>pg.lines.forEach(([id,text])=>{
+    for(const ch of text) pushCh(ch, litSet.has(id));
+  }));
+  // 印章列（最左）
+  const sealCol=document.createElement('div');
+  sealCol.className='s-seal';
+  sealCol.innerHTML='<div class="seal">柳氏子厚</div>';
+  box.appendChild(sealCol);
+  const seal=sealCol.querySelector('.seal');
+  setTimeout(()=>seal.classList.add('stamp'), 100*delay+500);
+  document.getElementById('scroll').classList.add('show');
+}
+
+/* —— 卷轴：朗读全文 / 离开即停 —— */
+(function(){
+  const btn=document.getElementById('scroll-say');
+  if(!btn) return;
+  let on=false;
+  function reset(){ on=false; btn.textContent='🔊 朗读全文'; }
+  btn.addEventListener('click',function(){
+    try{
+      if(on){ reset(); SAYSTOP(); return; }
+      const txt=FULLTEXT.reduce((a,pg)=>a+pg.lines.map(x=>x[1]).join(''),'');
+      on=true; btn.textContent='■ 停止朗读'; SAY(txt);
+      if('speechSynthesis' in window){
+        const ss0=window.speechSynthesis;
+        const rs=function(){ setTimeout(function(){
+          /* 分句模式：句间有 150~300ms 空窗，500ms 后仍空闲才算全文读完 */
+          if(ss0.speaking||ss0.pending)return;
+          reset(); ss0.removeEventListener('end',rs);
+        },500); };
+        ss0.addEventListener('end',rs);
+      }
+    }catch(e){ reset(); }
+  });
+  window.addEventListener('pagehide',function(){ try{ SAYSTOP(); }catch(e){} });
+})();
+
+/* ================= 输入 ================= */
+function toWorld(e){
+  const r=cv.getBoundingClientRect();
+  return {
+    x:(e.clientX-r.left)/r.width*W,
+    y:(e.clientY-r.top)/r.height*H
+  };
+}
+function inBox(p,b){ return p.x>b.x-b.w/2 && p.x<b.x+b.w/2 && p.y>b.y-b.h/2 && p.y<b.y+b.h/2; }
+
+function exitLocked(){
+  if(scene===0) return !joyShown;
+  if(scene===1) return !cutBamboo.every(Boolean);
+  if(scene===2) return !(npcs.every(n=>n.talked) && foundStones.size===STONES.length);
+  return false;
+}
+
+/* —— 热点行为 —— */
+function doCutBamboo(i){
+  if(cutBamboo[i]) return;
+  cutBamboo[i]=true; cutSound();
+  const done=cutBamboo.filter(Boolean).length;
+  showNote('伐竹取道（'+done+' / 3）','伐竹取道','砍倒一丛拦路竹，清出一小段山路。');
+  if(done===3){
+    lit('s4'); chime();
+    setTimeout(()=>showNote('下见小潭','下见小潭，水尤清冽',
+      '竹径尽处豁然开朗——一汪清潭在日光下漾开，潭水格外清凉澄澈。',3600),500);
+    setTimeout(afterEnterHint,600);
+  }
+}
+function doExamineStone(s){
+  if(!foundStones.has(s.id)){
+    foundStones.add(s.id); chime();
+    if(foundStones.size===STONES.length) lit('s6');
+  }
+  showNote(s.title,s.orig,s.text,3200);
+  if(foundStones.size===STONES.length && npcs.every(n=>n.talked))
+    afterEnterHint();
+}
+function doLookSource(){
+  lookSrcCount++;
+  if(lookSrcCount===1){
+    lit('s11'); peihuan();
+    showNote('望溪源 · 其一','斗折蛇行，明灭可见',
+      '溪流像北斗七星那样曲折，像蛇爬行那样弯曲；水光一段看得见、一段看不见。',3400);
+  } else if(lookSrcCount===2){
+    lit('s12');
+    showNote('望溪源 · 其二','其岸势犬牙差互，不可知其源',
+      '溪岸如犬牙交错，寻来寻去，终究望不见溪水的源头。',3600);
+  } else {
+    showNote('望溪源','不可知其源','源头藏在山雾深处，再望也是枉然。',2200);
+  }
+}
+function doSit(){
+  if(satDown) return;
+  satDown=true; lit('s13');
+  openDialog([
+    {who:'旁白',type:'narrator',orig:'坐潭上，四面竹树环合，寂寥无人，凄神寒骨，悄怆幽邃。',text:'坐在潭边，四面竹树环合，寂寥无人；寒气直透肌骨，幽静深远，令人心神凄然。'},
+    {who:'柳宗元',type:'liu',orig:'以其境过清，不可久居……',text:'（这境界太过清冷，到底不可久留。）且去那方石壁题字为记，记罢便行。'}
+  ],null);
+}
+function doInscribe(){
+  if(inscribed) return;
+  if(!satDown){ hint('先到潭边的平石上坐一坐吧',2400); return; }
+  inscribed=true; lit('s14'); sealSound();
+  showNote('题字石壁','乃记之而去','以石为纸，将此潭记入文章——题罢，便离去。',3200);
+  setTimeout(openQuiz,1700);
+}
+
+cv.addEventListener('click', e=>{
+  if(!started) return;
+  const p=toWorld(e);
+  if(inDialog){ advanceDialog(); return; }
+  ripples.push({x:p.x,y:p.y,l:0});
+
+  // NPC 命中
+  for(const n of npcs){
+    if(Math.abs(p.x-n.x)<15 && p.y<n.y+4 && p.y>n.y-40){
+      const side = player.x<n.x ? -1 : 1;
+      player.tx = n.x + side*16;
+      player.ty = n.y;
+      player.pendingNPC=n; player.pendingHot=null;
+      return;
+    }
+  }
+  // 幕1：砍竹
+  if(scene===1){
+    for(let i=0;i<BAMBOO_HOT.length;i++){
+      const h=BAMBOO_HOT[i];
+      if(!cutBamboo[i] && Math.abs(p.x-h.x)<15 && Math.abs(p.y-h.y)<16){
+        player.tx=h.x+(player.x<h.x?-20:20); player.ty=h.y+8;
+        player.dir=player.x<h.x?'r':'l';
+        player.pendingHot=()=>doCutBamboo(i); player.pendingNPC=null;
+        return;
+      }
+    }
+  }
+  // 幕2：四石
+  if(scene===2){
+    for(const s of STONES){
+      if(Math.abs(p.x-s.x)<13 && Math.abs(p.y-s.y)<11){
+        player.tx=s.gx; player.ty=s.gy;
+        player.pendingHot=()=>doExamineStone(s); player.pendingNPC=null;
+        return;
+      }
+    }
+  }
+  // 幕3：题字石壁
+  if(scene===3 && inBox(p,WALL_HOT)){
+    if(!satDown){ doInscribe(); return; }
+    player.tx=300; player.ty=240; player.dir='r';
+    player.pendingHot=doInscribe; player.pendingNPC=null;
+    return;
+  }
+  // 幕3：平石静坐
+  if(scene===3 && inBox(p,SIT_HOT)){
+    player.tx=224; player.ty=250;
+    player.pendingHot=doSit; player.pendingNPC=null;
+    return;
+  }
+  // 幕3：望溪源
+  if(scene===3 && inBox(p,SRC_HOT)){
+    player.tx=296; player.ty=182; player.dir='u';
+    player.pendingHot=doLookSource; player.pendingNPC=null;
+    return;
+  }
+  // 返回出口（可随时返回上一幕）
+  const bx=BACK_EXITS[scene];
+  if(bx && p.x<bx.w+42 && p.y>bx.y && p.y<bx.y+bx.h){
+    player.tx=8; player.ty=clamp(p.y,180,250); pendingBack=bx;
+    player.pendingHot=null; player.pendingNPC=null; return;
+  }
+  // 普通出口
+  const ex=EXITS[scene];
+  if(ex && !exitLocked()){
+    if(p.x>ex.x-40 && p.y>ex.y && p.y<ex.y+ex.h){
+      player.tx=470; player.ty=clamp(p.y,180,250); pendingExit=ex;
+      player.pendingHot=null; return;
+    }
+  } else if(ex && exitLocked() && p.x>ex.x-40 && p.y>ex.y && p.y<ex.y+ex.h){
+    player.tx=ex.x-30; player.ty=clamp(p.y,180,250);
+    if(scene===0) hint('且向西行——还未走满「百二十步」',2400);
+    else if(scene===1) hint('竹丛挡路，先砍竹取道（点击发光竹丛）',2600);
+    else hint('同游者与四块奇石都寻访过后，方可离去',2600);
+  }
+  // 走路
+  player.tx=clamp(p.x,8,472);
+  player.ty=clamp(p.y,160,258);
+  player.pendingNPC=null; player.pendingHot=null;
+});
+dlgEl.addEventListener('click', e=>{
+  if(inDialog && !quizOpen) advanceDialog();
+});
+
+/* ================= 主循环 ================= */
+function update(){
+  if(started && (!inDialog)){
+    const dx=player.tx-player.x, dy=player.ty-player.y;
+    const d=Math.hypot(dx,dy);
+    if(d>1.2){
+      player.moving=true;
+      const st=Math.min(player.speed,d); player.x+=dx/d*st; player.y+=dy/d*st;
+      if(Math.abs(dx)>Math.abs(dy)) player.dir=dx>0?'r':'l';
+      else player.dir=dy>0?'d':'u';
+      player.frame++;
+      // 幕0：西行计步（约440px合120步）
+      if(scene===0 && !joyShown){
+        stepAccum+=player.speed;
+        const steps=Math.min(120,Math.floor(stepAccum*.28));
+        const hs=document.getElementById('hud-steps');
+        if(hs) hs.textContent='西行 '+steps+' 步';
+        if(!heardWater && steps>=80){
+          heardWater=true; lit('s2'); peihuan();
+          setHud('隔篁竹，闻水声，如鸣珮环……');
+          showNote('闻水声','隔篁竹，闻水声，如鸣珮环',
+            '隔着竹丛听见水声，像玉珮玉环相互碰击，清越动听。',3400);
+        }
+        if(!joyShown && steps>=120){
+          joyShown=true; lit('s1'); lit('s3'); chime();
+          showNote('心乐之','心乐之','水声清越，竹林幽寂，心中不由得欢喜起来。',3200);
+          setTimeout(afterEnterHint,1400);
+        }
+      }
+    } else {
+      player.moving=false; player.frame++;
+      if(player.pendingHot){
+        const fn=player.pendingHot; player.pendingHot=null; fn();
+      }
+      if(player.pendingNPC){
+        const n=player.pendingNPC;
+        player.dir = player.x<n.x?'r':'l';
+        n.dir = n.x<player.x?'l':'r';
+        const copy=n.lines.map(l=>({...l}));
+        openDialog(copy,n);
+        player.pendingNPC=null;
+      }
+      if(pendingBack){
+        pendingBack=null;
+        goScene(scene-1, null, true);
+      }
+            if(pendingExit){
+        pendingExit=null;
+        if(scene===0) goScene(1,[
+          {who:'柳宗元',type:'liu',orig:'隔篁竹，闻水声，如鸣珮环，心乐之。',text:'妙哉！水声隔着竹丛，如玉珮玉环相击，清越动听，我心下好生欢喜。只是竹丛密了些，挡住去路。'},
+          {who:'旁白',type:'narrator',text:'（点击竹丛根部的金色光点，砍倒拦路的三丛竹子，即可开出一条小路。）'}
+        ]);
+        else if(scene===1) {
+          lit('s4'); lit('s5'); lit('s7');
+          goScene(2,[
+          {who:'旁白',type:'narrator',orig:'下见小潭，水尤清冽。全石以为底，近岸，卷石底以出，为坻，为屿，为嵁，为岩。',text:'小路尽头赫然出现一个小潭，潭水格外清凉。潭底是一整块石头，近岸处石底翻卷出水面，成了坻、屿、嵁、岩，各具其形。'},
+          {who:'旁白',type:'narrator',orig:'青树翠蔓，蒙络摇缀，参差披拂。',text:'青葱的树木与翠绿的藤蔓，覆盖缠绕、摇动下垂，参差不齐地随风飘拂。'},
+          {who:'旁白',type:'narrator',text:'潭边有三位同游者相候，水面还点缀着四块奇石——都去点一点吧。'}
+        ]);
+        }
+        else if(scene===2) {
+          goScene(3,[
+          {who:'柳宗元',type:'liu',text:'潭的西南方，溪水曲折而来。且点击上游的闪光处，望一望这溪水的源头究竟在何处。'},
+          {who:'旁白',type:'narrator',text:'溪畔有一方平石可以坐看，一旁石壁可供题字。先探源头、再静坐、题字——三事既毕，先生另有考题相试。'}
+        ]);
+        }
+      }
+    }
+  } else { player.moving=false; player.frame++; }
+
+  // NPC 待机
+  npcs.forEach(n=>{ n.frame++; });
+  // 鱼群
+  updateFishes();
+  // 如鸣珮环（闻水声之后，竹林/溪涧）
+  if(started && actx && musicOn && !inDialog && (scene===1 || (scene===0&&heardWater)) && tFrame%150===0) peihuan();
+  ripples.forEach(r=>r.l++);
+  ripples=ripples.filter(r=>r.l<24);
+  // 落叶
+  petals.forEach(p=>{
+    p.sw+=.03; p.y+=p.vy; p.x+=Math.sin(p.sw)*.5;
+    if(p.y>H+4){ p.y=-4; p.x=rnd(0,W); }
+  });
+}
+
+function render(){
+  g.clearRect(0,0,W,H);
+  g.drawImage(sceneCache[scene],0,0,W,H);
+  CUR=g; drawDynamic(scene);
+
+  // 幕1：拦路竹丛
+  if(scene===1) drawBambooClusters();
+
+  // 出口（各幕有解锁条件）
+  const ex=EXITS[scene];
+  if(ex && !exitLocked()) drawExit(ex);
+  const bxe=BACK_EXITS[scene];
+  if(bxe) drawBackExit(bxe);
+
+  // 互动光点
+  if(scene===2) drawStoneSparks();
+  if(scene===3) drawScene3Hot();
+
+  // NPC
+  npcs.forEach(n=>{
+    drawHuman(n.x,n.y,{type:n.type,dir:n.dir,frame:n.frame,moving:false});
+    if(!n.talked){
+      const yy=n.y-38+Math.sin((tFrame+n.x)*.12)*2;
+      g.globalAlpha=1;
+      g.fillStyle='#ffd94d';
+      rrectP(g,n.x-1.4,yy,2.8,7.2,1.4); g.fill();
+      g.beginPath(); g.arc(n.x,yy+8.8,1.4,0,6.2832); g.fill();
+      g.fillStyle='#fff8d0';
+      rrectP(g,n.x-1.0,yy+.4,1.0,6.2,.5); g.fill();
+    }
+  });
+
+  // 玩家（柳宗元）
+  drawHuman(player.x,player.y,{type:'liu',dir:player.dir,frame:player.frame,moving:player.moving});
+
+  // 幕3：坐潭后的凄寒氛围
+  if(scene===3 && satDown) drawColdVeil();
+
+  // 点击涟漪反馈
+  ripples.forEach(r=>{
+    const rr=3+r.l*.9;
+    g.globalAlpha=.55*(1-r.l/24);
+    g.strokeStyle='#fff6c8'; g.lineWidth=1;
+    g.beginPath(); g.ellipse(r.x,r.y,rr,rr*.55,0,0,Math.PI*2); g.stroke();
+    g.globalAlpha=1;
+  });
+  // 落叶在最上层
+  petals.forEach(p=>{
+    const fl=(Math.sin(p.sw)+1)/2;
+    const rx=Math.max(.6,p.s*(.28+.42*fl)), ry=Math.max(.8,p.s*.85);
+    g.globalAlpha=.85;
+    g.fillStyle=p.p;
+    g.beginPath(); g.ellipse(p.x,p.y,rx,ry,p.sw*.8,0,6.2832); g.fill();
+    g.globalAlpha=1;
+  });
+}
+
+let __loopIv=null;
+function loop(){ try{ tFrame++; update(); render(); }catch(e){ console.error('LOOP_ERR:',e.message); } }
+
+/* ================= 启动 ================= */
+function beginJourney(){
+  started=true;
+  initScene(0); setPetals(PETAL_COUNT[0]);
+  setHudByScene();
+  if(!__loopIv){ __loopIv=setInterval(loop,33); }
+  chime();
+  openDialog([
+    {who:'旁白',type:'narrator',orig:'从小丘西行百二十步……',text:'今日从所游的小丘出发，向西而行。据说走到一百二十步外，竹林深处别有天地——点击地面一路西行吧。'},
+    {who:'柳宗元',type:'liu',text:'篁竹幽深，风叶相和。只顾走，莫数错了脚步。'},
+    {who:'旁白',type:'narrator',text:'（点击地面行走。走满约「百二十步」，且听竹丛深处会传来什么。）'}
+  ],null);
+}
+document.getElementById('start').addEventListener('click', ()=>{
+  audioInit();
+  if(actx.state==='suspended') actx.resume();
+  if(!musicOn){ musicOn=true; mIdx=0; schedMusic(); document.getElementById('music').textContent='♫'; }
+  const t=document.getElementById('title');
+  t.style.opacity=0;
+  setTimeout(()=>{
+    t.style.display='none';
+    document.getElementById('prologue').classList.add('show');
+  },800);
+});
+document.getElementById('unroll').addEventListener('click', ()=>{
+  chime();
+  const p=document.getElementById('prologue');
+  p.style.transition='opacity .6s'; p.style.opacity=0;
+  setTimeout(()=>{ p.classList.remove('show'); beginJourney(); },600);
+});
+// 初始静态画面
+initScene(0); setPetals(12);
+(function staticLoop(){ if(!started){ g.drawImage(sceneCache[0],0,0,W,H); CUR=g; drawDynamic(0); requestAnimationFrame(staticLoop);} })();
+
+/* 调试入口（仅 ?debug=1 时可用，正式游玩无影响） */
+if(location.search.indexOf('debug=1')>=0){
+  window.__test={
+    go(n){
+      if(!started){ started=true; document.getElementById('title').style.display='none'; }
+      setPetals(PETAL_COUNT[n]);
+      if(!window.__loopOn){ window.__loopOn=true; if(!__loopIv){ __loopIv=setInterval(loop,33); } }
+      goScene(n);
+    },
+    unlock(){
+      heardWater=true; joyShown=true; stepAccum=440;
+      cutBamboo=[true,true,true];
+      foundStones=new Set(STONES.map(s=>s.id));
+      npcs.forEach(n=>n.talked=true);
+    },
+    cut(i){ doCutBamboo(i); },
+    stone(id){ doExamineStone(STONES.find(s=>s.id===id)); },
+    src(){ doLookSource(); },
+    sit(){ doSit(); },
+    inscribe(){ doInscribe(); },
+    dlg(n){ for(let i=0;i<(n||1);i++) dlgEl.click(); },
+    answerA(){ const b=document.querySelector('#quiz-opts button'); if(b) b.click(); },
+    scroll(){ showScroll(); },
+    state:()=>({scene, cutBamboo:cutBamboo.slice(), stones:[...foundStones], look:lookSrcCount, sat:satDown, inscribed, inDialog, quizOpen, lit:[...litSet]})
+  };
+}
+</script>
+<script>
+/* ===== 文脉意象收集系统 · 获得仪式（独立运行时，包装 PROG.finish，不改原游戏逻辑） ===== */
+(function(){
+  if(window.__YIN_RT__) return; window.__YIN_RT__=true;
+  var PID='xst';
+  var REG=[
+    {key:'yue',char:'月',rarity:'逸品',rc:'#6fc6ff',glow:'rgba(111,198,255,.4)',pieces:['cts'],
+     from:'记承天寺夜游',quote:'庭下如积水空明',
+     mean:'同一轮月，闲人眼里的空明与自适；竹柏之影原来是月色。'},
+    {key:'shui',char:'水',rarity:'神品',rc:'#ff9d3c',glow:'rgba(255,157,60,.45)',pieces:['xst','sx'],
+     from:'小石潭记 · 三峡',quote:'水尤清冽 · 素湍绿潭',
+     mean:'水有两副面孔——小石潭清寒幽悄，三峡水或奔腾或澄碧。'},
+    {key:'lian',char:'莲',rarity:'极品',rc:'#b48aff',glow:'rgba(180,138,255,.42)',pieces:['als'],
+     from:'爱莲说',quote:'出淤泥而不染，濯清涟而不妖',
+     mean:'莲即君子：身处浊世而不自染。'},
+    {key:'taoyuan',char:'桃源',rarity:'神品',rc:'#ff9d3c',glow:'rgba(255,157,60,.45)',pieces:['thy'],
+     from:'桃花源记',quote:'芳草鲜美，落英缤纷',
+     mean:'桃花源头是中国人心里的理想乡；菊与桃花皆指向归隐。'},
+    {key:'shan',char:'山',rarity:'极品',rc:'#b48aff',glow:'rgba(180,138,255,.42)',pieces:['lsm','sx'],
+     from:'陋室铭 · 三峡',quote:'山不在高，有仙则名',
+     mean:'山不在高而在德，亦可壁立千仞藏日月。'},
+    {key:'yuansheng',char:'猿声',rarity:'孤品',rc:'#ff5a4e',glow:'rgba(255,90,78,.45)',pieces:['sx'],
+     from:'三峡',quote:'巴东三峡巫峡长，猿鸣三声泪沾裳',
+     mean:'三声猿鸣，是行旅之愁，也是山水文里最早的「声音风景」。'}
+  ];
+
+  /* ---------- 存储：gushi_v1.yin = {key:获得时间戳} ---------- */
+  var KEY='gushi_v1';
+  function load(){ try{ var d=JSON.parse(localStorage.getItem(KEY)); return d&&d.v===1?d:{v:1,p:{}}; }catch(e){ return {v:1,p:{}}; } }
+  function save(d){ try{ localStorage.setItem(KEY,JSON.stringify(d)); }catch(e){} }
+
+  var queue=[], batch=[], idx=0, showing=false, timers=[];
+
+  function awardByPiece(pid){
+    var d=load();
+    if(!d.yin||typeof d.yin!=='object') d.yin={};
+    var fresh=[];
+    REG.forEach(function(it){
+      if(it.pieces.indexOf(pid)>=0 && !d.yin[it.key]){
+        d.yin[it.key]=Date.now(); fresh.push(it);
+      }
+    });
+    if(!fresh.length) return;
+    save(d);
+    fresh.forEach(function(it){ queue.push(it); });
+    if(!showing){ schedule(); }
+  }
+  window.__yinAward=awardByPiece; /* 测试入口 */
+
+  /* ---------- 音效：三段递进（光韵汇聚 → 玉振五声 → 钟磬大成） ---------- */
+  var AC=null;
+  function ac(){
+    if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+    if(AC&&AC.state==='suspended'){ try{ AC.resume(); }catch(e){} }
+    return AC;
+  }
+  function tone(f,t0,dur,type,vol,slideTo){
+    var c=ac(); if(!c) return;
+    var t=c.currentTime+t0, o=c.createOscillator(), g=c.createGain();
+    o.type=type;
+    o.frequency.setValueAtTime(f,t);
+    if(slideTo) o.frequency.exponentialRampToValueAtTime(slideTo,t+dur);
+    g.gain.setValueAtTime(.0001,t);
+    g.gain.exponentialRampToValueAtTime(vol,t+.035);
+    g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.connect(g); g.connect(c.destination);
+    o.start(t); o.stop(t+dur+.03);
+  }
+  function sfxSeq(){
+    try{
+      /* 一、光韵汇聚：双声部上行微光 */
+      tone(300,0,1.05,'sine',.045,900);
+      tone(450,.06,.95,'triangle',.022,1200);
+      /* 二、玉振五声（宫商角徵羽） */
+      var ns=[523.25,587.33,659.25,783.99,1046.5];
+      ns.forEach(function(f,i){ tone(f,.55+i*.1,.42,'triangle',.07); });
+      /* 三、钟磬大成 */
+      tone(1318.5,1.15,2.0,'sine',.085);
+      tone(1975.5,1.15,1.5,'sine',.03);
+      tone(196,1.12,.55,'sine',.06);
+    }catch(e){}
+  }
+  function sfxTick(){ try{ tone(880,0,.12,'triangle',.08); tone(1320,.05,.16,'sine',.045); }catch(e){} }
+
+  /* ---------- 样式 ---------- */
+  var CSS='#yin-layer{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;'+
+    'background:radial-gradient(circle at 50% 42%,rgba(62,44,16,.6) 0%,rgba(12,9,5,.92) 80%);'+
+    'font-family:"KaiTi","STKaiti","楷体",serif;-webkit-user-select:none;user-select:none;}'+
+    '#yin-layer.show{display:flex;animation:yrBg .5s ease both;}'+
+    '@keyframes yrBg{from{opacity:0}to{opacity:1}}'+
+    '.yr-rays{position:absolute;width:780px;height:780px;left:50%;top:46%;transform:translate(-50%,-50%);border-radius:50%;pointer-events:none;'+
+    'background:repeating-conic-gradient(rgba(255,210,120,.16) 0deg 7deg,rgba(255,210,120,0) 7deg 60deg);'+
+    'opacity:0;transition:opacity .9s ease;}'+
+    '.yr-stage.in .yr-rays{opacity:1;animation:yrSpin 18s linear infinite;}'+
+    '@keyframes yrSpin{to{transform:translate(-50%,-50%) rotate(360deg)}}'+
+    '.yr-card{position:relative;width:min(380px,90vw);border-radius:14px;padding:24px 26px 20px;text-align:center;'+
+    'background:linear-gradient(165deg,#2e2543 0%,#1e1931 55%,#261b14 100%);'+
+    'border:1px solid rgba(255,210,120,.55);box-shadow:0 0 0 1px rgba(80,55,20,.55),0 0 50px var(--rcglow),inset 0 0 34px rgba(255,210,120,.08);'+
+    'transform:scale(.55) rotate(-3deg);opacity:0;}'+
+    '.yr-stage.in .yr-card{animation:yrPop .6s cubic-bezier(.2,1.45,.34,1) .5s both;}'+
+    '@keyframes yrPop{60%{transform:scale(1.06) rotate(1.2deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}'+
+    '.yr-card.out{animation:yrOut .4s ease both;}'+
+    '@keyframes yrOut{to{transform:scale(.72) translateY(-26px);opacity:0}}'+
+    '.yr-ribbon{font-size:.78rem;letter-spacing:.5em;color:#caa86a;padding-left:.5em;margin-bottom:8px;}'+
+    '.yr-rare{position:absolute;top:13px;right:13px;font-size:.7rem;letter-spacing:.22em;padding:3px 10px;border-radius:20px;'+
+    'color:#1a1208;background:var(--rc);box-shadow:0 0 14px var(--rc);font-weight:bold;}'+
+    '.yr-charwrap{position:relative;display:inline-block;margin:2px 0 4px;}'+
+    '.yr-char{font-size:5.4rem;line-height:1.1;color:#f6d98b;text-shadow:0 0 26px var(--rcglow),0 3px 0 #7a5415,0 6px 14px rgba(0,0,0,.5);'+
+    'display:inline-block;transform:scale(1.7) rotate(-10deg);opacity:0;}'+
+    '.yr-yinseal{position:absolute;right:-14px;bottom:2px;width:30px;height:30px;border-radius:4px;background:#a8412e;color:#fbeeda;'+
+    'font-size:1rem;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 1.5px rgba(251,238,218,.4);'+
+    'transform:rotate(-6deg) scale(1.6);opacity:0;}'+
+    '.yr-line{height:1px;width:70%;margin:8px auto 10px;background:linear-gradient(90deg,transparent,rgba(230,196,110,.7),transparent);}'+
+    '.yr-name{font-size:1.4rem;letter-spacing:.3em;color:#f3e3b8;padding-left:.3em;}'+
+    '.yr-from{font-size:.82rem;letter-spacing:.16em;color:#b79b66;margin-top:5px;}'+
+    '.yr-quote{font-size:1.02rem;letter-spacing:.12em;color:#fdf3d8;margin:12px 6px 8px;line-height:1.7;}'+
+    '.yr-mean{font-size:.86rem;letter-spacing:.06em;color:#c9b489;line-height:1.85;margin:0 4px;}'+
+    '.yr-dots{margin-top:12px;height:10px;}'+
+    '.yr-dots i{display:inline-block;width:7px;height:7px;border-radius:50%;margin:0 4px;background:rgba(230,196,110,.3);}'+
+    '.yr-dots i.on{background:#e8c06a;box-shadow:0 0 8px rgba(232,192,106,.8);}'+
+    '.yr-btn{margin-top:14px;font-family:inherit;font-size:1rem;letter-spacing:.34em;padding:9px 30px;border-radius:24px;cursor:pointer;'+
+    'background:linear-gradient(180deg,#ecc872,#c8922f);color:#241708;border:1px solid #8a6220;'+
+    'opacity:0;pointer-events:none;}'+
+    '.yr-skip{margin-top:10px;font-size:.8rem;letter-spacing:.3em;color:#a08a5e;cursor:pointer;}'+
+    '.yr-skip:hover{color:#d8c08a;}'+
+    '.yr-stage.s3 .yr-btn{pointer-events:auto;animation:yrFade .4s both,yrPulse 1.7s ease-in-out .4s infinite;}'+
+    '.yr-stage.s3 .yr-skip{animation:yrFade .5s both;}'+
+    '@keyframes yrPulse{0%,100%{box-shadow:0 0 10px rgba(255,190,90,.35)}50%{box-shadow:0 0 26px rgba(255,190,90,.9)}}'+
+    '@keyframes yrFade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}'+
+    '.yr-stage.s2 .yr-ribbon{animation:yrFade .5s .15s both;}'+
+    '.yr-stage.s2 .yr-rare{animation:yrFade .4s .6s both;}'+
+    '.yr-stage.s2 .yr-char{animation:yrStamp .5s cubic-bezier(.2,1.5,.4,1) both;}'+
+    '.yr-stage.s2 .yr-yinseal{animation:yrStamp .4s cubic-bezier(.2,1.5,.4,1) .22s both;}'+
+    '@keyframes yrStamp{to{opacity:1;transform:scale(1) rotate(-6deg)}}'+
+    '.yr-stage.s2 .yr-char{animation-name:yrStampChar;}'+
+    '@keyframes yrStampChar{to{opacity:1;transform:scale(1) rotate(0)}}'+
+    '.yr-stage.s2 .yr-line{animation:yrFade .5s .25s both;}'+
+    '.yr-stage.s2 .yr-name{animation:yrFade .5s .35s both;}'+
+    '.yr-stage.s2 .yr-from{animation:yrFade .5s .5s both;}'+
+    '.yr-stage.s2 .yr-quote{animation:yrFade .55s .65s both;}'+
+    '.yr-stage.s2 .yr-mean{animation:yrFade .55s .8s both;}'+
+    '.yr-stage.s2 .yr-dots{animation:yrFade .5s 1s both;}'+
+    '.yr-summary{display:none;}'+
+    '.yr-card.sum .yr-body{display:none;}'+
+    '.yr-card.sum .yr-summary{display:block;}'+
+    '.yr-sum-seal{width:58px;height:58px;border-radius:7px;background:#a8412e;color:#fbeeda;font-size:1.9rem;margin:6px auto 12px;'+
+    'display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 2px rgba(251,238,218,.4);transform:rotate(-4deg);}'+
+    '.yr-sum-title{font-size:1.5rem;letter-spacing:.32em;color:#f3e3b8;padding-left:.32em;}'+
+    '.yr-sum-list{margin:14px 0 4px;}'+
+    '.yr-sum-list span{display:inline-block;margin:4px 5px;padding:4px 14px;border-radius:18px;font-size:1.05rem;letter-spacing:.12em;'+
+    'background:rgba(232,192,106,.14);border:1px solid rgba(232,192,106,.5);color:#f6d98b;}'+
+    '.yr-sum-tip{font-size:.8rem;letter-spacing:.14em;color:#a08a5e;line-height:1.8;margin-bottom:6px;}'+
+    '@media (max-width:420px){.yr-char{font-size:4.4rem}.yr-card{padding:20px 18px 16px}.yr-rays{width:600px;height:600px}}';
+
+  var HTML='<div class="yr-rays"></div><div class="yr-stage" id="yrStage"><div class="yr-card" id="yrCard">'+
+    '<div class="yr-body">'+
+      '<div class="yr-ribbon">文 脉 意 象 · 新 觉</div>'+
+      '<div class="yr-rare" id="yrRare"></div>'+
+      '<div class="yr-charwrap"><span class="yr-char" id="yrChar"></span><span class="yr-yinseal">藏</span></div>'+
+      '<div class="yr-line"></div>'+
+      '<div class="yr-name" id="yrName"></div>'+
+      '<div class="yr-from" id="yrFrom"></div>'+
+      '<div class="yr-quote" id="yrQuote"></div>'+
+      '<div class="yr-mean" id="yrMean"></div>'+
+      '<div class="yr-dots" id="yrDots"></div>'+
+      '<button class="yr-btn" id="yrBtn" type="button">收 入 图 鉴</button>'+
+      '<div class="yr-skip" id="yrSkip">继续品读</div>'+
+    '</div>'+
+    '<div class="yr-summary">'+
+      '<div class="yr-sum-seal">藏</div>'+
+      '<div class="yr-sum-title">意象已入图鉴</div>'+
+      '<div class="yr-sum-list" id="yrSumList"></div>'+
+      '<div class="yr-sum-tip">可随时往「文脉图鉴」重温原句与内涵</div>'+
+      '<button class="yr-btn" id="yrGoBook" type="button">前 往 文 脉 图 鉴</button>'+
+      '<div class="yr-skip" id="yrClose">继续品读</div>'+
+    '</div></div></div>';
+
+  var layer, stage, card, elts;
+  function buildUI(){
+    var st=document.createElement('style'); st.textContent=CSS; document.head.appendChild(st);
+    layer=document.createElement('div'); layer.id='yin-layer'; layer.innerHTML=HTML;
+    document.body.appendChild(layer);
+    stage=document.getElementById('yrStage'); card=document.getElementById('yrCard');
+    elts={
+      rare:document.getElementById('yrRare'),char:document.getElementById('yrChar'),
+      name:document.getElementById('yrName'),from:document.getElementById('yrFrom'),
+      quote:document.getElementById('yrQuote'),mean:document.getElementById('yrMean'),
+      dots:document.getElementById('yrDots'),btn:document.getElementById('yrBtn'),
+      skip:document.getElementById('yrSkip'),sumList:document.getElementById('yrSumList'),
+      goBook:document.getElementById('yrGoBook'),close:document.getElementById('yrClose')
+    };
+    elts.btn.addEventListener('click',onConfirm);
+    elts.skip.addEventListener('click',onConfirm);
+    elts.goBook.addEventListener('click',function(){ sfxTick(); setTimeout(function(){ location.href='wenmai.html'; },160); });
+    elts.close.addEventListener('click',hide);
+    document.addEventListener('keydown',function(e){
+      if(!showing||e.key!=='Enter')return;
+      if(card.classList.contains('sum')) elts.goBook.click(); else onConfirm();
+    });
+  }
+
+  function later(fn,ms){ var id=setTimeout(fn,ms); timers.push(id); }
+  function clearTimers(){ timers.forEach(clearTimeout); timers=[]; }
+
+  function schedule(){
+    if(!document.body){ document.addEventListener('DOMContentLoaded',schedule); return; }
+    if(!layer) buildUI();
+    showing=true; batch=queue.slice(); idx=0;
+    later(function(){ present(); },2300); /* 等结局卷轴展开、印章落定后再启仪式 */
+  }
+
+  function present(){
+    var it=batch[idx];
+    card.classList.remove('out','sum');
+    stage.classList.remove('in','s2','s3');
+    elts.rare.textContent=it.rarity;
+    card.style.setProperty('--rc',it.rc);
+    card.style.setProperty('--rcglow',it.glow);
+    elts.char.textContent=it.char;
+    elts.char.style.fontSize=it.char.length>1?'4.2rem':'';
+    elts.name.textContent=it.char+'　意象';
+    elts.from.textContent='出自《'+it.from+'》';
+    elts.quote.textContent='「'+it.quote+'」';
+    elts.mean.textContent=it.mean;
+    elts.dots.innerHTML='';
+    for(var i=0;i<batch.length;i++){ var d=document.createElement('i'); if(i===idx)d.className='on'; elts.dots.appendChild(d); }
+    layer.classList.add('show');
+    sfxSeq();
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ stage.classList.add('in'); }); });
+    later(function(){ stage.classList.add('s2'); },1150);
+    later(function(){ stage.classList.add('s3'); },2300);
+  }
+
+  function onConfirm(){
+    if(!stage.classList.contains('s3')||card.classList.contains('sum'))return;
+    sfxTick(); clearTimers();
+    card.classList.add('out');
+    later(function(){
+      idx++;
+      if(idx<batch.length) present(); else showSummary();
+    },420);
+  }
+
+  function showSummary(){
+    stage.classList.add('s3');
+    card.classList.add('sum');
+    elts.sumList.innerHTML='';
+    batch.forEach(function(it){
+      var s=document.createElement('span'); s.textContent=it.char+'　'+it.rarity;
+      elts.sumList.appendChild(s);
+    });
+  }
+
+  function hide(){
+    clearTimers();
+    if(layer) layer.classList.remove('show');
+    if(card) card.classList.remove('sum','out');
+    if(stage) stage.classList.remove('in','s2','s3');
+    showing=false; queue=[]; batch=[]; idx=0;
+  }
+
+  /* ---------- 挂钩游戏完成：包装 PROG.finish（原逻辑照常执行） ---------- */
+  function hook(){
+    if(!window.PROG||typeof window.PROG.finish!=='function'||PROG.__yinHooked) return !!PROG.__yinHooked;
+    var orig=PROG.finish;
+    PROG.finish=function(){
+      try{ orig.apply(this,arguments); }catch(e){}
+      try{ awardByPiece(PID); }catch(e){}
+    };
+    PROG.__yinHooked=true;
+    return true;
+  }
+  function tryHook(){ if(hook())return true; var n=0; var iv=setInterval(function(){ n++; if(hook()||n>40)clearInterval(iv); },200); return false; }
+  if(document.body) tryHook(); else document.addEventListener('DOMContentLoaded',tryHook);
+})();
+</script>
+</body>
+</html>

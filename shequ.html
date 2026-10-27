@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>文汇社 · 互动社区</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { min-height:100%; }
+  body {
+    background:#f2ead7; color:#2e2820;
+    font-family:"KaiTi","STKaiti","楷体",serif;
+    user-select:none;
+    padding:0 14px 60px;
+  }
+  ::selection { background:rgba(156,50,34,.18); }
+  input,textarea,button,select { font-family:inherit; }
+  a { color:#7a5230; text-decoration:none; }
+  button { cursor:pointer; }
+
+  /* ===== 顶栏 ===== */
+  #topbar {
+    max-width:880px; margin:0 auto;
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    padding:20px 2px 6px;
+  }
+  .back {
+    flex:0 0 auto; display:inline-flex; align-items:center; gap:6px;
+    padding:7px 14px; border-radius:8px;
+    background:linear-gradient(180deg,#8a5a32,#6e4413);
+    color:#fbeeda; font-size:.95rem; letter-spacing:.1rem;
+    border:1.5px solid #caa24e; box-shadow:0 2px 6px rgba(94,60,25,.3);
+  }
+  .back:hover { background:linear-gradient(180deg,#9a6a42,#7e5220); }
+  .t-wrap { flex:1 1 auto; min-width:200px; }
+  h1 { font-size:1.5rem; font-weight:normal; letter-spacing:.34rem; color:#432810; }
+  h1 .seal {
+    display:inline-flex; align-items:center; justify-content:center;
+    width:30px; height:30px; margin-left:10px; vertical-align:-6px;
+    border-radius:6px; background:#a8412e; color:#fbeeda;
+    font-size:1rem; transform:rotate(-4deg);
+    box-shadow:inset 0 0 0 1.5px rgba(251,238,218,.45);
+  }
+  .subtitle { font-size:.8rem; letter-spacing:.24rem; color:#8c7d63; margin-top:2px; }
+  #who {
+    flex:0 0 auto; font-size:.86rem; letter-spacing:.08rem; color:#5a3c20;
+    background:rgba(252,247,233,.94); border:1px solid rgba(94,72,42,.35);
+    border-radius:17px; padding:6px 14px;
+  }
+  #who b { color:#a8412e; }
+
+  /* ===== 降级提示条 ===== */
+  #modebar {
+    max-width:880px; margin:10px auto 0; display:none;
+    padding:9px 16px; border-radius:8px; font-size:.9rem; letter-spacing:.06rem;
+    color:#7a4a10; background:rgba(227,182,77,.16);
+    border:1px dashed rgba(170,120,40,.55);
+  }
+  #modebar.local { display:block; }
+  #modebar.need { display:block; color:#7c1f12; background:rgba(156,50,34,.08); border-color:rgba(156,50,34,.4); }
+
+  /* ===== 页签 ===== */
+  #tabs {
+    max-width:880px; margin:14px auto 0;
+    display:flex; gap:8px; flex-wrap:wrap;
+    border-bottom:2px solid rgba(138,90,50,.3); padding-bottom:0;
+  }
+  .tab {
+    position:relative; border:0; background:none; font-size:1.02rem;
+    letter-spacing:.14rem; color:#7a6850; padding:9px 16px 11px;
+  }
+  .tab .dot {
+    position:absolute; top:5px; right:4px; min-width:17px; height:17px;
+    border-radius:9px; background:#a8412e; color:#fbeeda;
+    font-size:.68rem; line-height:17px; text-align:center; padding:0 4px;
+  }
+  .tab.on { color:#9c3222; }
+  .tab.on::after {
+    content:''; position:absolute; left:10%; right:10%; bottom:-2px; height:3px;
+    border-radius:2px; background:linear-gradient(90deg,#c44936,#9c3222);
+  }
+
+  /* ===== 主区 ===== */
+  #main { max-width:880px; margin:16px auto 0; }
+  .sec-act { display:flex; align-items:center; gap:10px; margin:4px 2px 14px; flex-wrap:wrap; }
+  .sec-note { font-size:.84rem; letter-spacing:.1rem; color:#8c7d63; }
+  .btn {
+    border:1.5px solid #9c3222; border-radius:8px; background:linear-gradient(180deg,#c44936,#9c3222);
+    color:#fdeed6; font-size:.94rem; letter-spacing:.12rem; padding:7px 18px;
+    box-shadow:0 2px 6px rgba(120,40,25,.28);
+  }
+  .btn:hover { background:linear-gradient(180deg,#d25744,#a83c2c); }
+  .btn.gold { border-color:#caa24e; background:linear-gradient(180deg,#e3b64d,#c4912e); color:#4a2e10; }
+  .btn.gold:hover { background:linear-gradient(180deg,#efc35e,#d09d38); }
+  .btn.plain { border-color:rgba(94,72,42,.45); background:#f8f0dc; color:#5a3c20; box-shadow:none; }
+  .btn.plain:hover { background:#fffdf2; }
+  .btn.mini { font-size:.8rem; padding:3px 10px; border-radius:6px; letter-spacing:.06rem; }
+  .btn[disabled] { opacity:.5; cursor:default; }
+
+  /* ===== 帖卡 ===== */
+  .plist { display:flex; flex-direction:column; gap:12px; }
+  .pcard {
+    background:linear-gradient(180deg,#fbf3dc,#f2e5c8);
+    border:1px solid #a5793f; border-radius:10px;
+    padding:13px 16px 12px;
+    box-shadow:0 3px 10px rgba(90,60,25,.13), inset 0 0 0 1px rgba(255,250,230,.5);
+  }
+  .pcard.open { border-color:#9c3222; }
+  .p-head { display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
+  .p-kind {
+    flex:0 0 auto; width:26px; height:26px; border-radius:6px;
+    background:linear-gradient(160deg,#c44936,#9c3222); color:#fdeed6;
+    font-size:.9rem; display:flex; align-items:center; justify-content:center;
+    border:1.5px solid #caa24e;
+  }
+  .p-kind.t { background:linear-gradient(160deg,#7a5a36,#5a3c20); }
+  .p-kind.g { background:linear-gradient(160deg,#4a6a4a,#33502f); }
+  .p-title { font-size:1.12rem; letter-spacing:.04rem; color:#432810; flex:1 1 auto; min-width:150px; }
+  .p-meta { flex:0 0 auto; font-size:.78rem; letter-spacing:.05rem; color:#9a7c52; white-space:nowrap; }
+  .p-snippet { font-size:.92rem; color:#5a4a34; margin-top:7px; line-height:1.7;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .p-foot { display:flex; align-items:center; gap:8px; margin-top:9px; flex-wrap:wrap; }
+  .p-cnt { font-size:.78rem; color:#8a6238; letter-spacing:.06rem; }
+  .p-badge {
+    font-size:.72rem; letter-spacing:.1rem; color:#7a5a10;
+    background:rgba(227,182,77,.2); border:1px solid #caa24e; border-radius:8px; padding:1px 8px;
+  }
+  .p-badge.shi { color:#fdeed6; background:linear-gradient(160deg,#c44936,#9c3222); border-color:#caa24e; }
+  .p-badge.demo { color:#8a6238; background:none; border:1px dashed rgba(138,90,50,.5); }
+  .p-del { margin-left:auto; }
+  .spacer { flex:1 1 auto; }
+
+  /* 展开详情 */
+  .p-detail { display:none; margin-top:11px; border-top:1px dashed rgba(138,90,50,.4); padding-top:11px; }
+  .pcard.open .p-detail { display:block; }
+  .p-full { font-size:.98rem; line-height:1.9; color:#432810; white-space:pre-wrap; word-break:break-word; }
+  .replies { display:flex; flex-direction:column; gap:9px; margin-top:12px; }
+  .reply {
+    background:rgba(255,251,240,.8); border:1px solid rgba(138,90,50,.35);
+    border-radius:8px; padding:9px 13px;
+  }
+  .reply.r-shi { border-color:#caa24e; background:rgba(227,182,77,.1); }
+  .r-head { display:flex; align-items:center; gap:8px; font-size:.8rem; color:#9a7c52; }
+  .r-name { color:#5a3c20; font-size:.88rem; }
+  .r-shi-ico {
+    font-size:.68rem; color:#fdeed6; background:linear-gradient(160deg,#c44936,#9c3222);
+    border-radius:7px; padding:0 7px; letter-spacing:.06rem;
+  }
+  .r-body { font-size:.94rem; line-height:1.8; color:#432810; margin-top:4px; white-space:pre-wrap; word-break:break-word; }
+  .rbox { display:flex; gap:8px; margin-top:11px; align-items:flex-start; }
+  .rbox textarea {
+    flex:1 1 auto; min-height:44px; max-height:140px; resize:vertical;
+    border:1px solid rgba(94,72,42,.45); border-radius:8px; padding:8px 12px;
+    font-size:.94rem; color:#432810; background:#fffdf2; outline:none; line-height:1.6;
+  }
+  .rbox textarea:focus { border-color:#9c3222; }
+  .empty {
+    text-align:center; padding:34px 16px; color:#8c7d63; letter-spacing:.14rem;
+    border:1.5px dashed rgba(138,90,50,.4); border-radius:12px; font-size:.95rem; line-height:2;
+    white-space:pre-line;
+  }
+  /* 用法指引卡 */
+  .guide {
+    margin:0 0 14px; padding:11px 15px;
+    border:1.5px dashed rgba(170,120,40,.5); border-radius:10px;
+    background:rgba(227,182,77,.13);
+  }
+  .guide .g-head { display:flex; align-items:center; gap:10px; margin-bottom:5px; }
+  .guide .g-t { font-size:.92rem; color:#7a5a10; letter-spacing:.2rem; }
+  .guide .g-ok { margin-left:auto; }
+  .guide .g-i { font-size:.88rem; color:#6e5a3c; line-height:1.95; letter-spacing:.04rem; }
+  .guide .g-i b { color:#9c3222; font-weight:normal; }
+
+  /* ===== 小组卡 ===== */
+  .glist { display:flex; flex-direction:column; gap:12px; }
+  .gcard {
+    background:linear-gradient(180deg,#fbf3dc,#f2e5c8);
+    border:1px solid #a5793f; border-radius:10px; padding:13px 16px;
+    box-shadow:0 3px 10px rgba(90,60,25,.13), inset 0 0 0 1px rgba(255,250,230,.5);
+  }
+  .g-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .g-name { font-size:1.14rem; letter-spacing:.06rem; color:#432810; }
+  .g-own { font-size:.76rem; color:#9a7c52; }
+  .g-desc { font-size:.9rem; color:#5a4a34; margin-top:5px; line-height:1.7; }
+  .g-mem { font-size:.78rem; color:#8a6238; margin-top:7px; letter-spacing:.05rem; }
+
+  /* ===== 消息 ===== */
+  .msg-sec { margin-bottom:20px; }
+  .msg-h { font-size:1rem; letter-spacing:.22rem; color:#9c3222; margin:0 2px 10px; }
+  .msg-h::before { content:'◆'; color:#caa24e; font-size:.72rem; margin-right:8px; vertical-align:2px; }
+  .nitem {
+    display:flex; gap:11px; align-items:flex-start;
+    background:linear-gradient(180deg,#fbf3dc,#f2e5c8);
+    border:1px solid #a5793f; border-radius:10px; padding:11px 15px;
+    box-shadow:0 2px 8px rgba(90,60,25,.12);
+  }
+  .nitem + .nitem { margin-top:9px; }
+  .nitem.unread { border-color:#9c3222; box-shadow:0 2px 10px rgba(156,50,34,.2); }
+  .n-seal {
+    flex:0 0 auto; width:34px; height:34px; border-radius:7px;
+    background:linear-gradient(160deg,#c44936,#9c3222); color:#fdeed6;
+    font-size:.92rem; display:flex; align-items:center; justify-content:center;
+    border:1.5px solid #caa24e; margin-top:2px;
+  }
+  .n-seal.course { background:linear-gradient(160deg,#7a5a36,#5a3c20); }
+  .n-seal.exam { background:linear-gradient(160deg,#4a6a4a,#33502f); }
+  .n-seal.reply { background:linear-gradient(160deg,#3e5a7a,#2c4258); }
+  .n-body { flex:1 1 auto; min-width:0; }
+  .n-title { font-size:1rem; color:#432810; letter-spacing:.04rem; }
+  .nitem.unread .n-title::after { content:'未读'; font-size:.68rem; color:#fdeed6;
+    background:#a8412e; border-radius:7px; padding:0 6px; margin-left:8px; vertical-align:2px; }
+  .n-text { font-size:.9rem; color:#5a4a34; line-height:1.75; margin-top:3px; white-space:pre-wrap; word-break:break-word; }
+  .n-time { font-size:.74rem; color:#a08158; margin-top:4px; }
+  .n-demo { font-size:.7rem; color:#8a6238; border:1px dashed rgba(138,90,50,.5); border-radius:6px; padding:0 6px; margin-left:8px; vertical-align:2px; }
+
+  /* ===== 弹层 ===== */
+  #ovl { position:fixed; inset:0; z-index:80; display:none; background:rgba(46,40,32,.5); }
+  #ovl.show { display:flex; align-items:flex-start; justify-content:center; padding:7vh 14px 14px; overflow-y:auto; }
+  #sheet {
+    width:min(620px,100%); background:#f8f0dc;
+    border:1.5px solid #8a5a32; border-radius:12px;
+    box-shadow:0 18px 50px rgba(40,28,12,.45);
+    padding:20px 22px 18px;
+  }
+  #sheet h3 { font-size:1.15rem; font-weight:normal; letter-spacing:.2rem; color:#9c3222; margin-bottom:14px; }
+  .frow { margin-bottom:12px; }
+  .frow label { display:block; font-size:.84rem; letter-spacing:.12rem; color:#7a6850; margin-bottom:5px; }
+  .frow input[type=text], .frow textarea, .frow select {
+    width:100%; border:1px solid rgba(94,72,42,.45); border-radius:8px;
+    padding:9px 12px; font-size:.96rem; color:#432810; background:#fffdf2; outline:none;
+  }
+  .frow textarea { min-height:110px; resize:vertical; line-height:1.7; }
+  .frow input:focus, .frow textarea:focus, .frow select:focus { border-color:#9c3222; }
+  .fbtns { display:flex; gap:10px; justify-content:flex-end; margin-top:4px; }
+
+  /* 落名引导 */
+  #need-auth {
+    max-width:880px; margin:26px auto; text-align:center; display:none;
+    border:1.5px dashed rgba(156,50,34,.45); border-radius:14px; padding:34px 18px;
+    color:#7a4a30; letter-spacing:.1rem; line-height:2.1; background:rgba(252,247,233,.7);
+  }
+
+  #toast {
+    position:fixed; left:50%; bottom:36px; transform:translateX(-50%);
+    background:#432810; color:#fbeeda; font-size:.9rem; letter-spacing:.08rem;
+    border-radius:20px; padding:9px 22px; opacity:0; pointer-events:none;
+    transition:opacity .25s ease; z-index:99; max-width:86vw; text-align:center;
+  }
+  #toast.show { opacity:.95; }
+
+  @media (max-width:640px) {
+    h1 { font-size:1.24rem; letter-spacing:.22rem; }
+    .tab { font-size:.94rem; padding:8px 10px 10px; }
+    .p-title { font-size:1.02rem; }
+  }
+</style>
+</head>
+<body>
+<div id="topbar">
+  <a class="back" href="index.html">← 古书阁</a>
+  <div class="t-wrap">
+    <h1>文 汇 社<span class="seal">社</span></h1>
+    <div class="subtitle">问答回廊 · 话题广场 · 结社论学 · 传声驿</div>
+  </div>
+  <div id="who"></div>
+</div>
+
+<div id="modebar"></div>
+<div id="need-auth">
+  社区落名后方可论学<br>
+  请先回首页「笔落留名」或登录，再来与同窗问答
+  <div style="margin-top:14px;"><a class="btn" href="index.html">回首页落名</a></div>
+</div>
+
+<div id="tabs">
+  <button class="tab" data-t="q">问答回廊</button>
+  <button class="tab" data-t="t">话题广场</button>
+  <button class="tab" data-t="g">结 社</button>
+  <button class="tab" data-t="m">传声驿<span class="dot" id="msgdot" style="display:none"></span></button>
+</div>
+
+<div id="main"></div>
+
+<div id="ovl">
+  <div id="sheet">
+    <h3 id="sheet-t"></h3>
+    <div class="frow" id="f-kind" style="display:none">
+      <label>通知类型</label>
+      <select id="i-kind">
+        <option value="hw">作业提醒</option>
+        <option value="course">课程更新</option>
+        <option value="exam">考试通知</option>
+      </select>
+    </div>
+    <div class="frow" id="f-gname" style="display:none">
+      <label>小组名（20 字内）</label>
+      <input type="text" id="i-gname" maxlength="20" placeholder="如：桃源夜读会">
+    </div>
+    <div class="frow" id="f-gdesc" style="display:none">
+      <label>小组旨趣（120 字内）</label>
+      <input type="text" id="i-gdesc" maxlength="120" placeholder="如：每晚共读一篇，轮流讲给彼此听">
+    </div>
+    <div class="frow" id="f-title">
+      <label id="l-title">题目</label>
+      <input type="text" id="i-title" maxlength="60" placeholder="">
+    </div>
+    <div class="frow" id="f-body">
+      <label id="l-body">正文</label>
+      <textarea id="i-body" maxlength="2000" placeholder=""></textarea>
+    </div>
+    <div class="fbtns">
+      <button class="btn plain" id="c-cancel">罢 笔</button>
+      <button class="btn" id="c-ok">落 笔</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+/* ============================================================
+ * 文汇社 —— 互动社区
+ * 双模式：
+ *   API 模式  —— 后端在线（/api/community*），全端共享
+ *   本机预览 —— 后端不在线，数据存 localStorage(gushi_sq)，含示例
+ * 师者：后端 teachers 名单（默认『老师』）→ 可发通知、回帖带师印
+ * ============================================================ */
+const $ = function (id) { return document.getElementById(id); };
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined && text !== null) n.textContent = text;
+  return n;
+}
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toast._tm);
+  toast._tm = setTimeout(function () { t.classList.remove('show'); }, 2200);
+}
+function fmtT(ts) {
+  const d = Date.now() - ts;
+  if (d < 60000) return '刚刚';
+  if (d < 3600000) return Math.floor(d / 60000) + ' 分钟前';
+  if (d < 86400000) return Math.floor(d / 3600000) + ' 小时前';
+  if (d < 86400000 * 7) return Math.floor(d / 86400000) + ' 天前';
+  const dt = new Date(ts);
+  return (dt.getMonth() + 1) + ' 月 ' + dt.getDate() + ' 日';
+}
+
+/* ================= 模式与状态 ================= */
+let MODE = 'local';            // 'api' | 'local'
+let TOKEN = '';
+let ME = '';
+let TEACHER = false;
+let TAB = 'q';                 // q | t | g | m
+let OPEN = {};                 // 展开的帖子 id 集合
+let GV = '';                   // 小组视图 gid
+let REPLYING = '';             // 正在回帖的 pid
+let DB = null;                 // 本地模式数据
+let DATA = { posts: [], groups: [], boards: [], notices: [], unread: 0 };  // 渲染用统一视图（use strict 下必须声明）
+
+const LSQ = 'gushi_sq';
+function lsLoad() {
+  try {
+    const d = JSON.parse(localStorage.getItem(LSQ));
+    if (d && typeof d === 'object') return d;
+  } catch (e) {}
+  return null;
+}
+function lsSave() {
+  try { localStorage.setItem(LSQ, JSON.stringify(DB)); } catch (e) {}
+}
+function lsSeed(name) {
+  const now = Date.now();
+  DB = {
+    name: name, sq_ts: 0,
+    posts: [
+      { id: 'demo1', kind: 'q', gid: '', author: '老师', title: '「便舍船」的「舍」读第几声？',
+        body: '桃花源记里「便舍船，从口入」，这个「舍」字，是舍弃的 shě，还是房舍的 shè？说说你的理由。',
+        ts: now - 86400000 * 2,
+        replies: [{ author: '老师', body: '读 shě，动词，舍弃之意。「屋舍俨然」里作名词才读 shè。一字两读，看它在句中做什么成分。', ts: now - 86400000 * 2 + 3600000, teacher: true }] },
+      { id: 'demo2', kind: 't', gid: '', author: '同窗甲', title: '如果小石潭记写的是晴天，柳宗元还会「悄怆幽邃」吗？',
+        body: '潭中鱼「佁然不动，俶尔远逝」，明明很有生趣，为什么他觉得凄神寒骨？是景冷，还是心冷？',
+        ts: now - 86400000,
+        replies: [{ author: '同窗乙', body: '心冷吧。他刚被贬到永州，看什么都是凉的——一切景语皆情语。', ts: now - 86400000 + 7200000, teacher: false }] }
+    ],
+    groups: [
+      { gid: 'demog', name: '桃源夜读会', desc: '每晚共读一篇，轮流讲给彼此听', owner: '老师', members: ['老师', '同窗甲'], ts: now - 86400000 * 3 }
+    ],
+    boards: [
+      { id: 'db1', kind: 'hw', title: '本周作业：背诵《桃花源记》第二段', body: '周五晨读检查，注意「髫」「俨」的写法。', by: '老师', ts: now - 3600000 * 20 },
+      { id: 'db2', kind: 'course', title: '文脉图鉴新增「万卷作者谱」', body: '48 家作者按朝代排开，读完一篇可去文脉图鉴认领作者。', by: '老师', ts: now - 3600000 * 5 },
+      { id: 'db3', kind: 'exam', title: '单元检测预告：文言词义百题', body: '下周三百题坊限时一轮，重点复习错题二刷。', by: '老师', ts: now - 3600000 }
+    ],
+    notices: []
+  };
+  lsSave();
+}
+
+/* ================= API 封装 ================= */
+function apiGet(path) {
+  return fetch(path + '?token=' + encodeURIComponent(TOKEN)).then(function (r) { return r.json(); })
+    .catch(function () { return { ok: 0, err: '网络不通' }; });
+}
+function apiPost(path, body) {
+  return fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body || {})
+  }).then(function (r) { return r.json(); })
+    .catch(function () { return { ok: 0, err: '网络不通' }; });
+}
+function act(path, payload) {
+  /* 统一动作：API 走后端，本地直接改 DB；返回 Promise<{ok,err}> */
+  if (MODE === 'api') {
+    payload = payload || {};
+    payload.token = TOKEN;
+    return apiPost(path, payload);
+  }
+  return new Promise(function (res) { res(localAct(path, payload || {})); });
+}
+
+/* ================= 本地模式动作（与后端同构） ================= */
+function lsUnread() {
+  if (!DB) return 0;
+  let n = 0;
+  (DB.notices || []).forEach(function (x) { if (!x.read) n++; });
+  (DB.boards || []).forEach(function (b) { if (b.ts > (DB.sq_ts || 0)) n++; });
+  return n;
+}
+function localAct(path, p) {
+  const now = Date.now();
+  if (path === '/api/community/post') {
+    if (!p.title || !p.body) return { ok: 0, err: '题目与正文都要写' };
+    if (p.kind === 'g') {
+      const g = DB.groups.find(function (x) { return x.gid === p.gid; });
+      if (!g) return { ok: 0, err: '小组不存在' };
+      if (g.members.indexOf(DB.name) < 0) return { ok: 0, err: '先加入小组再发帖' };
+    }
+    DB.posts.unshift({ id: 'l' + now, kind: p.kind, gid: p.kind === 'g' ? p.gid : '',
+      author: DB.name, title: p.title, body: p.body, ts: now, replies: [] });
+    lsSave(); return { ok: 1 };
+  }
+  if (path === '/api/community/reply') {
+    const post = DB.posts.find(function (x) { return x.id === p.pid; });
+    if (!post) return { ok: 0, err: '帖子不见了' };
+    if (!p.body) return { ok: 0, err: '写点内容再回' };
+    post.replies.push({ author: DB.name, body: p.body, ts: now, teacher: DB.name === '老师' });
+    lsSave(); return { ok: 1 };
+  }
+  if (path === '/api/community/group') {
+    if (!p.name) return { ok: 0, err: '给小组起个名' };
+    if (DB.groups.some(function (x) { return x.name === p.name; })) return { ok: 0, err: '已有同名小组' };
+    DB.groups.push({ gid: 'g' + now, name: p.name, desc: p.desc || '', owner: DB.name, members: [DB.name], ts: now });
+    lsSave(); return { ok: 1 };
+  }
+  if (path === '/api/community/join') {
+    const g = DB.groups.find(function (x) { return x.gid === p.gid; });
+    if (!g) return { ok: 0, err: '小组不存在' };
+    const i = g.members.indexOf(DB.name);
+    if (i >= 0) { if (g.owner === DB.name) return { ok: 0, err: '社长不能退自己组' }; g.members.splice(i, 1); }
+    else g.members.push(DB.name);
+    lsSave(); return { ok: 1, joined: i < 0 };
+  }
+  if (path === '/api/community/read') {
+    DB.sq_ts = now;
+    (DB.notices || []).forEach(function (n) { n.read = true; });
+    lsSave(); return { ok: 1 };
+  }
+  if (path === '/api/community/announce') {
+    if (DB.name !== '老师') return { ok: 0, err: '只有师者可以发通知' };
+    if (!p.title || !p.body) return { ok: 0, err: '题目与正文都要写' };
+    DB.boards.unshift({ id: 'b' + now, kind: p.kind, title: p.title, body: p.body, by: DB.name, ts: now });
+    lsSave(); return { ok: 1 };
+  }
+  if (path === '/api/community/del') {
+    const i = DB.posts.findIndex(function (x) { return x.id === p.pid; });
+    if (i < 0) return { ok: 0, err: '帖子不见了' };
+    if (DB.posts[i].author !== DB.name && DB.name !== '老师') return { ok: 0, err: '只能删自己的帖子' };
+    DB.posts.splice(i, 1); lsSave(); return { ok: 1 };
+  }
+  return { ok: 0, err: '未知操作' };
+}
+
+/* ================= 数据加载 ================= */
+function refresh() {
+  if (MODE === 'api') {
+    return apiGet('/api/community').then(function (r) {
+      if (!r.ok) {
+        if (r.err === '未登录') { showNeedAuth(); return; }
+        toast(r.err || '拉取失败');
+        return;
+      }
+      hideNeedAuth();
+      ME = r.u; TEACHER = !!r.teacher;
+      DATA = { posts: r.posts || [], groups: r.groups || [], boards: r.boards || [],
+               notices: r.notices || [], unread: r.unread || 0 };
+      renderAll();
+    });
+  }
+  /* 本地模式 */
+  if (!DB) {
+    const d = lsLoad();
+    if (d) DB = d;
+    else { askLocalName(); return Promise.resolve(); }
+  }
+  ME = DB.name; TEACHER = DB.name === '老师';
+  DATA = { posts: DB.posts || [], groups: DB.groups || [], boards: DB.boards || [],
+           notices: DB.notices || [], unread: lsUnread() };
+  renderAll();
+  return Promise.resolve();
+}
+
+function askLocalName() {
+  const main = $('main');
+  main.textContent = '';
+  const box = el('div', 'pcard');
+  box.style.textAlign = 'center';
+  box.appendChild(el('div', '', '本机预览模式 · 给自己起个笔墨名'));
+  const row = el('div', 'rbox');
+  const inp = el('input');
+  inp.type = 'text'; inp.maxLength = 12; inp.placeholder = '如：小莲';
+  inp.style.cssText = 'flex:1;border:1px solid rgba(94,72,42,.45);border-radius:8px;padding:8px 12px;font-size:.96rem;background:#fffdf2;outline:none;';
+  const go = el('button', 'btn', '入 社');
+  go.addEventListener('click', function () {
+    const v = inp.value.trim();
+    if (!v) { toast('先起个名'); return; }
+    lsSeed(v); refresh();
+  });
+  row.appendChild(inp); row.appendChild(go);
+  box.appendChild(row);
+  main.appendChild(box);
+}
+
+function showNeedAuth() {
+  $('need-auth').style.display = 'block';
+  $('main').textContent = '';
+  $('tabs').style.display = 'none';
+}
+function hideNeedAuth() {
+  $('need-auth').style.display = 'none';
+  $('tabs').style.display = 'flex';
+}
+
+/* ================= 渲染 ================= */
+const KINDNAME = { q: '问', t: '议', g: '组' };
+const KINDFULL = { q: '问题', t: '话题', g: '组帖' };
+const BOARDNAME = { hw: '业', course: '课', exam: '试' };
+
+function renderAll() {
+  /* 页签态 */
+  document.querySelectorAll('.tab').forEach(function (b) {
+    b.classList.toggle('on', b.dataset.t === TAB);
+  });
+  const dot = $('msgdot');
+  if (DATA.unread > 0) { dot.style.display = 'inline-block'; dot.textContent = DATA.unread > 99 ? '99+' : DATA.unread; }
+  else dot.style.display = 'none';
+  $('who').textContent = '';
+  const wn = el('b', null, ME || '客');
+  $('who').appendChild(wn);
+  $('who').appendChild(document.createTextNode(TEACHER ? ' · 师者' : ' · 社友'));
+
+  const main = $('main');
+  main.textContent = '';
+  renderGuide(main);
+  if (TAB === 'q' || TAB === 't') renderPosts(main, TAB);
+  else if (TAB === 'g') renderGroups(main);
+  else renderMsg(main);
+}
+
+/* ================= 用法指引 ================= */
+const GUIDE = {
+  q: ['点右上 <b>＋ 提 问</b>，题目写清篇名与字词，正文把疑问说完整；',
+      '发布后全社可见，同窗与师者都能回帖作答；',
+      '点帖子 <b>展 开</b> 可看全部回应，老师的回答盖 <b>师答</b> 金印。'],
+  t: ['点 <b>＋ 发起话题</b>，抛一个想法、一处共鸣或一处争论；',
+      '话题没有标准答案，各抒己见、以文会友；',
+      '看到合意的观点，点 <b>展 开</b> 回帖，补充你的例证与感受。'],
+  g: ['点 <b>＋ 建 小 组</b> 发起学习小组，建者即社长；',
+      '先 <b>入 组</b>，再 <b>进 入</b> 组内，方可发组帖（打卡、分工、约共读）；',
+      '社长不可退组；退组再入，进度不丢。'],
+  m: ['<b>课堂铃音</b>：收作业提醒、课程更新、考试通知三类铃音；',
+      '<b>回音壁</b>：别人回应你的帖子时，这里会响起；',
+      '进入本页即视为已读，页签上的未读角标随之清零。']
+};
+function renderGuide(main) {
+  let hide = false;
+  try { hide = localStorage.getItem('gushi_sq_guide') === '1'; } catch (e) {}
+  if (hide) return;
+  const card = el('div', 'guide');
+  const head = el('div', 'g-head');
+  head.appendChild(el('span', 'g-t', '◆ 用法三则'));
+  const ok = el('button', 'btn mini plain g-ok', '知道了');
+  ok.addEventListener('click', function () {
+    try { localStorage.setItem('gushi_sq_guide', '1'); } catch (e) {}
+    card.remove();
+  });
+  head.appendChild(ok);
+  card.appendChild(head);
+  GUIDE[TAB].forEach(function (line) {
+    const p = el('div', 'g-i');
+    p.innerHTML = line;  // 指引文案含加粗标记，内容为内置常量
+    card.appendChild(p);
+  });
+  main.appendChild(card);
+}
+
+function renderPosts(main, kind) {
+  const act = el('div', 'sec-act');
+  const note = el('span', 'sec-note',
+    kind === 'q' ? '有疑即问 · 师者与同窗皆可答' : '一题一议 · 各抒己见');
+  const btn = el('button', 'btn', kind === 'q' ? '＋ 提 问' : '＋ 发起话题');
+  btn.addEventListener('click', function () { openCompose(kind); });
+  act.appendChild(note); act.appendChild(btn);
+  if (TEACHER && kind === 'q') {
+    const t = el('span', 'p-badge shi', '师者现身，答则盖章');
+    act.appendChild(t);
+  }
+  main.appendChild(act);
+
+  const list = el('div', 'plist');
+  const rows = (DATA.posts || []).filter(function (p) { return p.kind === kind; });
+  if (!rows.length) {
+    list.appendChild(el('div', 'empty',
+      kind === 'q' ? '回廊尚静。\n点「提问」，把不会的题目摆上案来——字词、翻译、文意皆可。'
+                   : '广场无题。\n点「发起话题」，抛一个想法，看同窗们怎么说。'));
+    main.appendChild(list);
+    return;
+  }
+  rows.forEach(function (p) { list.appendChild(postCard(p)); });
+  main.appendChild(list);
+}
+
+function postCard(p) {
+  const card = el('div', 'pcard' + (OPEN[p.id] ? ' open' : ''));
+  const head = el('div', 'p-head');
+  head.appendChild(el('div', 'p-kind ' + p.kind, KINDNAME[p.kind] || '帖'));
+  head.appendChild(el('div', 'p-title', p.title));
+  const gname = p.kind === 'g' ? (gpName(p.gid) + ' · ') : '';
+  head.appendChild(el('div', 'p-meta', gname + p.author + ' · ' + fmtT(p.ts)));
+  card.appendChild(head);
+
+  const snip = el('div', 'p-snippet', p.body);
+  card.appendChild(snip);
+
+  const foot = el('div', 'p-foot');
+  foot.appendChild(el('span', 'p-cnt', p.replies.length + ' 答'));
+  if (p.replies.some(function (r) { return r.teacher; })) foot.appendChild(el('span', 'p-badge shi', '师答'));
+  if (String(p.id).indexOf('demo') === 0 || String(p.id).indexOf('db') === 0) foot.appendChild(el('span', 'p-badge demo', '示例'));
+  foot.appendChild(el('span', 'spacer'));
+  const openBtn = el('button', 'btn mini plain', OPEN[p.id] ? '收起' : '展开');
+  openBtn.addEventListener('click', function () {
+    if (OPEN[p.id]) delete OPEN[p.id]; else OPEN[p.id] = true;
+    renderAll();
+  });
+  foot.appendChild(openBtn);
+  if (MODE === 'api' ? (p.author === ME || TEACHER) : (p.author === ME || TEACHER)) {
+    const del = el('button', 'btn mini plain p-del', '删');
+    del.addEventListener('click', function () {
+      if (!confirm('撤下这篇' + (KINDFULL[p.kind] || '帖子') + '？')) return;
+      act('/api/community/del', { pid: p.id }).then(function (r) {
+        if (!r.ok) { toast(r.err || '撤不下手'); return; }
+        toast('已撤下'); delete OPEN[p.id]; refresh();
+      });
+    });
+    foot.appendChild(del);
+  }
+  card.appendChild(foot);
+
+  /* 展开详情 */
+  const detail = el('div', 'p-detail');
+  detail.appendChild(el('div', 'p-full', p.body));
+  const rps = el('div', 'replies');
+  if (!p.replies.length) rps.appendChild(el('div', 'empty', '尚无回应 · 等你来答'));
+  p.replies.forEach(function (r) {
+    const it = el('div', 'reply' + (r.teacher ? ' r-shi' : ''));
+    const h = el('div', 'r-head');
+    h.appendChild(el('span', 'r-name', r.author));
+    if (r.teacher) h.appendChild(el('span', 'r-shi-ico', '师答'));
+    h.appendChild(el('span', '', fmtT(r.ts)));
+    it.appendChild(h);
+    it.appendChild(el('div', 'r-body', r.body));
+    rps.appendChild(it);
+  });
+  detail.appendChild(rps);
+
+  /* 回帖框 */
+  const box = el('div', 'rbox');
+  const ta = el('textarea');
+  ta.placeholder = (p.kind === 'q' ? '写下你的回答…' : '说说你的看法…');
+  ta.maxLength = 1000;
+  const send = el('button', 'btn', '回 帖');
+  send.addEventListener('click', function () {
+    const v = ta.value.trim();
+    if (!v) { toast('写点内容再回'); return; }
+    send.disabled = true;
+    act('/api/community/reply', { pid: p.id, body: v }).then(function (r) {
+      send.disabled = false;
+      if (!r.ok) { toast(r.err || '没发出去'); return; }
+      ta.value = '';
+      OPEN[p.id] = true;
+      toast('已回应');
+      return refresh();
+    });
+  });
+  box.appendChild(ta); box.appendChild(send);
+  detail.appendChild(box);
+  card.appendChild(detail);
+  return card;
+}
+
+function gpName(gid) {
+  const g = (DATA.groups || []).find(function (x) { return x.gid === gid; });
+  return g ? g.name : '小组';
+}
+
+function renderGroups(main) {
+  const act = el('div', 'sec-act');
+  act.appendChild(el('span', 'sec-note', '结社共读 · 入组后方可发帖论学'));
+  const btn = el('button', 'btn', '＋ 建 小 组');
+  btn.addEventListener('click', function () { openCompose('group'); });
+  act.appendChild(btn);
+  main.appendChild(act);
+
+  const list = el('div', 'glist');
+  const rows = DATA.groups || [];
+  if (!rows.length) {
+    list.appendChild(el('div', 'empty', '尚无结社。\n点「建小组」，约上同窗，共读共背共讲。'));
+    main.appendChild(list);
+    return;
+  }
+  rows.forEach(function (g) {
+    const card = el('div', 'gcard');
+    const head = el('div', 'g-head');
+    head.appendChild(el('span', 'g-name', g.name));
+    head.appendChild(el('span', 'g-own', '社长 ' + g.owner));
+    head.appendChild(el('span', 'spacer'));
+    const isIn = (g.members || []).indexOf(ME) >= 0;
+    const go = el('button', 'btn mini gold', '进 入');
+    go.addEventListener('click', function () { GV = g.gid; renderGroupView(main, g); window.scrollTo(0, 0); });
+    head.appendChild(go);
+    const join = el('button', 'btn mini ' + (isIn ? 'plain' : ''), isIn ? '退 组' : '入 组');
+    join.addEventListener('click', function () {
+      act('/api/community/join', { gid: g.gid }).then(function (r) {
+        if (!r.ok) { toast(r.err || '操作未成'); return; }
+        toast(r.joined ? '已入 ' + g.name : '已退 ' + g.name);
+        refresh();
+      });
+    });
+    head.appendChild(join);
+    card.appendChild(head);
+    card.appendChild(el('div', 'g-desc', g.desc || '（未写旨趣）'));
+    card.appendChild(el('div', 'g-mem', '社友 ' + (g.members ? g.members.length : 0) + ' 人：' + (g.members || []).join('、')));
+    list.appendChild(card);
+  });
+  main.appendChild(list);
+}
+
+function renderGroupView(main, g) {
+  const act = el('div', 'sec-act');
+  const back = el('button', 'btn mini plain', '← 全部小组');
+  back.addEventListener('click', function () { GV = ''; renderAll(); });
+  act.appendChild(back);
+  act.appendChild(el('span', 'sec-note', g.name + ' · ' + (g.desc || '')));
+  const isIn = (g.members || []).indexOf(ME) >= 0;
+  const btn = el('button', 'btn', '＋ 发组帖');
+  if (!isIn) btn.disabled = true;
+  btn.addEventListener('click', function () { openCompose('g', g.gid); });
+  act.appendChild(btn);
+  main.appendChild(act);
+
+  const list = el('div', 'plist');
+  const rows = (DATA.posts || []).filter(function (p) { return p.kind === 'g' && p.gid === g.gid; });
+  if (!rows.length) {
+    list.appendChild(el('div', 'empty', isIn ? '组内尚帖。\n发一篇组帖：进度、疑问、读后感，皆可。' : '先入组，再发帖。'));
+    main.appendChild(list);
+    return;
+  }
+  rows.forEach(function (p) { list.appendChild(postCard(p)); });
+  main.appendChild(list);
+}
+
+function renderMsg(main) {
+  /* 进入消息页即标记已读 */
+  if (DATA.unread > 0 || (DATA.notices || []).some(function (n) { return !n.read; })) {
+    act('/api/community/read', {}).then(function (r) {
+      if (!r.ok) return;
+      DATA.unread = 0;
+      (DATA.notices || []).forEach(function (n) { n.read = true; });
+      if (MODE === 'api') { try { localStorage.setItem('gushi_sq_ts', String(Date.now())); } catch (e) {} }
+      const d = $('msgdot');
+      if (d) d.style.display = 'none';
+    });
+  }
+
+  const s1 = el('div', 'msg-sec');
+  s1.appendChild(el('div', 'msg-h', '课堂铃音 · 作业 / 课程 / 考试'));
+  if (TEACHER) {
+    const ab = el('button', 'btn mini gold', '＋ 发通知（师者）');
+    ab.addEventListener('click', function () { openCompose('announce'); });
+    s1.appendChild(ab);
+    s1.appendChild(el('span', 'sec-note', '　'));
+  }
+  const brows = DATA.boards || [];
+  if (!brows.length) s1.appendChild(el('div', 'empty', '暂无课堂通知。'));
+  brows.forEach(function (b) {
+    const it = el('div', 'nitem' + (b.ts > readTs() ? ' unread' : ''));
+    it.appendChild(el('div', 'n-seal ' + b.kind, BOARDNAME[b.kind] || '知'));
+    const bd = el('div', 'n-body');
+    const tl = el('div', 'n-title', b.title);
+    if (String(b.id).indexOf('db') === 0) tl.appendChild(el('span', 'n-demo', '示例'));
+    bd.appendChild(tl);
+    bd.appendChild(el('div', 'n-text', b.body));
+    bd.appendChild(el('div', 'n-time', b.by + ' · ' + fmtT(b.ts)));
+    it.appendChild(bd);
+    s1.appendChild(it);
+  });
+  main.appendChild(s1);
+
+  const s2 = el('div', 'msg-sec');
+  s2.appendChild(el('div', 'msg-h', '回音壁 · 与你有关的回应'));
+  const nrows = DATA.notices || [];
+  if (!nrows.length) s2.appendChild(el('div', 'empty', '你还发过帖子。\n有人回应你时，这里会响起。'));
+  nrows.forEach(function (n) {
+    const it = el('div', 'nitem' + (n.read ? '' : ' unread'));
+    it.appendChild(el('div', 'n-seal reply', '应'));
+    const bd = el('div', 'n-body');
+    bd.appendChild(el('div', 'n-title', n.title));
+    bd.appendChild(el('div', 'n-text', n.body));
+    bd.appendChild(el('div', 'n-time', fmtT(n.ts)));
+    it.appendChild(bd);
+    s2.appendChild(it);
+  });
+  main.appendChild(s2);
+}
+function readTs() {
+  if (MODE === 'api') {
+    try { return parseInt(localStorage.getItem('gushi_sq_ts'), 10) || 0; } catch (e) { return 0; }
+  }
+  return (DB && DB.sq_ts) || 0;
+}
+
+/* ================= 发帖弹层 ================= */
+let COMPOSE = null; // {kind, gid}
+function openCompose(kind, gid) {
+  COMPOSE = { kind: kind, gid: gid || '' };
+  const isGroup = kind === 'group';
+  const isAnn = kind === 'announce';
+  $('sheet-t').textContent =
+    kind === 'q' ? '提 问' :
+    kind === 't' ? '发起话题' :
+    kind === 'g' ? '发组帖 · ' + gpName(gid) :
+    isGroup ? '建小组' : '发课堂通知';
+  $('f-kind').style.display = isAnn ? 'block' : 'none';
+  $('f-gname').style.display = isGroup ? 'block' : 'none';
+  $('f-gdesc').style.display = isGroup ? 'block' : 'none';
+  $('f-title').style.display = isGroup ? 'none' : 'block';
+  $('f-body').style.display = isGroup ? 'none' : 'block';
+  $('l-title').textContent = isAnn ? '通知题目' : (kind === 'q' ? '问题题目（如：「不蔓不枝」的「蔓」怎么读？）' : '话题题目');
+  $('l-body').textContent = isAnn ? '通知正文' : '正文';
+  $('i-title').value = ''; $('i-body').value = '';
+  $('i-gname').value = ''; $('i-gdesc').value = '';
+  $('ovl').classList.add('show');
+  setTimeout(function () { (isGroup ? $('i-gname') : $('i-title')).focus(); }, 60);
+}
+function closeCompose() { $('ovl').classList.remove('show'); }
+$('c-cancel').addEventListener('click', closeCompose);
+$('ovl').addEventListener('click', function (e) { if (e.target === $('ovl')) closeCompose(); });
+$('c-ok').addEventListener('click', function () {
+  if (!COMPOSE) return;
+  const k = COMPOSE.kind;
+  if (k === 'group') {
+    const name = $('i-gname').value.trim();
+    const desc = $('i-gdesc').value.trim();
+    if (!name) { toast('给小组起个名'); return; }
+    act('/api/community/group', { name: name, desc: desc }).then(function (r) {
+      if (!r.ok) { toast(r.err || '未成'); return; }
+      closeCompose(); toast('结社已成'); refresh();
+    });
+    return;
+  }
+  if (k === 'announce') {
+    const title = $('i-title').value.trim();
+    const body = $('i-body').value.trim();
+    if (!title || !body) { toast('题目与正文都要写'); return; }
+    act('/api/community/announce', { kind: $('i-kind').value, title: title, body: body }).then(function (r) {
+      if (!r.ok) { toast(r.err || '未成'); return; }
+      closeCompose(); toast('铃音已响遍全社'); refresh();
+    });
+    return;
+  }
+  const title = $('i-title').value.trim();
+  const body = $('i-body').value.trim();
+  if (!title || !body) { toast('题目与正文都要写'); return; }
+  act('/api/community/post', { kind: k, gid: COMPOSE.gid, title: title, body: body }).then(function (r) {
+    if (!r.ok) { toast(r.err || '未成'); return; }
+    closeCompose(); toast(KINDFULL[k] + '已上墙');
+    if (k === 'g') { /* 留在本组视图 */ }
+    refresh();
+  });
+});
+
+/* ================= 页签 ================= */
+document.querySelectorAll('.tab').forEach(function (b) {
+  b.addEventListener('click', function () {
+    TAB = b.dataset.t;
+    if (TAB !== 'g') GV = '';
+    renderAll();
+    if (TAB === 'm' || TAB === 'q') refresh();
+    window.scrollTo(0, 0);
+  });
+});
+
+/* ================= 启动 ================= */
+(function boot() {
+  try { TOKEN = localStorage.getItem('gushi_token') || ''; } catch (e) {}
+  const bar = $('modebar');
+  /* 后端探活 */
+  const ctl = new AbortController();
+  const tm = setTimeout(function () { ctl.abort(); }, 2500);
+  fetch('/api/board', { signal: ctl.signal })
+    .then(function (r) { return r.json(); })
+    .then(function () {
+      clearTimeout(tm);
+      MODE = 'api';
+      if (!TOKEN) {
+        /* 后端在而未落名 */
+        showNeedAuth();
+        return;
+      }
+      refresh().then(function () { if (MODE === 'api') refresh(); });
+    })
+    .catch(function () {
+      clearTimeout(tm);
+      MODE = 'local';
+      bar.className = 'local';
+      bar.textContent = '社区后端未连接 · 本机预览模式（帖子与小组仅存本机；部署后端后自动转为全端共享）';
+      refresh();
+    });
+})();
+</script>
+</body>
+</html>

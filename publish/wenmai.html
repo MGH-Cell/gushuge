@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='9' fill='%239c3222'/%3E%3Ctext x='32' y='46' font-size='38' text-anchor='middle' fill='%23fdeed6' font-family='serif'%3E鉴%3C/text%3E%3C/svg%3E">
+<title>文脉图鉴 · 古诗文跨篇知识图谱</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:100%; }
+  body {
+    min-height:100%;
+    background:
+      radial-gradient(ellipse at 50% -10%, #3a2a1a 0%, #221710 46%, #140d07 100%);
+    background-attachment:fixed;
+    font-family:"KaiTi","STKaiti","楷体",serif;
+    color:#3a2a18;
+    padding:26px 10px 40px;
+  }
+
+  /* ===== 宣纸大堂 ===== */
+  #app {
+    position:relative;
+    width:min(1000px,96vw);
+    margin:0 auto;
+    background:linear-gradient(180deg,#f8f0dc,#ede0c0);
+    border:2px solid #8a5a32;
+    border-radius:10px;
+    box-shadow:0 22px 70px rgba(0,0,0,.62), inset 0 0 0 1px rgba(138,90,50,.30), inset 0 0 42px rgba(166,124,62,.14);
+    padding:24px 30px 30px;
+    overflow:hidden;
+  }
+  #app::before {
+    content:''; position:absolute; inset:6px;
+    border:1px solid rgba(138,90,50,.32); border-radius:6px;
+    pointer-events:none;
+  }
+
+  /* ===== 顶栏 ===== */
+  .topbar { position:relative; padding:2px 4px 0; }
+  .back-shelf {
+    position:absolute; left:2px; top:0;
+    height:38px; padding:0 15px;
+    display:flex; align-items:center;
+    text-decoration:none;
+    color:#f3dca0; background:linear-gradient(180deg,#8a5a34,#6e4522);
+    border:1px solid #caa24e; border-radius:19px;
+    font-family:inherit; font-size:.92rem; letter-spacing:.18rem;
+    box-shadow:0 2px 6px rgba(60,36,14,.45), inset 0 1px 0 rgba(255,236,180,.35);
+    z-index:5;
+  }
+  .back-shelf:hover { background:linear-gradient(180deg,#9c6a3c,#7d502a); }
+  .back-btf {
+    position:absolute; right:2px; top:0;
+    height:32px; padding:0 12px;
+    display:flex; align-items:center;
+    text-decoration:none;
+    color:#f3dca0; background:linear-gradient(180deg,#8a5a34,#6e4522);
+    border:1px solid #a5834f; border-radius:16px;
+    font-family:inherit; font-size:.82rem; letter-spacing:.12rem;
+    box-shadow:0 2px 6px rgba(60,36,14,.4), inset 0 1px 0 rgba(255,236,180,.3);
+    z-index:5;
+  }
+  .back-btf:hover { background:linear-gradient(180deg,#9c6a3c,#7d502a); }
+  .title-wrap { text-align:center; padding:6px 0 2px; }
+  h1 {
+    display:inline-flex; align-items:center; gap:14px;
+    font-size:2.35rem; letter-spacing:.42rem; color:#432810;
+    font-weight:normal;
+  }
+  .seal {
+    flex:0 0 auto;
+    width:44px; height:44px; border-radius:5px;
+    background:linear-gradient(160deg,#c44936,#9c3222);
+    color:#fdeed6; font-size:1.32rem; letter-spacing:0;
+    display:inline-flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 7px rgba(120,40,25,.45), inset 0 0 0 2px rgba(253,238,214,.35);
+    transform:rotate(-6deg);
+  }
+  .subtitle {
+    text-align:center; color:#8a6238; font-size:1rem; letter-spacing:.34rem;
+    margin-top:9px;
+  }
+
+  /* ===== 概览条 ===== */
+  .stats {
+    margin:18px auto 4px;
+    display:flex; justify-content:center; gap:14px; flex-wrap:wrap;
+  }
+  .stat {
+    min-width:138px; text-align:center;
+    background:linear-gradient(180deg,#f6ecd2,#e6d7b2);
+    border:1px solid #a5793f; border-radius:7px;
+    padding:8px 20px 9px;
+    box-shadow:inset 0 0 0 1px rgba(255,250,230,.5), 0 2px 5px rgba(90,60,25,.18);
+  }
+  .stat .lab { font-size:.82rem; color:#8a6238; letter-spacing:.24rem; }
+  .stat .val { font-size:1.5rem; color:#9c3222; line-height:1.35; }
+  .stat .val.gold { color:#9a7420; }
+  .stat .val.ink { color:#6e5230; }
+
+  /* ===== 段落标题 ===== */
+  .section-head {
+    display:flex; align-items:baseline; justify-content:space-between;
+    gap:10px; flex-wrap:wrap; margin:26px 2px 6px;
+  }
+  .section-head h2 {
+    font-size:1.32rem; font-weight:normal; letter-spacing:.3rem; color:#432810;
+  }
+  .section-head h2::before {
+    content:'◆'; color:#caa24e; font-size:.8rem; margin-right:10px; vertical-align:2px;
+  }
+  .head-note { color:#9a7c52; font-size:.82rem; letter-spacing:.18rem; }
+
+  /* ===== 千年文脉轴 ===== */
+  .axis {
+    position:relative;
+    height:196px;
+    margin:10px 0 2px;
+  }
+  .axis-line {
+    position:absolute; left:2%; right:2%; top:104px;
+    height:4px; border-radius:2px;
+    background:linear-gradient(180deg,#b08a4e,#7d5a2c);
+    box-shadow:0 1px 0 rgba(255,236,180,.35);
+  }
+  .bands { position:absolute; inset:0; pointer-events:none; }
+  .band {
+    position:absolute; top:95px; height:20px;
+    border:1px dashed rgba(138,90,50,.34);
+    border-radius:10px;
+    background:rgba(156,50,34,.045);
+  }
+  .band .blab {
+    position:absolute; top:0; bottom:0; left:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:.72rem; letter-spacing:.26rem; color:rgba(90,60,30,.72);
+    transform:translateX(-50%);
+    white-space:nowrap;
+  }
+  .band .blab span {
+    background:linear-gradient(180deg,#f8f0dc,#f1e6ca);
+    border-radius:8px; padding:0 9px; line-height:1.5;
+  }
+  .nodes { position:absolute; inset:0; }
+  .node {
+    position:absolute; top:0; bottom:0; width:100px;
+    background:none; border:0; padding:0;
+    font-family:inherit; color:inherit;
+    cursor:pointer;
+  }
+  .node .dot {
+    position:absolute; left:50%; top:89px;
+    width:30px; height:30px; margin-left:-15px;
+    border-radius:6px;
+    background:linear-gradient(160deg,#c44936,#9c3222);
+    color:#fdeed6; font-size:.95rem;
+    border:1.5px solid #caa24e;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 7px rgba(120,40,25,.4), inset 0 0 0 1px rgba(253,238,214,.3);
+    transition:transform .16s ease, box-shadow .16s ease;
+    z-index:2;
+  }
+  .node .anno { position:absolute; left:0; right:0; text-align:center; line-height:1.45; }
+  .node .anno span { display:block; white-space:nowrap; }
+  .node.up .anno { top:12px; }
+  .node.down .anno { top:129px; }
+  .node .nm { font-size:1.04rem; letter-spacing:.1rem; color:#432810; }
+  .node .er { font-size:.68rem; letter-spacing:.22rem; color:#9c3222; }
+  .node .yr { font-size:.72rem; letter-spacing:.04rem; color:#8a6238; }
+  .node:hover .dot { transform:scale(1.12); }
+  .node.active .dot {
+    transform:scale(1.18);
+    background:linear-gradient(160deg,#e3b64d,#b9861f);
+    color:#4a2e10;
+    box-shadow:0 0 0 4px rgba(227,182,77,.22), 0 3px 10px rgba(120,80,20,.5), inset 0 0 0 1px rgba(74,46,16,.28);
+  }
+  .node.active .anno .nm { color:#9c3222; }
+  .node:focus { outline:none; }
+  .node:focus-visible .dot { box-shadow:0 0 0 3px rgba(202,162,78,.55); }
+
+  .axis-hint {
+    text-align:center; color:#a08158; font-size:.76rem; letter-spacing:.18rem;
+    margin:2px 0 12px;
+  }
+
+  /* 人物详情卡 */
+  .person-card {
+    background:linear-gradient(180deg,#fdf7e6,#f4e8cb);
+    border:1px solid #b08a52; border-radius:9px;
+    box-shadow:inset 0 0 0 1px rgba(255,250,232,.7), inset 0 0 30px rgba(166,124,62,.1), 0 4px 12px rgba(90,60,25,.14);
+    padding:18px 22px 16px;
+    min-height:214px;
+  }
+  .person-card.flash { animation:cardIn .28s ease; }
+  @keyframes cardIn { from { opacity:.45; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+  .pc-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .pc-name { font-size:1.62rem; letter-spacing:.22rem; color:#432810; line-height:1.3; }
+  .pc-tag {
+    flex:0 0 auto;
+    font-size:.82rem; letter-spacing:.22rem;
+    color:#fdeed6; background:linear-gradient(160deg,#c44936,#9c3222);
+    border-radius:12px; padding:3px 14px;
+    box-shadow:inset 0 0 0 1px rgba(253,238,214,.28);
+  }
+  .pc-meta { color:#8a6238; font-size:.9rem; letter-spacing:.1rem; margin:5px 0 8px; }
+  .pc-story { color:#4a331c; font-size:1rem; line-height:1.95; letter-spacing:.05rem; }
+  .pc-foot {
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    margin-top:12px; padding-top:10px;
+    border-top:1px dashed rgba(138,90,50,.4);
+  }
+  .pc-quote {
+    flex:1 1 280px;
+    display:flex; align-items:center; gap:10px;
+    font-size:1.14rem; letter-spacing:.06rem; color:#5a3a18;
+    border-left:3px solid #caa24e; padding:2px 0 2px 12px;
+  }
+  .speak-mini {
+    flex:0 0 auto;
+    width:30px; height:30px; border-radius:50%;
+    font-family:inherit; font-size:.92rem; cursor:pointer; line-height:1;
+    color:#f3dca0; background:linear-gradient(180deg,#8a5a34,#6e4522);
+    border:1px solid #caa24e;
+    box-shadow:0 2px 6px rgba(60,36,14,.35), inset 0 1px 0 rgba(255,236,180,.3);
+  }
+  .speak-mini:hover { background:linear-gradient(180deg,#9c6a3c,#7d502a); }
+  .pc-quote .speak-mini { margin-left:auto; }
+
+  .btn {
+    font-family:inherit; cursor:pointer; text-decoration:none;
+    display:inline-flex; align-items:center;
+    color:#f3dca0; background:linear-gradient(180deg,#8a5a34,#6e4522);
+    border:1px solid #caa24e; border-radius:18px;
+    font-size:.92rem; letter-spacing:.18rem;
+    padding:8px 20px;
+    box-shadow:0 2px 6px rgba(60,36,14,.4), inset 0 1px 0 rgba(255,236,180,.3);
+  }
+  .btn:hover { background:linear-gradient(180deg,#9c6a3c,#7d502a); }
+
+  /* 小结丝带 */
+  .silk {
+    margin-top:18px; text-align:center;
+    background:linear-gradient(90deg,rgba(156,50,34,.04),rgba(156,50,34,.12) 30%,rgba(202,162,78,.16) 50%,rgba(156,50,34,.12) 70%,rgba(156,50,34,.04));
+    border:1px solid rgba(156,50,34,.32); border-radius:8px;
+    padding:12px 18px;
+    color:#5a3a18; font-size:1.02rem; letter-spacing:.06rem; line-height:1.9;
+  }
+  .silk .rt {
+    color:#fdeed6; background:linear-gradient(160deg,#c44936,#9c3222);
+    font-size:.8rem; letter-spacing:.26rem;
+    border-radius:11px; padding:2px 12px; margin-right:10px;
+    box-shadow:inset 0 0 0 1px rgba(253,238,214,.28);
+    white-space:nowrap;
+  }
+
+  /* ===== 意象图鉴 ===== */
+  .yin-grid {
+    display:grid; grid-template-columns:repeat(3,1fr); gap:16px;
+    margin-top:14px;
+  }
+  .yin-card {
+    position:relative;
+    display:flex; flex-direction:column; gap:9px;
+    background:linear-gradient(180deg,#fbf3dc,#efdfba);
+    border:1px solid #a5793f; border-radius:10px;
+    padding:15px 16px 14px;
+    box-shadow:0 4px 12px rgba(90,60,25,.16), inset 0 0 0 1px rgba(255,250,230,.5);
+  }
+  .yin-card.lock {
+    background:linear-gradient(180deg,#e7e1d1,#d9d1bd);
+    border-color:#b4ab97;
+    box-shadow:none;
+  }
+  .yc-head { display:flex; align-items:center; gap:12px; }
+  .yc-char {
+    flex:0 0 56px; width:56px; height:56px; border-radius:10px;
+    background:linear-gradient(160deg,#c44936,#9c3222);
+    color:#fdeed6; font-size:2.05rem;
+    display:flex; align-items:center; justify-content:center;
+    border:1.5px solid #caa24e;
+    box-shadow:0 2px 8px rgba(120,40,25,.38), inset 0 0 0 1px rgba(253,238,214,.3);
+  }
+  .yc-char.two { font-size:1.5rem; letter-spacing:.05rem; }
+  .lock .yc-char {
+    background:linear-gradient(160deg,#9a9384,#7c7565);
+    border-color:#a9a090;
+    box-shadow:none;
+  }
+  .yc-title { flex:1 1 auto; min-width:0; }
+  .yc-name { font-size:1.2rem; letter-spacing:.2rem; color:#432810; }
+  .lock .yc-name { color:#6f6858; }
+  .yc-tags { display:flex; flex-wrap:wrap; gap:5px; margin-top:4px; }
+  .yin {
+    font-size:.72rem; letter-spacing:.08rem; line-height:1.5;
+    color:#fdeed6; background:linear-gradient(160deg,#c44936,#9c3222);
+    border-radius:9px; padding:1px 9px;
+  }
+  .yin.off {
+    color:#e8e2d2; background:linear-gradient(160deg,#9a9384,#7c7565);
+  }
+  .yc-badge {
+    position:absolute; top:9px; right:11px;
+    font-size:.72rem; letter-spacing:.18rem;
+    color:#fdeed6; background:linear-gradient(160deg,#c44936,#9c3222);
+    border-radius:9px; padding:1px 9px;
+  }
+  .yc-badge.half { background:linear-gradient(160deg,#e3b64d,#b9861f); color:#4a2e10; }
+  .yc-badge.lock { background:linear-gradient(160deg,#9a9384,#7c7565); color:#ece6d6; }
+
+  /* 已收藏金印 */
+  .yc-collect {
+    position:absolute; right:11px; bottom:9px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .yc-coll-seal {
+    width:25px; height:25px; border-radius:4px;
+    background:linear-gradient(160deg,#e3b64d,#b9861f); color:#4a2e10;
+    font-size:.86rem; display:flex; align-items:center; justify-content:center;
+    box-shadow:inset 0 0 0 1.2px rgba(74,46,16,.5), 0 1px 4px rgba(120,80,20,.35);
+    transform:rotate(-6deg);
+  }
+  .yc-coll-date {
+    font-size:.7rem; letter-spacing:.1rem; color:#9a7420;
+    background:rgba(255,248,225,.75); border:1px solid rgba(202,162,78,.55);
+    border-radius:9px; padding:1px 8px;
+  }
+
+  .yc-quotes { display:flex; flex-direction:column; gap:8px; }
+  .qgroup { display:flex; flex-direction:column; gap:4px; }
+  .gtag { font-size:.74rem; color:#8a6238; letter-spacing:.1rem; }
+  .lock .gtag { color:#8f8674; }
+  .qline {
+    display:flex; align-items:center; gap:8px;
+    font-size:.99rem; line-height:1.6; color:#3a2a18;
+    background:rgba(255,253,244,.7);
+    border:1px solid rgba(176,138,82,.42); border-radius:7px;
+    padding:5px 10px;
+  }
+  .qline .qtext::before { content:'「'; color:#b08a4e; }
+  .qline .qtext::after { content:'」'; color:#b08a4e; }
+  .qline .speak-mini { width:26px; height:26px; font-size:.82rem; }
+  .qbar {
+    height:15px; border-radius:6px;
+    border-bottom:3px dotted rgba(94,84,64,.6);
+    background:linear-gradient(180deg, rgba(94,84,64,0) 0%, rgba(94,84,64,.14) 100%);
+  }
+  .yc-mean {
+    font-size:.9rem; color:#6b4a2a; line-height:1.85; letter-spacing:.04rem;
+    border-top:1px dashed rgba(138,90,50,.4); padding-top:8px;
+  }
+  .lock .yc-mean { color:#7d7464; }
+  .yc-locknote {
+    font-size:.82rem; color:#8a5a30; letter-spacing:.05rem; line-height:1.9;
+    background:rgba(156,50,34,.06); border:1px dashed rgba(156,50,34,.4);
+    border-radius:7px; padding:7px 11px;
+  }
+  .lock .yc-locknote { color:#7a4a2a; }
+  .yc-locknote b { color:#9c3222; font-weight:normal; }
+  .link-mini {
+    display:inline-block; margin-left:6px;
+    color:#fdeed6; background:linear-gradient(180deg,#8a5a34,#6e4522);
+    border:1px solid #caa24e; border-radius:11px;
+    font-size:.76rem; letter-spacing:.1rem;
+    text-decoration:none; padding:1px 10px; line-height:1.6;
+  }
+  .link-mini:hover { background:linear-gradient(180deg,#9c6a3c,#7d502a); }
+
+  .foot-note {
+    text-align:center; color:#a08158; font-size:.76rem; letter-spacing:.22rem;
+    margin-top:26px;
+  }
+
+  /* ===== 响应式 ===== */
+  @media (max-width:900px) {
+    .yin-grid { grid-template-columns:repeat(2,1fr); }
+  }
+  @media (max-width:760px) {
+    body { padding:12px 6px 28px; }
+    #app { padding:18px 14px 24px; }
+    .topbar { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:8px 12px; }
+    .title-wrap { order:-1; flex-basis:100%; }
+    .back-shelf, .back-btf { position:static; }
+    h1 { font-size:1.82rem; letter-spacing:.3rem; gap:10px; }
+    .seal { width:38px; height:38px; font-size:1.12rem; }
+    .subtitle { font-size:.86rem; letter-spacing:.22rem; }
+    .stat { min-width:104px; padding:7px 14px; }
+
+    /* 时间轴转纵向 */
+    .axis { height:auto; padding:6px 0 4px; }
+    .axis-line { left:17px; right:auto; width:4px; top:10px; bottom:10px; }
+    .bands { display:none; }
+    .nodes { position:static; }
+    .node {
+      position:relative !important;
+      left:0 !important; top:auto; bottom:auto;
+      display:block; width:auto;
+      padding:5px 0 5px 48px; min-height:44px; margin-bottom:8px;
+      text-align:left;
+    }
+    .node .dot { left:17px; top:50%; margin:0; transform:translate(-50%,-50%); }
+    .node.active .dot { transform:translate(-50%,-50%) scale(1.14); }
+    .node:hover .dot { transform:translate(-50%,-50%); }
+    .node .anno, .node.up .anno, .node.down .anno {
+      position:static; text-align:left;
+    }
+    .node .anno span { display:inline-block; white-space:normal; }
+    .node .anno .nm { font-size:1.08rem; margin-right:8px; }
+    .node .anno .er { margin-right:8px; }
+
+    .person-card { padding:15px 15px 14px; min-height:0; }
+    .pc-name { font-size:1.4rem; }
+    .pc-quote { flex-basis:100%; }
+    .silk { font-size:.94rem; }
+    .yin-grid { grid-template-columns:1fr; }
+  }
+
+  /* ===== 万卷作者谱 ===== */
+  .wg-band { display:flex; align-items:baseline; gap:12px; margin:22px 2px 10px; }
+  .wg-band-lab { font-size:1.04rem; letter-spacing:.3rem; color:#9c3222; }
+  .wg-band-lab::before { content:'◆'; color:#caa24e; font-size:.72rem; margin-right:9px; vertical-align:2px; }
+  .wg-band-n { font-size:.76rem; letter-spacing:.14rem; color:#9a7c52; }
+  .wg-band::after { content:''; flex:1 1 auto; height:1px; background:linear-gradient(90deg,rgba(138,90,50,.4),rgba(138,90,50,0)); }
+  .wg-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(238px,1fr)); gap:12px; }
+  .wg-card { background:linear-gradient(180deg,#fbf3dc,#f1e3c4); border:1px solid #a5793f; border-radius:9px;
+    padding:11px 13px 12px;
+    box-shadow:0 3px 9px rgba(90,60,25,.13), inset 0 0 0 1px rgba(255,250,230,.45); }
+  .wg-head { display:flex; align-items:baseline; gap:8px; }
+  .wg-name { font-size:1.08rem; letter-spacing:.06rem; color:#432810; }
+  .wg-dy { flex:0 0 auto; font-size:.7rem; letter-spacing:.1rem; color:#fdeed6;
+    background:linear-gradient(160deg,#c44936,#9c3222); border-radius:8px; padding:1px 7px; }
+  .wg-cnt { margin-left:auto; font-size:.72rem; color:#9a7c52; letter-spacing:.08rem; white-space:nowrap; }
+  .wg-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
+  .wg-chip { font-family:inherit; font-size:.82rem; line-height:1.55; letter-spacing:.03rem; color:#5a3c20;
+    background:rgba(255,250,232,.78); border:1px solid rgba(138,90,50,.42); border-radius:7px; padding:2px 9px;
+    cursor:pointer; transition:background .15s ease, border-color .15s ease, transform .15s ease; }
+  .wg-chip:hover { background:#fffdf2; border-color:#9c3222; color:#7c1f12; transform:translateY(-1px); }
+  .wg-chip.rd { border-color:#caa24e; color:#7a5a10; background:rgba(227,182,77,.16); }
+  .wg-chip.rd::after { content:' 读'; font-size:.68rem; color:#a8412e; }
+  .wg-chip.yd::after { content:' 阅'; font-size:.68rem; color:#9a7c52; }
+
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="topbar">
+    <a class="back-shelf" href="index.html">← 书阁</a>
+    <a class="back-btf" href="baitifang.html">← 百题坊</a>
+    <div class="title-wrap">
+      <h1>文 脉 图 鉴<span class="seal">鉴</span></h1>
+      <div class="subtitle">七篇一卷 · 千年文脉</div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="lab">已醒意象</div><div class="val" id="st-awake">0 / 6</div></div>
+    <div class="stat"><div class="lab">已入藏</div><div class="val gold" id="st-coll">0 / 6</div></div>
+    <div class="stat"><div class="lab">半醒意象</div><div class="val gold" id="st-half">0</div></div>
+    <div class="stat"><div class="lab">已读卷数</div><div class="val ink" id="st-read">0 / 6</div></div>
+  </div>
+
+  <!-- 一、千年文脉轴 -->
+  <section>
+    <div class="section-head">
+      <h2>千年文脉轴</h2>
+      <span class="head-note">点朱印，观其人，听其句</span>
+    </div>
+    <div class="axis" id="axis">
+      <div class="axis-line"></div>
+      <div class="bands" id="bands"></div>
+      <div class="nodes" id="nodes"></div>
+    </div>
+    <div class="axis-hint">节点依生年约略定位，年近者左右稍让</div>
+    <div class="person-card" id="person-card"></div>
+    <div class="silk"><span class="rt">贬谪与山河</span>柳子厚永州观潭，刘梦得和州铭室，苏东坡黄州步月——失意处，皆是文章处。</div>
+  </section>
+
+  <!-- 二、意象图鉴 -->
+  <section>
+    <div class="section-head">
+      <h2>意象图鉴</h2>
+      <span class="head-note">读卷通关，墨痕方醒</span>
+    </div>
+    <div class="yin-grid" id="yin-grid"></div>
+  </section>
+
+
+  <!-- 三、万卷作者谱 -->
+  <section>
+    <div class="section-head">
+      <h2>万卷作者谱</h2>
+      <span class="head-note">据万卷楼全书 · 凡 48 家 81 篇 · 点篇名即去读</span>
+    </div>
+    <div id="genealogy"></div>
+  </section>
+
+  <div class="foot-note">图鉴只读卷册进度 · 不添一笔</div>
+</div>
+
+<script>
+'use strict';
+/* ============================================================
+ * 文脉图鉴 —— 七篇古诗文跨篇知识图谱
+ * 只读 localStorage key=gushi_v1：
+ *   {v:1,p:{xst:{done,...},thy,lsm,als,cts,sx,dxx}}
+ * 意象原句逐字核对自六游戏 FULLTEXT，createElement/textContent 渲染
+ * ============================================================ */
+
+/* ================= 卷册 ================= */
+const PIECES = {
+  xst: { name:'小石潭记',     url:'xiaoshitan.html' },
+  thy: { name:'桃花源记',     url:'taohuayuan.html' },
+  lsm: { name:'陋室铭',       url:'loushiming.html' },
+  als: { name:'爱莲说',       url:'ailianshuo.html' },
+  cts: { name:'记承天寺夜游', url:'chengtiansi.html' },
+  sx:  { name:'三峡',         url:'sanxia.html' },
+  dxx: { name:'答谢中书书',   url:'dazhongshushu.html' }
+};
+const SEVEN = ['xst','thy','lsm','als','cts','sx','dxx'];
+
+/* ================= 千年文脉轴（史料均按题面，不添断言） ================= */
+/* y 仅用于约略定位：郦道元生年不详（约五世纪后期生），取约数排布 */
+const PEOPLE = [
+  { key:'tym', name:'陶渊明', years:'约365–427', era:'东晋',
+    home:'浔阳柴桑（今江西九江）', tag:'隐逸诗人之宗', y:365, lane:-1, piece:'thy',
+    story:['辞彭泽令归隐田园，作《桃花源记》，即《桃花源诗并记》。',
+           '名句「芳草鲜美，落英缤纷」，千古传诵。'],
+    quote:'芳草鲜美，落英缤纷' },
+  { key:'thj', name:'陶弘景', years:'456–536', era:'南朝齐梁',
+    home:'丹阳秣陵（今江苏南京）', tag:'山中宰相', y:456, lane:1, piece:'dxx',
+    story:['字通明，自号华阳隐居，隐居句曲山（茅山）。',
+           '梁武帝屡加礼聘，常以国事相咨，时人称「山中宰相」。',
+           '《答谢中书书》是他回复谢中书的书信，写尽山川之美。'],
+    quote:'山川之美，古来共谈' },
+  { key:'ldy', name:'郦道元', years:'?–527', era:'北魏',
+    home:'范阳涿州（今河北涿州）', tag:'秉笔行山河', y:470, lane:-1, piece:'sx',
+    story:['地理学家，为《水经》作注，成《水经注》四十卷，记大小河流千余条。',
+           '《三峡》一节，选自《水经注·江水》。'],
+    quote:'巴东三峡巫峡长，猿鸣三声泪沾裳' },
+  { key:'lyx', name:'刘禹锡', years:'772–842', era:'唐',
+    home:'洛阳（祖籍）', tag:'诗豪', y:772, lane:-1, piece:'lsm',
+    story:['参与永贞革新失败，屡遭贬谪，先后贬往朗州、连州、和州。',
+           '《陋室铭》传为和州任上所作。',
+           '「斯是陋室，惟吾德馨」。'],
+    quote:'斯是陋室，惟吾德馨' },
+  { key:'lzy', name:'柳宗元', years:'773–819', era:'唐',
+    home:'河东（今山西永济）', tag:'唐宋八大家', y:773, lane:1, piece:'xst',
+    story:['永贞革新失败，贬为永州司马。',
+           '《永州八记》之《小石潭记》写于永州。',
+           '「凄神寒骨，悄怆幽邃」，寄其贬谪孤寂。'],
+    quote:'凄神寒骨，悄怆幽邃' },
+  { key:'zdy', name:'周敦颐', years:'1017–1073', era:'北宋',
+    home:'道州营道（今湖南道县）', tag:'理学开山', y:1017, lane:-1, piece:'als',
+    story:['理学家，世人称濂溪先生。',
+           '《爱莲说》以莲喻君子之德。',
+           '「出淤泥而不染」。'],
+    quote:'出淤泥而不染' },
+  { key:'ss', name:'苏轼', years:'1037–1101', era:'北宋',
+    home:'眉州眉山（今四川眉山）', tag:'东坡居士', y:1037, lane:1, piece:'cts',
+    story:['乌台诗案后，贬为黄州团练副使。',
+           '元丰六年（1083）作《记承天寺夜游》。',
+           '「但少闲人如吾两人者耳」。'],
+    quote:'但少闲人如吾两人者耳' }
+];
+
+/* 朝代区段（淡墨标注；ly 为标签落点，避开朱印） */
+const BANDS = [
+  { n:'东晋',   a:317, b:420,  ly:400 },
+  { n:'南北朝', a:420, b:589,  ly:520 },
+  { n:'唐',     a:618, b:907,  ly:775 },
+  { n:'北宋',   a:960, b:1127, ly:976 }
+];
+
+/* ================= 意象图鉴（原句核对自六游戏 FULLTEXT） ================= */
+/* ===== IMAGES-DATA-BEGIN ===== */
+const IMAGES = [
+  { char:'月', pieces:['cts'],
+    lines:[
+      { p:'cts', q:'月色入户，欣然起行' },
+      { p:'cts', q:'庭下如积水空明' },
+      { p:'cts', q:'何夜无月？何处无竹柏？' }
+    ],
+    mean:'同一轮月，闲人眼里的空明与自适；竹柏之影原来是月色。' },
+  { char:'水', pieces:['xst','sx'],
+    lines:[
+      { p:'xst', q:'水尤清冽' },
+      { p:'xst', q:'潭中鱼可百许头' },
+      { p:'sx',  q:'夏水襄陵，沿溯阻绝' },
+      { p:'sx',  q:'素湍绿潭，回清倒影' }
+    ],
+    mean:'水有两副面孔——小石潭清寒幽悄，三峡水或奔腾或澄碧。' },
+  { char:'莲', pieces:['als'],
+    lines:[
+      { p:'als', q:'出淤泥而不染，濯清涟而不妖' },
+      { p:'als', q:'中通外直，不蔓不枝' }
+    ],
+    mean:'莲即君子：身处浊世而不自染。' },
+  { char:'桃源', pieces:['thy'],
+    lines:[
+      { p:'thy', q:'芳草鲜美，落英缤纷' },
+      { p:'thy', q:'黄发垂髫，并怡然自乐' }
+    ],
+    mean:'桃花源头是中国人心里的理想乡；《爱莲说》中「菊，花之隐逸者也」，菊与桃花皆指向归隐。' },
+  { char:'山', pieces:['lsm','sx'],
+    lines:[
+      { p:'lsm', q:'山不在高，有仙则名' },
+      { p:'sx',  q:'重岩叠嶂，隐天蔽日' }
+    ],
+    mean:'山不在高而在德，亦可壁立千仞藏日月。' },
+  { char:'猿声', pieces:['sx'],
+    lines:[
+      { p:'sx', q:'常有高猿长啸，属引凄异，空谷传响，哀转久绝' },
+      { p:'sx', q:'巴东三峡巫峡长，猿鸣三声泪沾裳' }
+    ],
+    mean:'三声猿鸣，是行旅之愁，也是山水文里最早的「声音风景」。' }
+];
+/* ===== IMAGES-DATA-END ===== */
+
+/* ================= 进度（只读，容错） ================= */
+let PROG = {};
+let YINMAP = {};   /* 已收藏意象：{key:获得时间戳}（游戏内「获得仪式」写入 gushi_v1.yin） */
+try {
+  const d = JSON.parse(localStorage.getItem('gushi_v1'));
+  if (d && d.v === 1 && d.p && typeof d.p === 'object') PROG = d.p;
+  if (d && d.yin && typeof d.yin === 'object') YINMAP = d.yin;
+} catch (e) { PROG = {}; }
+/* 意象大字 → 收藏 key（与游戏内获得系统 REG 一致） */
+const YIN_KEY = { '月':'yue', '水':'shui', '莲':'lian', '桃源':'taoyuan', '山':'shan', '猿声':'yuansheng' };
+function yinTs(img) { const k = YIN_KEY[img.char]; const v = k ? YINMAP[k] : 0; return v || 0; }
+function fmtDate(ts) {
+  const dt = new Date(ts);
+  return (dt.getMonth()+1) + '月' + dt.getDate() + '日';
+}
+function doneOf(pid) {
+  const o = PROG[pid];
+  return !!(o && o.done === true);
+}
+function cardStatus(img) {
+  let d = 0;
+  img.pieces.forEach(function (pid) { if (doneOf(pid)) d++; });
+  const state = (d === 0) ? 'lock' : (d === img.pieces.length ? 'full' : 'half');
+  return { done:d, total:img.pieces.length, state:state };
+}
+
+/* ================= 工具 ================= */
+function $(id) { return document.getElementById(id); }
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+
+/* ================= 朗读（与各游戏、百题坊同实现） ================= */
+/* 朗读正音（教材注音，TTS 易错字→同音字；词组键先于单字应用） */
+const SAY_FIX={'屋舍':'屋社','卷石底':'全石底','差互':'疵互','语云':'玉云','为外人':'谓外人','为具':'谓具','便要':'便邀','鲜有闻':'显有闻','斗折':'陡折','篁':'皇','冽':'列','坻':'池','嵁':'堪','佁':'以','俶':'怵','翕':'息','悄':'巧','怆':'创','髫':'条','诣':'易','骥':'寄','蕃':'繁','濯':'浊','亵':'屑','予':'余','荇':'幸','阙':'缺','溯':'素','巘':'演','属':'主','裳':'常','曦':'西','朝':'招','牍':'渎','重岩':'虫岩'};
+/* 真人感朗读引擎 v2：优选神经网络声线 · 古文句读停顿 · 标点语调 · 抗 cancel 吞音 */
+const SAY_ENGINE=(function(){
+  let bestVoice=null;
+  function pickVoice(){
+    try{
+      const vs=window.speechSynthesis.getVoices()||[];
+      let best=null,bs=-99;
+      for(const v of vs){
+        if(!/zh|Chinese|cmn/i.test(v.lang+v.name))continue;
+        const t=v.name||''; let s=0;
+        if(/online|natural|neural|google/i.test(t))s+=12;
+        if(/云希|云健|云扬|晓晓|晓伊|晓秋|Yunxi|Yunjian|Yunyang|Xiaoxiao|Xiaoyi|Xiaoyou/i.test(t))s+=8;
+        if(/zh-CN|zh_CN|cmn-Hans/i.test(v.lang))s+=2;
+        if(/Huihui|Kangkang|Zhiyu|Yaoyao|Desktop/i.test(t))s-=6;
+        if(s>bs){bs=s;best=v;}
+      }
+      if(best)bestVoice=best;
+    }catch(e){}
+  }
+  try{ pickVoice(); window.speechSynthesis.addEventListener('voiceschanged',pickVoice); }catch(e){}
+  let seq=0, kick=null;
+  function clearKick(){ if(kick){ clearTimeout(kick); kick=null; } }
+  function run(ss,my,items){
+    let i=0;
+    function go(){
+      if(my!==seq||i>=items.length)return;
+      const it=items[i++];
+      const u=new SpeechSynthesisUtterance(it.t);
+      u.lang='zh-CN'; u.rate=it.rate; u.pitch=it.pitch; u.volume=1;
+      if(bestVoice)u.voice=bestVoice;
+      let done=false, started=false, timer=null;
+      function guard(){
+        if(done||my!==seq)return;
+        done=true; clearTimeout(timer);
+        if(!started){
+          try{ ss.cancel(); }catch(e){}
+          kick=setTimeout(go,300);
+        }else{
+          kick=setTimeout(go,it.pause);
+        }
+      }
+      timer=setTimeout(guard,4000);
+      u.onstart=function(){ started=true; clearTimeout(timer); timer=setTimeout(guard,Math.max(12000,it.t.length*620)); };
+      u.onend=function(){ if(done)return; done=true; clearTimeout(timer); kick=setTimeout(go,it.pause); };
+      u.onerror=function(){ if(done)return; done=true; clearTimeout(timer); kick=setTimeout(go,260); };
+      try{ ss.resume(); }catch(e){}
+      ss.speak(u);
+    }
+    kick=setTimeout(go,120);
+  }
+  function say(text){
+    try{
+      if(!('speechSynthesis' in window))return;
+      const ss=window.speechSynthesis, my=++seq;
+      clearKick();
+      ss.cancel();
+      let s=String(text).replace(/\s+/g,'');
+      if(!s)return;
+      for(const k in SAY_FIX)s=s.split(k).join(SAY_FIX[k]);
+      if(!bestVoice)pickVoice();
+      const parts=s.match(/[^。！？；，、：,.!?;:]+[。！？；，、：,.!?;:]?/g)||[s];
+      /* 逗号短句并入整句，朗读更连贯 */
+      const groups=[]; let buf='';
+      for(const p1 of parts){
+        const p2=p1.trim(); if(!p2)continue;
+        buf+=p2;
+        if(/[。！？；!?;]$/.test(p2)){ groups.push(buf); buf=''; }
+      }
+      if(buf)groups.push(buf);
+      const items=[];
+      for(const p0 of groups){
+        const p=p0.trim(); if(!p)continue;
+        const end=p.slice(-1), core=p.replace(/[。！？；，、：,.!?;:]+$/,'');
+        let rate=1.02, pitch=1;
+        if(/[？?]/.test(end)){ pitch=1.1; rate=1.0; }
+        else if(/[！!]/.test(end)){ pitch=.94; rate=.98; }
+        else if(/[。；;]/.test(end)){ pitch=.985; rate=.98; }
+        if(/[也矣焉耳哉]$/.test(core))rate-=.03;
+        const pause=/[。！？；;!?]/.test(end)?140:(/[，、：,:]/.test(end)?60:40);
+        items.push({t:p,rate:rate,pitch:pitch,pause:pause});
+        if(items.length>=80)break;
+      }
+      run(ss,my,items);
+    }catch(e){}
+  }
+  function stop(){ seq++; clearKick(); try{ if('speechSynthesis' in window)window.speechSynthesis.cancel(); }catch(e){} }
+  return {say:say,stop:stop};
+})();
+function SAY(t){ SAY_ENGINE.say(t); }
+function SAYSTOP(){ SAY_ENGINE.stop(); }
+window.addEventListener('pagehide', function () { SAYSTOP(); });
+
+/* ================= 音效 ================= */
+let AC = null;
+function tone(freq, dur, type, vol, when) {
+  try {
+    if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+    const t = AC.currentTime + (when || 0);
+    const o = AC.createOscillator(), gn = AC.createGain();
+    o.type = type || 'sine'; o.frequency.value = freq;
+    gn.gain.setValueAtTime(vol || .08, t);
+    gn.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(gn); gn.connect(AC.destination);
+    o.start(t); o.stop(t + dur);
+  } catch (e) {}
+}
+function chime() { tone(659.25, .2, 'triangle', .08); tone(987.77, .34, 'triangle', .05, .08); }
+
+/* ================= 时间轴定位（按生年比例 + 近点避让） ================= */
+const Y0 = 300, Y1 = 1150;
+function rawPct(y) { return (y - Y0) / (Y1 - Y0) * 100; }
+const POS = PEOPLE.map(function (p) { return rawPct(p.y); });
+(function separate() {
+  const gap = 8.6, lo = 5.2, hi = 94.8;
+  for (let pass = 0; pass < 8; pass++) {
+    for (let i = 1; i < POS.length; i++) {
+      if (POS[i] - POS[i - 1] < gap) {
+        const dd = (gap - (POS[i] - POS[i - 1])) / 2;
+        POS[i - 1] -= dd; POS[i] += dd;
+      }
+    }
+    POS[0] = Math.max(lo, POS[0]);
+    for (let i = 1; i < POS.length; i++) POS[i] = Math.max(POS[i], POS[i - 1] + gap);
+    POS[POS.length - 1] = Math.min(hi, POS[POS.length - 1]);
+    for (let i = POS.length - 2; i >= 0; i--) POS[i] = Math.min(POS[i], POS[i + 1] - gap);
+  }
+})();
+function bandPct(y) { return Math.max(0, Math.min(100, rawPct(y))); }
+
+/* ================= 渲染：朝代区段 ================= */
+function buildBands() {
+  const box = $('bands');
+  BANDS.forEach(function (b) {
+    const a = bandPct(b.a), c = bandPct(b.b);
+    const seg = el('div', 'band');
+    seg.style.left = 'calc(2% + ' + (a * 0.96) + '%)';
+    seg.style.width = ((c - a) * 0.96) + '%';
+    const lab = el('span', 'blab');
+    lab.style.left = (2 + bandPct(b.ly) * 0.96) + '%';
+    lab.appendChild(el('span', null, b.n));
+    seg.appendChild(lab);
+    box.appendChild(seg);
+  });
+}
+
+/* ================= 渲染：人物节点与详情卡 ================= */
+const nodeBtns = [];
+function buildNodes() {
+  const box = $('nodes');
+  PEOPLE.forEach(function (p, i) {
+    const b = el('button', 'node ' + (p.lane < 0 ? 'up' : 'down'));
+    b.type = 'button';
+    b.style.left = POS[i] + '%';
+    b.dataset.key = p.key;
+    b.setAttribute('aria-label', p.name);
+    const dot = el('span', 'dot', p.name.charAt(0));
+    const anno = el('span', 'anno');
+    anno.appendChild(el('span', 'nm', p.name));
+    anno.appendChild(el('span', 'er', p.era));
+    anno.appendChild(el('span', 'yr', p.years));
+    if (p.lane < 0) { b.appendChild(anno); b.appendChild(dot); }
+    else { b.appendChild(dot); b.appendChild(anno); }
+    b.addEventListener('mouseenter', function () { selectPerson(i, false); });
+    b.addEventListener('click', function () {
+      chime();
+      selectPerson(i, false);
+      if (window.innerWidth <= 760) {
+        try { $('person-card').scrollIntoView({ behavior:'smooth', block:'nearest' }); } catch (e) {}
+      }
+    });
+    nodeBtns.push(b);
+    box.appendChild(b);
+  });
+}
+function selectPerson(idx) {
+  const p = PEOPLE[idx];
+  nodeBtns.forEach(function (b, i) { b.classList.toggle('active', i === idx); });
+  const card = $('person-card');
+  card.textContent = '';
+  card.classList.remove('flash'); void card.offsetWidth; card.classList.add('flash');
+
+  const head = el('div', 'pc-head');
+  const nameBox = el('div', null);
+  nameBox.appendChild(el('div', 'pc-name', p.name));
+  head.appendChild(nameBox);
+  head.appendChild(el('span', 'pc-tag', p.tag));
+  card.appendChild(head);
+
+  card.appendChild(el('div', 'pc-meta', p.years + ' · ' + p.era + ' · ' + p.home));
+  p.story.forEach(function (s) { card.appendChild(el('p', 'pc-story', s)); });
+
+  const foot = el('div', 'pc-foot');
+  const quoteBox = el('div', 'pc-quote');
+  quoteBox.appendChild(document.createTextNode(p.quote));
+  const spk = el('button', 'speak-mini', '🔊');
+  spk.type = 'button'; spk.title = '朗读代表名句';
+  spk.addEventListener('click', function () { SAY(p.quote); });
+  quoteBox.appendChild(spk);
+  foot.appendChild(quoteBox);
+  const go = el('a', 'btn', '展卷《' + PIECES[p.piece].name + '》');
+  go.href = PIECES[p.piece].url;
+  foot.appendChild(go);
+  card.appendChild(foot);
+}
+
+/* ================= 渲染：意象图鉴 ================= */
+const BAR_W = ['92%','74%','88%','68%'];
+function buildYinCard(img) {
+  const st = cardStatus(img);
+  const card = el('div', 'yin-card ' + st.state);
+  card.dataset.img = img.char;
+  card.dataset.state = st.state;
+
+  /* 大字 + 所属篇印 */
+  const head = el('div', 'yc-head');
+  head.appendChild(el('div', 'yc-char' + (img.char.length > 1 ? ' two' : ''), img.char));
+  const title = el('div', 'yc-title');
+  title.appendChild(el('div', 'yc-name', img.char + '　意象'));
+  const tags = el('div', 'yc-tags');
+  img.pieces.forEach(function (pid) {
+    tags.appendChild(el('span', 'yin' + (doneOf(pid) ? '' : ' off'), PIECES[pid].name));
+  });
+  title.appendChild(tags);
+  head.appendChild(title);
+  card.appendChild(head);
+
+  card.appendChild(el('div', 'yc-badge ' + st.state,
+    st.state === 'full' ? '已醒' : (st.state === 'half' ? '半醒' : '墨痕未醒')));
+
+  /* 已收藏：金印「藏」+ 获得日期（游戏内完成学习目标时仪式获得） */
+  const cts = yinTs(img);
+  if (cts) {
+    const coll = el('div', 'yc-collect');
+    const seal = el('span', 'yc-coll-seal', '藏');
+    coll.appendChild(seal);
+    coll.appendChild(el('span', 'yc-coll-date', fmtDate(cts) + ' 入藏'));
+    card.appendChild(coll);
+  }
+
+  /* 原句（按篇分组；未醒处只渲虚点墨痕） */
+  const groups = el('div', 'yc-quotes');
+  const order = [];
+  img.lines.forEach(function (ln) { if (order.indexOf(ln.p) < 0) order.push(ln.p); });
+  order.forEach(function (pid) {
+    const ls = img.lines.filter(function (ln) { return ln.p === pid; });
+    const g = el('div', 'qgroup');
+    const gt = el('div', 'gtag');
+    gt.appendChild(document.createTextNode('《' + PIECES[pid].name + '》'));
+    if (doneOf(pid)) {
+      g.appendChild(gt);
+      ls.forEach(function (ln) {
+        const q = el('div', 'qline');
+        q.appendChild(el('span', 'qtext', ln.q));
+        const b = el('button', 'speak-mini', '🔊');
+        b.type = 'button'; b.title = '朗读此句';
+        b.addEventListener('click', function () { SAY(ln.q); });
+        q.appendChild(b);
+        g.appendChild(q);
+      });
+    } else {
+      if (st.state === 'half') {
+        gt.appendChild(document.createTextNode(' · 卷中未明 · '));
+        const a = el('a', 'link-mini', '去展卷');
+        a.href = PIECES[pid].url;
+        gt.appendChild(a);
+      }
+      g.appendChild(gt);
+      ls.forEach(function (ln, i) {
+        const bar = el('div', 'qbar');
+        bar.style.width = BAR_W[i % BAR_W.length];
+        g.appendChild(bar);
+      });
+    }
+    groups.appendChild(g);
+  });
+  card.appendChild(groups);
+
+  /* 内涵：不锁，照看 */
+  card.appendChild(el('div', 'yc-mean', img.mean));
+
+  /* 全未醒：提示 + 去展卷 */
+  if (st.state === 'lock') {
+    const note = el('div', 'yc-locknote');
+    note.appendChild(document.createTextNode('读完'));
+    img.pieces.forEach(function (pid) {
+      note.appendChild(el('b', null, '《' + PIECES[pid].name + '》'));
+    });
+    note.appendChild(document.createTextNode('卷轴，此意象即醒'));
+    img.pieces.forEach(function (pid) {
+      const a = el('a', 'link-mini', '去展卷《' + PIECES[pid].name + '》');
+      a.href = PIECES[pid].url;
+      note.appendChild(a);
+    });
+    card.appendChild(note);
+  }
+  return card;
+}
+function buildImages() {
+  const grid = $('yin-grid');
+  IMAGES.forEach(function (img) { grid.appendChild(buildYinCard(img)); });
+}
+
+/* ================= 概览条 ================= */
+function renderStats() {
+  let read = 0;
+  SEVEN.forEach(function (pid) { if (doneOf(pid)) read++; });
+  let full = 0, half = 0, coll = 0;
+  IMAGES.forEach(function (img) {
+    const s = cardStatus(img).state;
+    if (s === 'full') full++;
+    else if (s === 'half') half++;
+    if (yinTs(img)) coll++;
+  });
+  $('st-awake').textContent = full + ' / 6';
+  $('st-half').textContent = half;
+  $('st-coll').textContent = coll + ' / 6';
+  $('st-read').textContent = read + ' / 7';
+}
+
+/*__GENEALOGY__*/
+const GENEALOGY=[{"n":"先秦","a":[{"w":"《山海经》","dy":"先秦","ps":[{"id":"jwth","t":"精卫填海"}]},{"w":"孔子弟子及再传弟子","dy":"先秦","ps":[{"id":"ly7","t":"《论语》十二章"},{"id":"lyg","t":"论语十二章"},{"id":"zl","t":"子路、曾皙、冉有、公西华侍坐"}]},{"w":"《左传》","dy":"春秋","ps":[{"id":"cglz","t":"曹刿论战"},{"id":"zzwty","t":"烛之武退秦师"}]},{"w":"《老子》","dy":"春秋","ps":[{"id":"lzsz","t":"老子四章"}]},{"w":"韩非","dy":"战国","ps":[{"id":"szdt","t":"守株待兔"},{"id":"zxmd","t":"自相矛盾"}]},{"w":"《吕氏春秋》","dy":"战国","ps":[{"id":"bygq","t":"伯牙鼓琴"},{"id":"cjdy","t":"穿井得一人"}]},{"w":"孟子","dy":"战国","ps":[{"id":"xy","t":"学弈"},{"id":"dddz","t":"得道多助，失道寡助"},{"id":"fgbn","t":"富贵不能淫"},{"id":"syyh","t":"生于忧患，死于安乐"},{"id":"ywsyy","t":"鱼我所欲也"},{"id":"rjy","t":"人皆有不忍人之心"},{"id":"qhjwzs","t":"齐桓晋文之事"}]},{"w":"《列子》","dy":"战国","ps":[{"id":"lxeb","t":"两小儿辩日"},{"id":"qryt","t":"杞人忧天"},{"id":"ygy","t":"愚公移山"}]},{"w":"庄子","dy":"战国","ps":[{"id":"bmyy","t":"北冥有鱼"},{"id":"haoliang","t":"庄子与惠子游于濠梁之上"},{"id":"pdjn","t":"庖丁解牛"},{"id":"wczh","t":"五石之瓠"}]},{"w":"荀子","dy":"战国","ps":[{"id":"qx","t":"劝学"}]},{"w":"《墨子》","dy":"战国","ps":[{"id":"ja","t":"兼爱（上）"}]},{"w":"孔子 等","dy":"先秦—清","ps":[{"id":"grds","t":"古人谈读书"}]},{"w":"李斯","dy":"秦","ps":[{"id":"jkcs","t":"谏逐客书"}]}]},{"n":"两汉","a":[{"w":"司马迁","dy":"西汉","ps":[{"id":"zyfjx","t":"周亚夫军细柳"},{"id":"hmy","t":"鸿门宴"},{"id":"qylz","t":"屈原列传（节选）"}]},{"w":"《礼记》","dy":"西汉","ps":[{"id":"syjy","t":"虽有嘉肴"},{"id":"ddzh","t":"大道之行也"},{"id":"dxzd","t":"大学之道"}]},{"w":"《战国策》","dy":"西汉","ps":[{"id":"zjfj","t":"邹忌讽齐王纳谏"},{"id":"tangju","t":"唐雎不辱使命"}]},{"w":"贾谊","dy":"西汉","ps":[{"id":"gql","t":"过秦论"}]},{"w":"班固","dy":"东汉","ps":[{"id":"swc","t":"苏武传（节选）"}]}]},{"n":"魏晋","a":[{"w":"诸葛亮","dy":"三国","ps":[{"id":"jzs","t":"诫子书"},{"id":"csb","t":"出师表"}]},{"w":"李密","dy":"西晋","ps":[{"id":"cqb","t":"陈情表"}]},{"w":"陶渊明","dy":"东晋","ps":[{"id":"tyh","t":"桃花源记"},{"id":"gqglx","t":"归去来兮辞（并序）"}]},{"w":"王羲之","dy":"东晋","ps":[{"id":"ltjx","t":"兰亭集序"}]}]},{"n":"南北朝","a":[{"w":"刘义庆","dy":"南朝","ps":[{"id":"wrbq","t":"王戎不取道旁李"},{"id":"yszz","t":"杨氏之子"},{"id":"yx","t":"咏雪"},{"id":"ctqy","t":"陈太丘与友期行"}]},{"w":"陶弘景","dy":"南朝","ps":[{"id":"dxszs","t":"答谢中书书"}]},{"w":"吴均","dy":"南朝","ps":[{"id":"yzyx","t":"与朱元思书"}]},{"w":"郦道元","dy":"北魏","ps":[{"id":"sx","t":"三峡"}]}]},{"n":"唐","a":[{"w":"房玄龄 等","dy":"唐","ps":[{"id":"nyyd","t":"囊萤夜读"}]},{"w":"刘禹锡","dy":"唐","ps":[{"id":"lsm","t":"陋室铭"}]},{"w":"柳宗元","dy":"唐","ps":[{"id":"xst","t":"小石潭记"},{"id":"zzgqt","t":"种树郭橐驼传"}]},{"w":"韩愈","dy":"唐","ps":[{"id":"ms","t":"马说"},{"id":"ss","t":"师说"}]},{"w":"魏征","dy":"唐","ps":[{"id":"jtzss","t":"谏太宗十思疏"}]},{"w":"杜牧","dy":"唐","ps":[{"id":"epgf","t":"阿房宫赋"}]}]},{"n":"宋","a":[{"w":"苏轼","dy":"北宋","ps":[{"id":"sdshn","t":"书戴嵩画牛"},{"id":"jcts","t":"记承天寺夜游"},{"id":"cbf","t":"赤壁赋"},{"id":"szsj","t":"石钟山记"}]},{"w":"司马光","dy":"北宋","ps":[{"id":"sqqx","t":"孙权劝学"}]},{"w":"欧阳修","dy":"北宋","ps":[{"id":"myw","t":"卖油翁"},{"id":"zwtj","t":"醉翁亭记"},{"id":"lgxc","t":"五代史伶官传序"}]},{"w":"周敦颐","dy":"北宋","ps":[{"id":"als","t":"爱莲说"}]},{"w":"范仲淹","dy":"北宋","ps":[{"id":"yylj","t":"岳阳楼记"}]},{"w":"王安石","dy":"北宋","ps":[{"id":"dsmjw","t":"答司马谏议书"}]},{"w":"苏洵","dy":"北宋","ps":[{"id":"lgl","t":"六国论"}]},{"w":"祝穆","dy":"南宋","ps":[{"id":"tccz","t":"铁杵成针"}]}]},{"n":"元","a":[{"w":"《宋史》","dy":"元","ps":[{"id":"smg","t":"司马光"}]}]},{"n":"明","a":[{"w":"魏学洢","dy":"明","ps":[{"id":"hzj","t":"核舟记"}]},{"w":"宋濂","dy":"明","ps":[{"id":"sdmys","t":"送东阳马生序"}]},{"w":"归有光","dy":"明","ps":[{"id":"xjxz","t":"项脊轩志"}]}]},{"n":"清","a":[{"w":"张岱","dy":"明末清初","ps":[{"id":"htxkx","t":"湖心亭看雪"}]},{"w":"蒲松龄","dy":"清","ps":[{"id":"lang","t":"狼"}]},{"w":"纪昀","dy":"清","ps":[{"id":"hzjs","t":"河中石兽"}]},{"w":"姚鼐","dy":"清","ps":[{"id":"dtsj","t":"登泰山记"}]}]}];
+/*__GENEALOGY-END__*/
+
+/* ================= 万卷作者谱（据万卷楼 PIECES 生成，勿手改数据） ================= */
+function wjReadOf(pid) {
+  try { const d = JSON.parse(localStorage.getItem('gushi_wj')); return !!(d && d[pid]); }
+  catch (e) { return false; }
+}
+function buildGenealogy() {
+  const wrap = $('genealogy'); if (!wrap) return;
+  GENEALOGY.forEach(function (band) {
+    const bd = el('div', 'wg-band');
+    bd.appendChild(el('span', 'wg-band-lab', band.n));
+    bd.appendChild(el('span', 'wg-band-n', band.a.length + ' 家'));
+    wrap.appendChild(bd);
+    const grid = el('div', 'wg-grid');
+    band.a.forEach(function (au) {
+      const card = el('div', 'wg-card');
+      const head = el('div', 'wg-head');
+      head.appendChild(el('span', 'wg-name', au.w));
+      head.appendChild(el('span', 'wg-dy', au.dy));
+      head.appendChild(el('span', 'wg-cnt', au.ps.length + ' 篇'));
+      card.appendChild(head);
+      const chips = el('div', 'wg-chips');
+      au.ps.forEach(function (pp) {
+        const c = el('button', 'wg-chip', pp.t);
+        c.type = 'button';
+        c.title = '去万卷楼读《' + pp.t + '》';
+        if (SEVEN.indexOf(pp.id) >= 0 && doneOf(pp.id)) c.classList.add('rd');
+        else if (wjReadOf(pp.id)) c.classList.add('yd');
+        c.addEventListener('click', function () {
+          try { localStorage.setItem('gushi_wj_target', pp.id); } catch (e) {}
+          location.href = 'wanjuan.html';
+        });
+        chips.appendChild(c);
+      });
+      card.appendChild(chips);
+      grid.appendChild(card);
+    });
+    wrap.appendChild(grid);
+  });
+}
+
+/* ================= 初始化 ================= */
+buildBands();
+buildNodes();
+selectPerson(0);
+buildImages();
+renderStats();
+buildGenealogy();
+</script>
+</body>
+</html>

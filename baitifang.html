@@ -1,0 +1,2057 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='9' fill='%239c3222'/%3E%3Ctext x='32' y='45' font-size='40' text-anchor='middle' fill='%23fdeed6' font-family='serif'%3E坊%3C/text%3E%3C/svg%3E">
+<title>百题坊 · 古诗文跨篇练习</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:100%; }
+  body {
+    min-height:100%;
+    background:
+      radial-gradient(ellipse at 50% -10%, #3a2a1a 0%, #221710 46%, #140d07 100%);
+    background-attachment:fixed;
+    font-family:"KaiTi","STKaiti","楷体",serif;
+    color:#3a2a18;
+    padding:26px 10px 40px;
+  }
+
+  /* ===== 宣纸大堂 ===== */
+  #app {
+    position:relative;
+    width:min(920px,96vw);
+    margin:0 auto;
+    background:linear-gradient(180deg,#f8f0dc,#ede0c0);
+    border:2px solid #8a5a32;
+    border-radius:10px;
+    box-shadow:0 22px 70px rgba(0,0,0,.62), inset 0 0 0 1px rgba(138,90,50,.30), inset 0 0 42px rgba(166,124,62,.14);
+    padding:24px 30px 34px;
+  }
+  #app::before {
+    content:''; position:absolute; inset:6px;
+    border:1px solid rgba(138,90,50,.32); border-radius:6px;
+    pointer-events:none;
+  }
+
+  /* ===== 顶栏 ===== */
+  .topbar { position:relative; padding:2px 4px 0; }
+  .back-shelf {
+    position:absolute; left:2px; top:0;
+    height:38px; padding:0 15px;
+    display:flex; align-items:center; gap:6px;
+    text-decoration:none;
+    color:#f3dca0; background:linear-gradient(180deg,#8a5a34,#6e4522);
+    border:1px solid #caa24e; border-radius:19px;
+    font-family:inherit; font-size:.92rem; letter-spacing:.18rem;
+    box-shadow:0 2px 6px rgba(60,36,14,.45), inset 0 1px 0 rgba(255,236,180,.35);
+    cursor:pointer; z-index:5;
+  }
+  .back-shelf:hover { background:linear-gradient(180deg,#9c6a3c,#7d502a); }
+  .title-wrap { text-align:center; padding:6px 0 2px; }
+  h1 {
+    display:inline-flex; align-items:center; gap:14px;
+    font-size:2.35rem; letter-spacing:.42rem; color:#432810;
+    font-weight:normal;
+  }
+  .seal {
+    flex:0 0 auto;
+    width:44px; height:44px; border-radius:5px;
+    background:linear-gradient(160deg,#c44936,#9c3222);
+    color:#fdeed6; font-size:1.32rem; letter-spacing:0;
+    display:inline-flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 7px rgba(120,40,25,.45), inset 0 0 0 2px rgba(253,238,214,.35);
+    transform:rotate(-6deg);
+  }
+  .subtitle {
+    text-align:center; color:#8a6238; font-size:1rem; letter-spacing:.34rem;
+    margin-top:9px;
+  }
+
+  /* ===== 概览条 ===== */
+  .stats {
+    margin:18px auto 4px;
+    display:flex; justify-content:center; gap:14px; flex-wrap:wrap;
+  }
+  .stat {
+    min-width:138px; text-align:center;
+    background:linear-gradient(180deg,#f6ecd2,#e6d7b2);
+    border:1px solid #a5793f; border-radius:7px;
+    padding:8px 20px 9px;
+    box-shadow:inset 0 0 0 1px rgba(255,250,230,.5), 0 2px 5px rgba(90,60,25,.18);
+  }
+  .stat .lab { font-size:.82rem; color:#8a6238; letter-spacing:.24rem; }
+  .stat .val { font-size:1.5rem; color:#9c3222; line-height:1.35; }
+  .stat .val.gold { color:#9a7420; }
+
+  /* ===== 视图 ===== */
+  .view { display:none; margin-top:20px; }
+  .view.show { display:block; }
+
+  .gate-note {
+    display:none;
+    margin:4px auto 0; max-width:560px; text-align:center;
+    color:#6b4a2a; font-size:1.02rem; letter-spacing:.14rem; line-height:1.8;
+    background:rgba(176,57,38,.06); border:1px dashed rgba(156,50,34,.45);
+    border-radius:8px; padding:12px 18px;
+  }
+  .gate-note.show { display:block; }
+
+  /* 模式卡 */
+  .mode-grid {
+    display:grid; grid-template-columns:repeat(3,1fr); gap:16px;
+  }
+  .mode-card {
+    position:relative; cursor:pointer; text-align:center;
+    background:linear-gradient(180deg,#fbf3dc,#efdfba);
+    border:1px solid #a5793f; border-radius:8px;
+    padding:0 0 20px; overflow:hidden;
+    box-shadow:0 4px 12px rgba(90,60,25,.18), inset 0 0 0 1px rgba(255,250,230,.55);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .mode-card:hover {
+    transform:translateY(-4px);
+    box-shadow:0 12px 26px rgba(90,60,25,.28), 0 0 0 1px rgba(202,162,78,.65);
+  }
+  .mode-card .ribbon {
+    background:linear-gradient(180deg,#8a5a34,#6e4522);
+    color:#f3dca0; letter-spacing:.32rem; font-size:1.18rem;
+    padding:11px 0 10px;
+    border-bottom:1px solid #caa24e;
+  }
+  .mode-card .mc-seal {
+    width:52px; height:52px; margin:18px auto 10px; border-radius:6px;
+    background:linear-gradient(160deg,#c44936,#9c3222); color:#fdeed6;
+    font-size:1.5rem; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 7px rgba(120,40,25,.4), inset 0 0 0 2px rgba(253,238,214,.3);
+  }
+  .mode-card .desc {
+    color:#6b4a2a; font-size:.95rem; letter-spacing:.1rem; line-height:1.85;
+    padding:0 16px;
+  }
+  .mode-card .desc b { color:#9c3222; font-weight:normal; font-size:1.12rem; }
+  .mode-card .badge {
+    position:absolute; top:8px; right:10px;
+    font-size:.8rem; color:#f3dca0; letter-spacing:.1rem;
+  }
+
+  /* 选篇 */
+  .section-head {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:14px; gap:10px; flex-wrap:wrap;
+  }
+  .section-head h2 {
+    font-size:1.3rem; font-weight:normal; letter-spacing:.3rem; color:#432810;
+  }
+  .section-head h2::before {
+    content:'◆'; color:#caa24e; font-size:.8rem; margin-right:10px; vertical-align:2px;
+  }
+  .piece-grid {
+    display:grid; grid-template-columns:repeat(3,1fr); gap:14px;
+  }
+  .piece-card {
+    cursor:pointer;
+    background:linear-gradient(180deg,#fbf3dc,#efdfba);
+    border:1px solid #a5793f; border-radius:8px;
+    padding:14px 16px 13px;
+    box-shadow:0 3px 9px rgba(90,60,25,.16), inset 0 0 0 1px rgba(255,250,230,.5);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .piece-card:hover { transform:translateY(-3px); box-shadow:0 10px 22px rgba(90,60,25,.26), 0 0 0 1px rgba(202,162,78,.6); }
+  .piece-card .p-name { font-size:1.28rem; letter-spacing:.22rem; color:#432810; }
+  .piece-card .p-who { font-size:.86rem; color:#8a6238; letter-spacing:.14rem; margin:3px 0 9px; }
+  .piece-card .p-prog {
+    display:flex; justify-content:space-between; align-items:baseline;
+    font-size:.86rem; color:#8a6238; letter-spacing:.08rem;
+    border-top:1px dashed rgba(138,90,50,.4); padding-top:7px;
+  }
+  .piece-card .p-prog b { color:#9c3222; font-size:1.05rem; }
+  .piece-card .p-prog b.gold { color:#9a7420; }
+  .piece-card { position:relative; }
+  .piece-card .p-done-seal {
+    position:absolute; top:9px; right:10px;
+    color:#fff; background:linear-gradient(135deg,#9c3222,#7c2416);
+    border:1px solid #e8b04a; border-radius:4px;
+    font-size:.78rem; letter-spacing:.14rem; padding:2px 7px;
+    box-shadow:0 2px 6px rgba(124,36,22,.4);
+  }
+
+  /* 结算页 · 本篇学成横幅 */
+  .rs-done {
+    margin-top:12px; padding:10px 14px; text-align:center;
+    color:#7c2416; background:linear-gradient(180deg,#fdf6dd,#f6e7bd);
+    border:1px solid #d3a440; border-radius:8px;
+    font-size:1.02rem; letter-spacing:.12rem;
+    box-shadow:0 3px 10px rgba(154,116,32,.22), inset 0 0 0 1px rgba(255,250,230,.6);
+  }
+
+  /* 通用按钮 */
+  .btn {
+    font-family:inherit; cursor:pointer;
+    color:#f3dca0; background:linear-gradient(180deg,#8a5a34,#6e4522);
+    border:1px solid #caa24e; border-radius:18px;
+    font-size:.95rem; letter-spacing:.22rem;
+    padding:8px 22px;
+    box-shadow:0 2px 6px rgba(60,36,14,.4), inset 0 1px 0 rgba(255,236,180,.3);
+  }
+  .btn:hover { background:linear-gradient(180deg,#9c6a3c,#7d502a); }
+  .btn:disabled { opacity:.45; cursor:default; }
+  .btn-ghost {
+    color:#6e4522; background:transparent;
+    border:1px solid #8a5a32;
+    box-shadow:none;
+  }
+  .btn-ghost:hover { background:rgba(138,90,50,.1); }
+  .btn-red {
+    color:#fdeed6; background:linear-gradient(180deg,#c44936,#9c3222);
+    border-color:#9c3222;
+    box-shadow:0 2px 6px rgba(120,40,25,.4), inset 0 1px 0 rgba(255,238,214,.25);
+  }
+  .btn-red:hover { background:linear-gradient(180deg,#cf513d,#a83926); }
+
+  /* ===== 做题屏 ===== */
+  .quiz-ribbon {
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    background:linear-gradient(180deg,#8a5a34,#6e4522);
+    border:1px solid #caa24e; border-radius:7px;
+    color:#f3dca0; padding:8px 16px;
+    letter-spacing:.16rem; font-size:.98rem;
+    box-shadow:0 3px 8px rgba(60,36,14,.35);
+  }
+  .quiz-ribbon .sp { opacity:.5; }
+  .quiz-ribbon .prog { margin-left:auto; }
+  .quiz-ribbon .btn {
+    padding:4px 14px; font-size:.85rem; letter-spacing:.16rem;
+    background:rgba(243,220,160,.12); border-color:rgba(243,220,160,.7);
+    box-shadow:none;
+  }
+  .quiz-ribbon .btn:hover { background:rgba(243,220,160,.24); }
+
+  .q-paper {
+    margin-top:16px;
+    background:linear-gradient(180deg,#fdf7e6,#f4e8cb);
+    border:1px solid #b08a52; border-radius:8px;
+    box-shadow:inset 0 0 0 1px rgba(255,250,232,.7), inset 0 0 30px rgba(166,124,62,.1);
+    padding:28px 26px 24px;
+    min-height:210px;
+    display:flex; flex-direction:column;
+  }
+  .q-kind {
+    align-self:center;
+    font-size:.86rem; letter-spacing:.3rem; color:#9c3222;
+    border:1px solid rgba(156,50,34,.5); border-radius:12px;
+    padding:2px 14px; margin-bottom:18px;
+  }
+  .q-face {
+    flex:1 1 auto;
+    font-size:1.48rem; line-height:2.1; letter-spacing:.1rem; color:#3a2a18;
+    text-align:center;
+  }
+  .blank {
+    display:inline-block; width:1.18em; height:1.04em;
+    vertical-align:-.18em;
+    border-bottom:3px solid #b03926;
+    margin:0 .14em; font-size:1.55rem;
+  }
+  .q-hint-line {
+    display:none; text-align:center; margin-top:12px;
+    color:#7a4a1a; font-size:1rem; letter-spacing:.08rem; line-height:1.8;
+    background:rgba(202,162,78,.14); border:1px dashed rgba(154,116,32,.6);
+    border-radius:7px; padding:8px 16px;
+  }
+  .q-hint-line.show { display:block; }
+
+  .q-answer {
+    margin-top:20px;
+    display:flex; justify-content:center; align-items:center; gap:12px; flex-wrap:wrap;
+  }
+  /* 客观选择题：选字 / 听辨选句 */
+  .choice-wrap {
+    display:flex; justify-content:center; align-items:center; gap:14px; flex-wrap:wrap;
+  }
+  .choice-col {
+    display:flex; flex-direction:column; gap:10px;
+    width:min(560px,94%); margin:14px auto 0;
+  }
+  .choice-btn {
+    font-family:inherit; cursor:pointer;
+    min-width:88px; padding:11px 20px;
+    font-size:1.5rem; line-height:1.5; color:#3a2a18;
+    background:linear-gradient(180deg,#fffdf4,#f4e8cc);
+    border:2px solid #b08a52; border-radius:9px;
+    box-shadow:0 2px 6px rgba(90,60,25,.16), inset 0 0 0 1px rgba(255,250,232,.6);
+    transition:transform .16s ease, border-color .16s ease, background .16s ease;
+  }
+  .choice-col .choice-btn { width:100%; text-align:left; font-size:1.05rem; padding:11px 16px; }
+  .choice-btn:hover:enabled { border-color:#caa24e; transform:translateY(-2px); }
+  .choice-btn:disabled { cursor:default; transform:none; }
+  .choice-btn.wrong { border-color:#b03926; background:linear-gradient(180deg,#fbe7dd,#f3cfc2); }
+  .choice-btn.gold { border-color:#b9861f; background:linear-gradient(180deg,#fdf2cf,#f0dc9d); }
+  .pick-tip { font-size:.9rem; letter-spacing:.2rem; color:#8a6238; margin-top:8px; }
+  .q-stem {
+    font-size:1.28rem; line-height:1.95; letter-spacing:.06rem; color:#3a2a18;
+    text-align:left; max-width:640px; margin:0 auto;
+  }
+  .q-stem .stem-no { color:#9c3222; margin-right:8px; }
+  .q-meta { text-align:center; color:#8a6238; font-size:.88rem; letter-spacing:.16rem; margin-top:8px; }
+
+  .speak-btn {
+    width:78px; height:78px; border-radius:50%;
+    font-family:inherit; font-size:2rem; cursor:pointer;
+    color:#f3dca0; background:linear-gradient(180deg,#8a5a34,#6e4522);
+    border:2px solid #caa24e;
+    box-shadow:0 4px 12px rgba(60,36,14,.4), inset 0 1px 0 rgba(255,236,180,.35);
+    margin:6px auto 4px; display:block;
+  }
+  .speak-btn:hover { background:linear-gradient(180deg,#9c6a3c,#7d502a); }
+  .speak-btn:disabled { opacity:.42; cursor:default; filter:grayscale(.4); }
+  .listen-tip { text-align:center; color:#8a6238; font-size:.95rem; letter-spacing:.18rem; margin-top:2px; }
+
+  /* 句读米格 */
+  .punct-wrap { display:flex; flex-wrap:wrap; justify-content:center; margin:4px auto 0; }
+  .pcell {
+    position:relative;
+    width:38px; height:38px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.32rem; color:#3a2a18;
+    border:1px solid #b08a52;
+    background-color:#fdfaf0;
+    background-image:
+      linear-gradient(to right, transparent calc(50% - .5px), rgba(176,138,82,.28) 50%, transparent calc(50% + .5px)),
+      linear-gradient(to bottom, transparent calc(50% - .5px), rgba(176,138,82,.28) 50%, transparent calc(50% + .5px)),
+      linear-gradient(to bottom right, transparent calc(50% - .5px), rgba(176,138,82,.16) 50%, transparent calc(50% + .5px)),
+      linear-gradient(to bottom left, transparent calc(50% - .5px), rgba(176,138,82,.16) 50%, transparent calc(50% + .5px));
+    margin-left:-1px; margin-top:-1px;
+  }
+  .pcut {
+    width:16px; height:38px; margin-top:-1px;
+    display:flex; align-items:center; justify-content:center;
+    background:none; border:0; cursor:pointer; padding:0;
+  }
+  .pcut:focus { outline:none; }
+  .pcut .bar {
+    width:2px; height:20px;
+    border-left:2px dashed #b9a884;
+  }
+  .pcut.on .bar { border-left:0; width:4px; height:26px; background:#b03926; border-radius:1px; }
+  .pcut.gold .bar { border-left:0; width:4px; height:26px; background:linear-gradient(180deg,#e3b64d,#b9861f); }
+  .pcut.extra .bar { border-left:2px dashed #c44936; background:none; width:2px; }
+  .pcut.miss .bar { animation:missFlash 1s ease 2; }
+  @keyframes missFlash {
+    0%,100% { opacity:.5; }
+    30% { opacity:1; transform:scaleY(1.25); }
+  }
+  .punct-tip { text-align:center; color:#8a6238; font-size:.88rem; letter-spacing:.16rem; margin-top:14px; }
+
+  /* 反馈区 */
+  .feedback {
+    min-height:74px; margin-top:16px;
+    text-align:center; font-size:1.12rem; letter-spacing:.1rem; line-height:1.9;
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+  }
+  .feedback .fb-ok { color:#9a7420; }
+  .feedback .fb-bad { color:#9c3222; }
+  .feedback .fb-right { color:#5a3a18; }
+  .feedback .fb-right b { color:#9c3222; font-size:1.18rem; }
+  .q-paper.good, .fix-card.good { animation:goldGlow .9s ease; }
+  .q-paper.bad, .fix-card.bad { animation:redShake .42s ease; }
+  .fix-card.good, .fix-card.bad { animation-duration:.6s; }
+  @keyframes goldGlow {
+    0% { box-shadow:inset 0 0 0 1px rgba(255,250,232,.7), inset 0 0 30px rgba(166,124,62,.1), 0 0 0 rgba(227,182,77,0); }
+    35% { box-shadow:inset 0 0 0 1px rgba(227,182,77,.9), inset 0 0 42px rgba(227,182,77,.3), 0 0 26px rgba(227,182,77,.55); }
+    100% { box-shadow:inset 0 0 0 1px rgba(255,250,232,.7), inset 0 0 30px rgba(166,124,62,.1), 0 0 0 rgba(227,182,77,0); }
+  }
+  @keyframes redShake {
+    0%,100% { transform:translateX(0); }
+    20% { transform:translateX(-9px); }
+    40% { transform:translateX(8px); }
+    60% { transform:translateX(-6px); }
+    80% { transform:translateX(5px); }
+  }
+
+  /* ===== 结算 ===== */
+  .result-card { text-align:center; padding:10px 6px 0; }
+  .result-card h2 { font-weight:normal; font-size:1.7rem; letter-spacing:.4rem; color:#432810; }
+  .result-sum {
+    display:flex; justify-content:center; gap:26px; flex-wrap:wrap;
+    margin:18px 0 8px;
+  }
+  .result-sum .rs {
+    background:linear-gradient(180deg,#f6ecd2,#e6d7b2);
+    border:1px solid #a5793f; border-radius:8px;
+    min-width:118px; padding:12px 20px;
+  }
+  .result-sum .rs .lab { font-size:.85rem; color:#8a6238; letter-spacing:.2rem; }
+  .result-sum .rs .v { font-size:1.7rem; color:#9c3222; }
+  .result-sum .rs .v.gold { color:#9a7420; }
+  .wrong-list {
+    text-align:left; margin:16px auto 0; max-width:720px;
+  }
+  .wrong-list .wl-title {
+    font-size:1.02rem; letter-spacing:.24rem; color:#6b4a2a;
+    border-left:4px solid #9c3222; padding-left:10px; margin-bottom:8px;
+  }
+  .wl-item {
+    background:rgba(255,253,244,.8); border:1px solid rgba(176,138,82,.7);
+    border-radius:7px; padding:10px 14px; margin-bottom:9px;
+    font-size:1rem; line-height:1.85; letter-spacing:.06rem;
+  }
+  .wl-item .wl-piece { color:#9c3222; font-size:.88rem; letter-spacing:.16rem; }
+  .wl-item .wl-you { color:#9c3222; }
+  .wl-item .wl-rt { color:#5a3a18; }
+  .wl-item .wl-q { color:#3a2a18; }
+  .result-tools { margin-top:22px; display:flex; justify-content:center; gap:16px; flex-wrap:wrap; }
+
+  /* ===== 错题二刷 ===== */
+  .review-prog { color:#8a6238; text-align:center; letter-spacing:.22rem; margin-bottom:12px; font-size:.98rem; }
+  .fix-card {
+    background:linear-gradient(180deg,#fdf7e6,#f4e8cb);
+    border:1px solid #b08a52; border-radius:8px;
+    box-shadow:inset 0 0 0 1px rgba(255,250,232,.7);
+    padding:22px 24px 20px;
+  }
+  .fix-tag {
+    display:inline-block; font-size:.84rem; letter-spacing:.22rem;
+    color:#fdeed6; background:linear-gradient(160deg,#c44936,#9c3222);
+    border-radius:11px; padding:2px 13px; margin-bottom:14px;
+  }
+  .fix-q { font-size:1.3rem; line-height:2.05; letter-spacing:.08rem; color:#3a2a18; }
+  .fix-you { margin-top:12px; color:#9c3222; font-size:1.05rem; letter-spacing:.08rem; }
+  .fix-right {
+    display:none; margin-top:12px;
+    color:#5a3a18; font-size:1.12rem; letter-spacing:.08rem; line-height:1.9;
+    background:rgba(202,162,78,.13); border:1px dashed rgba(154,116,32,.6);
+    border-radius:7px; padding:10px 15px;
+  }
+  .fix-right.show { display:block; }
+  .fix-tools { margin-top:18px; display:flex; justify-content:center; gap:14px; flex-wrap:wrap; }
+  .srs-tip {
+    text-align:center; margin-top:2px; color:#8a6238; font-size:.88rem;
+    letter-spacing:.08rem; line-height:1.9;
+  }
+
+  .empty-state {
+    text-align:center; padding:46px 20px;
+    color:#6b4a2a; font-size:1.18rem; letter-spacing:.26rem; line-height:2.3;
+  }
+  .empty-state .es-seal {
+    width:56px; height:56px; margin:0 auto 14px; border-radius:7px;
+    background:linear-gradient(160deg,#e3b64d,#b9861f); color:#4a2e10;
+    font-size:1.6rem; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 3px 8px rgba(120,90,20,.4), inset 0 0 0 2px rgba(74,46,16,.25);
+  }
+
+  @media (max-width:720px) {
+    body { padding:12px 6px 28px; }
+    #app { padding:18px 14px 26px; }
+    .back-shelf { position:static; display:inline-flex; margin-bottom:10px; }
+    .topbar { text-align:center; }
+    h1 { font-size:1.85rem; letter-spacing:.3rem; gap:10px; }
+    .seal { width:38px; height:38px; font-size:1.12rem; }
+    .subtitle { font-size:.88rem; letter-spacing:.22rem; }
+    .mode-grid, .piece-grid { grid-template-columns:1fr; }
+    .stat { min-width:104px; padding:7px 14px; }
+    .q-face { font-size:1.22rem; }
+    .pcell { width:31px; height:31px; font-size:1.1rem; }
+    .pcut { width:13px; height:31px; }
+    .q-paper { padding:20px 14px 18px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="topbar">
+    <a class="back-shelf" href="index.html">← 书阁</a>
+    <div class="title-wrap">
+      <h1>百 题 坊<span class="seal">坊</span></h1>
+      <div class="subtitle">常识 · 词义 · 翻译 · 句读 · 听辨</div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="lab">已练习题数</div><div class="val" id="stat-done">0</div></div>
+<div class="stat"><div class="lab">待订正错题</div><div class="val" id="stat-wrong">0</div></div>
+  </div>
+
+  <!-- 坊门 -->
+  <section class="view show" id="view-gate">
+    <div class="gate-note" id="gate-note">案头无错题，且去书卷中历练</div>
+    <div class="mode-grid" style="margin-top:16px;">
+      <div class="mode-card" data-act="mode" data-mode="piece">
+        <div class="ribbon">分篇习练</div>
+        <div class="mc-seal">篇</div>
+        <div class="desc">六卷任选其一<br>常识 · 词义 · 翻译<br>句读 · 听辨 · 选字<br>多题型混合出题</div>
+      </div>
+      <div class="mode-card" data-act="mode" data-mode="review">
+        <div class="ribbon">错题二刷</div>
+        <div class="mc-seal">订</div>
+        <div class="desc" id="review-desc">聚合六卷游戏错题<br>与本坊错题<br>隔 1/3/7 日回炉</div>
+      </div>
+      <div class="mode-card" data-act="mode" data-mode="mixed">
+        <div class="ribbon">百题混练</div>
+        <div class="mc-seal">混</div>
+        <div class="desc">六卷题库打乱<br>一轮十题随机抽<br>且试腹中万卷书</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 选篇 -->
+  <section class="view" id="view-pick">
+    <div class="section-head">
+      <h2>择卷习练</h2>
+      <button class="btn btn-ghost" type="button" data-act="pick-back">回坊门</button>
+    </div>
+    <div class="piece-grid" id="piece-grid"></div>
+  </section>
+
+  <!-- 做题 -->
+  <section class="view" id="view-quiz">
+    <div class="quiz-ribbon">
+      <span id="quiz-piece">篇目</span>
+      <span class="sp">·</span>
+      <span id="quiz-kind">题型</span>
+      <span class="sp">·</span>
+      <span id="quiz-prog">第 1 / 1 题</span>
+      <span class="prog"></span>
+      <button type="button" data-act="quiz-exit">退出</button>
+    </div>
+    <div class="q-paper" id="q-paper">
+      <div class="q-kind" id="q-kind"></div>
+      <div class="q-face" id="q-face"></div>
+      <div class="q-hint-line" id="q-hint"></div>
+      <div class="q-answer" id="q-answer"></div>
+    </div>
+    <div class="feedback" id="q-feedback"></div>
+  </section>
+
+  <!-- 错题二刷 -->
+  <section class="view" id="view-review">
+    <div class="quiz-ribbon">
+      <span>错题二刷</span>
+      <span class="sp">·</span>
+      <span id="review-prog">第 1 题</span>
+      <span class="prog"></span>
+      <button type="button" data-act="quiz-exit">回坊门</button>
+    </div>
+    <div style="height:14px;"></div>
+    <div id="review-body"></div>
+  </section>
+
+  <!-- 结算 -->
+  <section class="view" id="view-result">
+    <div class="result-card">
+      <h2 id="result-title">本轮结算</h2>
+      <div class="result-sum">
+        <div class="rs"><div class="lab">答对</div><div class="v gold" id="rs-right">0</div></div>
+        <div class="rs"><div class="lab">答错</div><div class="v" id="rs-wrong">0</div></div>
+        <div class="rs"><div class="lab">用时</div><div class="v" id="rs-time" style="color:#6e4522;">0秒</div></div>
+      </div>
+      <div class="wrong-list" id="rs-list"></div>
+      <div class="result-tools">
+        <button class="btn" type="button" data-act="result-retry">再来一轮</button>
+        <button class="btn btn-ghost" type="button" data-act="result-home">回坊门</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+'use strict';
+/* ============================================================
+ * 百题坊 —— 古诗文跨篇练习 / 错题中心
+ * 数据契约 key=gushi_v1：
+ *   {v:1,p:{xst:{lit,done,ts,exam:{attempts,wrong:[{k,q,you,right,ts}],perfect}},...}}
+ * 本页进度挂 d.btf = {answered:[qid], wrong:[{qid,k,piece,q,you,right,ts}], mastered:[qid],
+ *                        srs:{qid:{n:连对次数, st:阶段, due:下次可温时间, last:上次作答}}}
+ * ============================================================ */
+
+/* ================= 六篇原文（逐字摘自各游戏 FULLTEXT） ================= */
+/* ===== DATA-BEGIN ===== */
+const PIECES_FT = {
+  xst: [
+    [ '从小丘西行百二十步，',
+      '隔篁竹，闻水声，如鸣珮环，',
+      '心乐之。',
+      '伐竹取道，下见小潭，水尤清冽。',
+      '全石以为底，近岸，',
+      '卷石底以出，为坻，为屿，为嵁，为岩。',
+      '青树翠蔓，蒙络摇缀，参差披拂。' ],
+    [ '潭中鱼可百许头，皆若空游无所依，',
+      '日光下澈，影布石上。',
+      '佁然不动，俶尔远逝，往来翕忽，似与游者相乐。' ],
+    [ '潭西南而望，斗折蛇行，明灭可见。',
+      '其岸势犬牙差互，不可知其源。' ],
+    [ '坐潭上，四面竹树环合，寂寥无人，凄神寒骨，悄怆幽邃。',
+      '以其境过清，不可久居，乃记之而去。' ],
+    [ '同游者：吴武陵，龚古，余弟宗玄。',
+      '隶而从者，崔氏二小生，曰恕己，曰奉壹。' ]
+  ],
+  thy: [
+    [ '晋太元中，武陵人捕鱼为业。',
+      '缘溪行，忘路之远近。',
+      '忽逢桃花林，夹岸数百步，中无杂树，',
+      '芳草鲜美，落英缤纷。',
+      '渔人甚异之，复前行，欲穷其林。' ],
+    [ '林尽水源，便得一山，山有小口，仿佛若有光。',
+      '便舍船，从口入。',
+      '初极狭，才通人。',
+      '复行数十步，豁然开朗。',
+      '土地平旷，屋舍俨然，有良田、美池、桑竹之属。',
+      '阡陌交通，鸡犬相闻。',
+      '其中往来种作，男女衣着，悉如外人。黄发垂髫，并怡然自乐。' ],
+    [ '见渔人，乃大惊，问所从来。具答之。便要还家，设酒杀鸡作食。村中闻有此人，咸来问讯。自云先世避秦时乱，率妻子邑人来此绝境，不复出焉，遂与外人间隔。问今是何世，乃不知有汉，无论魏晋。此人一一为具言所闻，皆叹惋。',
+      '余人各复延至其家，皆出酒食。停数日，辞去。此中人语云：「不足为外人道也。」' ],
+    [ '既出，得其船，便扶向路，处处志之。及郡下，诣太守，说如此。太守即遣人随其往，寻向所志，遂迷，不复得路。' ],
+    [ '南阳刘子骥，高尚士也，闻之，欣然规往。未果，寻病终。后遂无问津者。' ]
+  ],
+  lsm: [
+    [ '山不在高，有仙则名。水不在深，有龙则灵。',
+      '斯是陋室，惟吾德馨。' ],
+    [ '苔痕上阶绿，草色入帘青。',
+      '谈笑有鸿儒，往来无白丁。' ],
+    [ '可以调素琴，阅金经。',
+      '无丝竹之乱耳，无案牍之劳形。' ],
+    [ '南阳诸葛庐，西蜀子云亭。',
+      '孔子云：何陋之有？' ]
+  ],
+  als: [
+    [ '水陆草木之花，可爱者甚蕃。',
+      '晋陶渊明独爱菊。',
+      '自李唐来，世人甚爱牡丹。' ],
+    [ '予独爱莲之出淤泥而不染，濯清涟而不妖，',
+      '中通外直，不蔓不枝，',
+      '香远益清，亭亭净植，',
+      '可远观而不可亵玩焉。' ],
+    [ '予谓菊，花之隐逸者也；牡丹，花之富贵者也；莲，花之君子者也。' ],
+    [ '噫！菊之爱，陶后鲜有闻。',
+      '莲之爱，同予者何人？牡丹之爱，宜乎众矣。' ]
+  ],
+  cts: [
+    [ '元丰六年十月十二日夜，解衣欲睡，月色入户，欣然起行。' ],
+    [ '念无与为乐者，遂至承天寺寻张怀民。' ],
+    [ '怀民亦未寝，相与步于中庭。' ],
+    [ '庭下如积水空明，水中藻、荇交横，盖竹柏影也。' ],
+    [ '何夜无月？何处无竹柏？但少闲人如吾两人者耳。' ]
+  ],
+  sx: [
+    [ '自三峡七百里中，两岸连山，略无阙处。' ],
+    [ '重岩叠嶂，隐天蔽日，自非亭午夜分，不见曦月。' ],
+    [ '至于夏水襄陵，沿溯阻绝。' ],
+    [ '或王命急宣，有时朝发白帝，暮到江陵，其间千二百里，虽乘奔御风，不以疾也。' ],
+    [ '春冬之时，则素湍绿潭，回清倒影。' ],
+    [ '绝巘多生怪柏，悬泉瀑布，飞漱其间，清荣峻茂，良多趣味。' ],
+    [ '每至晴初霜旦，林寒涧肃。' ],
+    [ '常有高猿长啸，属引凄异，空谷传响，哀转久绝。' ],
+    [ '故渔者歌曰：巴东三峡巫峡长，猿鸣三声泪沾裳。' ]
+  ]
+};
+
+const PIECE_META = [
+  { id:'xst', name:'小石潭记',   who:'唐 · 柳宗元' },
+  { id:'thy', name:'桃花源记',   who:'东晋 · 陶渊明' },
+  { id:'lsm', name:'陋室铭',     who:'唐 · 刘禹锡' },
+  { id:'als', name:'爱莲说',     who:'北宋 · 周敦颐' },
+  { id:'cts', name:'记承天寺夜游', who:'北宋 · 苏轼' },
+  { id:'sx',  name:'三峡',       who:'北魏 · 郦道元' }
+];
+
+/* 题型：dict 选字填空（四选一） / punct 加句读（点选） / listen 听音辨句（四选一） */
+const BANK = [
+  /* —— 小石潭记 —— */
+  { id:'xst-d1', k:'dict', piece:'xst', before:'伐竹取道，下见小潭，水尤清', after:'。',
+    answers:['冽'], hint:'冽：寒凉，两点水；勿写成「洌」（清澈）。' },
+  { id:'xst-d2', k:'dict', piece:'xst', before:'卷石底以出，为', after:'，为屿，为嵁，为岩。',
+    answers:['坻'], hint:'坻（chí）：水中高地，土字旁。' },
+  { id:'xst-d3', k:'dict', piece:'xst', before:'卷石底以出，为坻，为屿，为', after:'，为岩。',
+    answers:['嵁'], hint:'嵁（kān）：不平的岩石，山字头；与「堪、勘」区分。' },
+  { id:'xst-d4', k:'dict', piece:'xst', before:'坐潭上，四面竹树环合，寂寥无人，凄神寒骨，悄', after:'幽邃。',
+    answers:['怆'], hint:'怆：悲伤，竖心旁；「悄怆」忧伤凄凉。' },
+  { id:'xst-d5', k:'dict', piece:'xst', before:'坐潭上，四面竹树环合，寂寥无人，凄神寒骨，悄怆幽', after:'。',
+    answers:['邃'], hint:'邃：深远；「幽邃」幽深寂静。' },
+  { id:'xst-p1', k:'punct', piece:'xst',
+    plain:'隔篁竹闻水声如鸣珮环心乐之', cuts:[2,5,9,12] },
+  { id:'xst-p2', k:'punct', piece:'xst',
+    plain:'潭中鱼可百许头皆若空游无所依日光下澈影布石上', cuts:[6,13,17,21] },
+  { id:'xst-l1', k:'listen', piece:'xst', answer:'青树翠蔓，蒙络摇缀，参差披拂。' },
+  { id:'xst-l2', k:'listen', piece:'xst', answer:'潭中鱼可百许头，皆若空游无所依，' },
+  { id:'xst-l3', k:'listen', piece:'xst', answer:'凄神寒骨，悄怆幽邃。' },
+
+  /* —— 桃花源记 —— */
+  { id:'thy-d1', k:'dict', piece:'thy', before:'土地平旷，屋舍', after:'然，有良田、美池、桑竹之属。',
+    answers:['俨'], hint:'俨：整齐；「俨然」整齐的样子。' },
+  { id:'thy-d2', k:'dict', piece:'thy', before:'具答之。便', after:'还家，设酒杀鸡作食。',
+    answers:['要'], hint:'要（yāo）：通「邀」，邀请之意。' },
+  { id:'thy-d3', k:'dict', piece:'thy', before:'自云先世避秦时乱，率妻子', after:'人来此绝境',
+    answers:['邑'], hint:'邑：地方、城镇；「邑人」同乡之人。' },
+  { id:'thy-d4', k:'dict', piece:'thy', before:'南阳刘子', after:'，高尚士也',
+    answers:['骥'], hint:'骥：良马，马字旁；此处为人名（刘子骥）。' },
+  { id:'thy-d5', k:'dict', piece:'thy', before:'其中往来种作，男女衣着，悉如外人。黄发垂', after:'，并怡然自乐。',
+    answers:['髫'], hint:'髫：古代儿童下垂的头发；「垂髫」代指孩童。' },
+  { id:'thy-p1', k:'punct', piece:'thy',
+    plain:'忽逢桃花林夹岸数百步中无杂树芳草鲜美落英缤纷', cuts:[4,9,13,17,21] },
+  { id:'thy-p2', k:'punct', piece:'thy',
+    plain:'林尽水源便得一山山有小口仿佛若有光', cuts:[3,7,11,16] },
+  { id:'thy-l1', k:'listen', piece:'thy', answer:'芳草鲜美，落英缤纷。' },
+  { id:'thy-l2', k:'listen', piece:'thy', answer:'土地平旷，屋舍俨然，有良田、美池、桑竹之属。' },
+  { id:'thy-l3', k:'listen', piece:'thy', answer:'阡陌交通，鸡犬相闻。' },
+
+  /* —— 陋室铭 —— */
+  { id:'lsm-d1', k:'dict', piece:'lsm', before:'斯是陋室，惟吾德', after:'。',
+    answers:['馨'], hint:'馨：香气远播；「德馨」品德高尚。' },
+  { id:'lsm-d2', k:'dict', piece:'lsm', before:'无丝竹之乱耳，无案', after:'之劳形。',
+    answers:['牍'], hint:'牍：古代写字的木片；「案牍」官府公文。' },
+  { id:'lsm-d3', k:'dict', piece:'lsm', before:'南阳诸葛', after:'，西蜀子云亭。',
+    answers:['庐'], hint:'庐：简陋的小屋；「诸葛庐」诸葛亮的草庐。' },
+  { id:'lsm-d4', k:'dict', piece:'lsm', before:'南阳诸葛庐，西', after:'子云亭。',
+    answers:['蜀'], hint:'蜀：四川一带的别称；「西蜀」即蜀地。' },
+  { id:'lsm-p1', k:'punct', piece:'lsm',
+    plain:'山不在高有仙则名水不在深有龙则灵', cuts:[3,7,11,15] },
+  { id:'lsm-p2', k:'punct', piece:'lsm',
+    plain:'苔痕上阶绿草色入帘青谈笑有鸿儒往来无白丁', cuts:[4,9,14,19] },
+  { id:'lsm-l1', k:'listen', piece:'lsm', answer:'斯是陋室，惟吾德馨。' },
+  { id:'lsm-l2', k:'listen', piece:'lsm', answer:'谈笑有鸿儒，往来无白丁。' },
+  { id:'lsm-l3', k:'listen', piece:'lsm', answer:'无丝竹之乱耳，无案牍之劳形。' },
+
+  /* —— 爱莲说 —— */
+  { id:'als-d1', k:'dict', piece:'als', before:'予独爱莲之出', after:'泥而不染，濯清涟而不妖，',
+    answers:['淤'], hint:'淤：水底沉积的泥沙；「淤泥」污泥。' },
+  { id:'als-d2', k:'dict', piece:'als', before:'予独爱莲之出淤泥而不染，', after:'清涟而不妖，',
+    answers:['濯'], hint:'濯（zhuó）：洗涤，三点水。' },
+  { id:'als-d3', k:'dict', piece:'als', before:'予独爱莲之出淤泥而不染，濯清', after:'而不妖，',
+    answers:['涟'], hint:'涟：微波；「清涟」清清的水波。' },
+  { id:'als-d4', k:'dict', piece:'als', before:'可远观而不可', after:'玩焉。',
+    answers:['亵'], hint:'亵（xiè）：亲近而不庄重；「亵玩」轻慢玩弄。' },
+  { id:'als-p1', k:'punct', piece:'als',
+    plain:'出淤泥而不染濯清涟而不妖中通外直不蔓不枝', cuts:[5,11,15,19] },
+  { id:'als-p2', k:'punct', piece:'als',
+    plain:'水陆草木之花可爱者甚蕃晋陶渊明独爱菊', cuts:[5,10,17] },
+  { id:'als-l1', k:'listen', piece:'als', answer:'水陆草木之花，可爱者甚蕃。' },
+  { id:'als-l2', k:'listen', piece:'als', answer:'可远观而不可亵玩焉。' },
+  { id:'als-l3', k:'listen', piece:'als', answer:'莲之爱，同予者何人？' },
+
+  /* —— 记承天寺夜游 —— */
+  { id:'cts-d1', k:'dict', piece:'cts', before:'念无与为乐者，', after:'至承天寺寻张怀民。',
+    answers:['遂'], hint:'遂：于是，就。' },
+  { id:'cts-d2', k:'dict', piece:'cts', before:'怀民亦未', after:'，相与步于中庭。',
+    answers:['寝'], hint:'寝：睡觉；「未寝」还没有睡。' },
+  { id:'cts-d3', k:'dict', piece:'cts', before:'庭下如积水空明，水中藻、', after:'交横，盖竹柏影也。',
+    answers:['荇'], hint:'荇（xìng）：水生植物；「藻、荇」均为水草，草字头。' },
+  { id:'cts-d4', k:'dict', piece:'cts', before:'庭下如积水空明，水中藻、荇交横，盖竹', after:'影也。',
+    answers:['柏'], hint:'柏：柏树，木字旁；此处谓竹柏之影。' },
+  { id:'cts-p1', k:'punct', piece:'cts',
+    plain:'元丰六年十月十二日夜解衣欲睡月色入户欣然起行', cuts:[9,13,17,21] },
+  { id:'cts-p2', k:'punct', piece:'cts',
+    plain:'何夜无月何处无竹柏但少闲人如吾两人者耳', cuts:[3,8,18] },
+  { id:'cts-l1', k:'listen', piece:'cts', answer:'月色入户，欣然起行。' },
+  { id:'cts-l2', k:'listen', piece:'cts', answer:'庭下如积水空明，水中藻、荇交横，盖竹柏影也。' },
+  { id:'cts-l3', k:'listen', piece:'cts', answer:'但少闲人如吾两人者耳。' },
+
+  /* —— 三峡 —— */
+  { id:'sx-d1', k:'dict', piece:'sx', before:'自三峡七百里中，两岸连山，略无', after:'处。',
+    answers:['阙'], hint:'阙（quē）：通「缺」，缺口、空缺之意。' },
+  { id:'sx-d2', k:'dict', piece:'sx', before:'重岩叠嶂，隐天蔽日，自非亭午夜分，不见', after:'月。',
+    answers:['曦'], hint:'曦：日光，日字旁；「曦月」即日月。' },
+  { id:'sx-d3', k:'dict', piece:'sx', before:'至于夏水', after:'陵，沿溯阻绝。',
+    answers:['襄'], hint:'襄：冲上、漫上；「襄陵」水漫上山陵。' },
+  { id:'sx-d4', k:'dict', piece:'sx', before:'至于夏水襄陵，沿', after:'阻绝。',
+    answers:['溯'], hint:'溯（sù）：逆流而上，三点水；与「沿」（顺流）相对。' },
+  { id:'sx-d5', k:'dict', piece:'sx', before:'其间千二百里，虽乘奔', after:'风，不以疾也。',
+    answers:['御'], hint:'御：驾御；「御风」驾着风而行。' },
+  { id:'sx-d6', k:'dict', piece:'sx', before:'绝巘多生怪柏，悬泉瀑布，飞', after:'其间，清荣峻茂，良多趣味。',
+    answers:['漱'], hint:'漱：冲刷，三点水；「飞漱」飞流冲荡。' },
+  { id:'sx-p1', k:'punct', piece:'sx',
+    plain:'重岩叠嶂隐天蔽日自非亭午夜分不见曦月', cuts:[3,7,13,17] },
+  { id:'sx-p2', k:'punct', piece:'sx',
+    plain:'绝巘多生怪柏悬泉瀑布飞漱其间清荣峻茂良多趣味', cuts:[5,9,13,17,21] },
+  { id:'sx-l1', k:'listen', piece:'sx', answer:'巴东三峡巫峡长，猿鸣三声泪沾裳。' },
+  { id:'sx-l2', k:'listen', piece:'sx', answer:'重岩叠嶂，隐天蔽日，自非亭午夜分，不见曦月。' },
+  { id:'sx-l3', k:'listen', piece:'sx', answer:'至于夏水襄陵，沿溯阻绝。' },
+
+  /* —— 答谢中书书 —— */
+  { id:'dxx-d1', k:'dict', piece:'dxx', before:'青林翠竹，四时', after:'。',
+    answers:['俱'], hint:'俱：都，一齐；「四时俱备」四季都具备。' },
+  { id:'dxx-d2', k:'dict', piece:'dxx', before:'晓雾将', after:'，猿鸟乱鸣；',
+    answers:['歇'], hint:'歇：消散；「将歇」将要消散。' },
+  { id:'dxx-d3', k:'dict', piece:'dxx', before:'夕日欲', after:'，沉鳞竞跃。',
+    answers:['颓'], hint:'颓：坠落；「欲颓」太阳将要落山。' },
+  { id:'dxx-d4', k:'dict', piece:'dxx', before:'自康乐以来，未复有能', after:'其奇者。',
+    answers:['与'], hint:'与（yù）：参与，此处指欣赏、领略山川之奇。' },
+  { id:'dxx-d5', k:'dict', piece:'dxx', before:'两岸石壁，五色交', after:'。',
+    answers:['辉'], hint:'辉：光辉；「五色交辉」色彩交相辉映。' },
+  { id:'dxx-p1', k:'punct', piece:'dxx',
+    plain:'高峰入云清流见底两岸石壁五色交辉', cuts:[3,7,11,15] },
+  { id:'dxx-p2', k:'punct', piece:'dxx',
+    plain:'晓雾将歇猿鸟乱鸣夕日欲颓沉鳞竞跃', cuts:[3,7,11,15] },
+  { id:'dxx-l1', k:'listen', piece:'dxx', answer:'山川之美，古来共谈。' },
+  { id:'dxx-l2', k:'listen', piece:'dxx', answer:'晓雾将歇，猿鸟乱鸣；' },
+  { id:'dxx-l3', k:'listen', piece:'dxx', answer:'夕日欲颓，沉鳞竞跃。' },
+
+  /* —— 常识 · 词义 · 翻译 · 内容（客观四选一） —— */
+  { id:'xst-a1', k:'auth', piece:'xst', stem:'《小石潭记》的作者是？',
+    opts:['柳宗元','刘禹锡','韩愈','欧阳修'], right:'柳宗元',
+    why:'柳宗元，字子厚，唐代文学家，「唐宋八大家」之一。' },
+  { id:'xst-w1', k:'word', piece:'xst', stem:'「水尤清冽」中「尤」的意思是？',
+    opts:['格外、更加','尚且','责怪','优异'], right:'格外、更加',
+    why:'尤：格外、更加。全句写潭水格外清凉。' },
+  { id:'xst-w2', k:'word', piece:'xst', stem:'「潭中鱼可百许头」中「可」的意思是？',
+    opts:['大约','可以','能够','值得'], right:'大约',
+    why:'可：大约。许：表示约数，相当于「左右」。' },
+  { id:'xst-t1', k:'trans', piece:'xst', stem:'「斗折蛇行，明灭可见」的正确译文是？',
+    opts:['（溪身）像北斗星那样曲折，像蛇那样蜿蜒爬行，时隐时现。',
+          '（溪水）像北斗星一样明亮，像蛇一样游动，忽然出现。',
+          '（溪岸）像斗一样折返，像蛇一样爬行，忽明忽暗，随处可见。',
+          '（溪流）像北斗七星曲折，像长蛇爬行，明明灭灭都看得清。'],
+    right:'（溪身）像北斗星那样曲折，像蛇那样蜿蜒爬行，时隐时现。',
+    why:'「斗」「蛇」都是名词作状语：像北斗星那样、像蛇那样。' },
+  { id:'xst-c1', k:'comp', piece:'xst', stem:'「凄神寒骨，悄怆幽邃」流露了作者怎样的心境？',
+    opts:['被贬后的凄凉忧伤','游览山水的轻松愉悦','思念友人的惆怅','怀才不遇的愤慨'],
+    right:'被贬后的凄凉忧伤',
+    why:'乐景写哀，由景生情，收束于贬谪后的孤寂凄凉。' },
+
+  { id:'thy-a1', k:'auth', piece:'thy', stem:'《桃花源记》的作者是？',
+    opts:['陶渊明','刘禹锡','周敦颐','郦道元'], right:'陶渊明',
+    why:'陶渊明，名潜，字元亮，号五柳先生，东晋田园诗人。' },
+  { id:'thy-w1', k:'word', piece:'thy', stem:'「便要还家」中「要」的意思是？',
+    opts:['通「邀」，邀请','要求','重要','将要'], right:'通「邀」，邀请',
+    why:'要（yāo）通「邀」，邀请。' },
+  { id:'thy-w2', k:'word', piece:'thy', stem:'「率妻子邑人来此绝境」中「妻子」的意思是？',
+    opts:['妻子儿女','妻子','家人和仆人','妻子和父母'], right:'妻子儿女',
+    why:'古今异义：妻子＝妻子儿女；绝境＝与世隔绝之地。' },
+  { id:'thy-t1', k:'trans', piece:'thy', stem:'「问今是何世，乃不知有汉，无论魏晋」的正确译文是？',
+    opts:['问现在是什么朝代，竟然不知道有过汉朝，更不必说魏晋了。',
+          '问现在是什么世界，就不再有汉朝，也不会讨论魏晋。',
+          '询问当今是哪一年，竟不知有汉人，更不用说魏晋。',
+          '问今天是什么时代，才知道有汉朝，无论魏晋。'],
+    right:'问现在是什么朝代，竟然不知道有过汉朝，更不必说魏晋了。',
+    why:'乃：竟然；无论：不要说，更不必说（古今异义）。' },
+  { id:'thy-c1', k:'comp', piece:'thy', stem:'「此中人语云：『不足为外人道也。』」表现了桃源人怎样的心理？',
+    opts:['想守住宁静生活，不愿外界打扰','害怕渔人泄露桃花源的美景','厌恶外人，想赶走渔人','希望外人来共同耕作'],
+    right:'想守住宁静生活，不愿外界打扰',
+    why:'避乱而来，珍视安宁，也为后文「不复得路」埋下伏笔。' },
+
+  { id:'lsm-a1', k:'auth', piece:'lsm', stem:'《陋室铭》的作者刘禹锡，其字是？',
+    opts:['梦得','子厚','茂叔','子瞻'], right:'梦得',
+    why:'刘禹锡，字梦得，唐代文学家，有「诗豪」之称。' },
+  { id:'lsm-w1', k:'word', piece:'lsm', stem:'「惟吾德馨」中「馨」的意思是？',
+    opts:['香气，这里指品德高尚','温暖','温馨的房屋','名声远播'], right:'香气，这里指品德高尚',
+    why:'馨本指香气远播，此处比喻品德高尚。' },
+  { id:'lsm-w2', k:'word', piece:'lsm', stem:'「无案牍之劳形」中「劳」的意思是？',
+    opts:['使……劳累','劳动','劳累','慰劳'], right:'使……劳累',
+    why:'劳：使动用法，使……劳累；形：身体。' },
+  { id:'lsm-t1', k:'trans', piece:'lsm', stem:'「孔子云：何陋之有？」的正确译文是？',
+    opts:['孔子说：有什么简陋的呢？','孔子说：哪里会有简陋的地方？','孔子说过：什么样的陋室才算是陋？','孔子说：有哪一样是简陋的呢？'],
+    right:'孔子说：有什么简陋的呢？',
+    why:'宾语前置，「有何陋」；以反问收束，强调陋室不陋。' },
+  { id:'lsm-c1', k:'comp', piece:'lsm', stem:'文章以「山不在高」「水不在深」起笔，用意是？',
+    opts:['类比引出「陋室」，点明德馨则名','描写山水景色，烘托居住环境','说明居所位置偏僻','感叹自然之美，与陋室无关'],
+    right:'类比引出「陋室」，点明德馨则名',
+    why:'以山、水类比陋室，托物言志，引出「惟吾德馨」。' },
+
+  { id:'als-a1', k:'auth', piece:'als', stem:'《爱莲说》的作者周敦颐是哪个朝代的人？',
+    opts:['北宋','东晋','唐','北魏'], right:'北宋',
+    why:'周敦颐，字茂叔，北宋哲学家，理学开山鼻祖。' },
+  { id:'als-w1', k:'word', piece:'als', stem:'「可爱者甚蕃」中「蕃」的意思是？',
+    opts:['多','少','茂盛','普通'], right:'多',
+    why:'蕃：多。「可爱者甚蕃」即值得喜爱的非常多。' },
+  { id:'als-w2', k:'word', piece:'als', stem:'「陶后鲜有闻」中「鲜」的意思是？',
+    opts:['少','新鲜','鲜艳','鲜美'], right:'少',
+    why:'鲜（xiǎn）：少。与「鲜美」的鲜（xiān）不同。' },
+  { id:'als-t1', k:'trans', piece:'als', stem:'「予独爱莲之出淤泥而不染，濯清涟而不妖」的正确译文是？',
+    opts:['我唯独喜爱莲花从淤泥里长出却不沾染污秽，经清水洗涤却不显得妖艳。',
+          '我独自喜爱莲花生出淤泥而不被染色，在清水中洗过就不妖媚。',
+          '我只爱莲花的淤泥不染，清水不妖，与众不同。',
+          '我独爱莲花出淤泥而不受污染，浇上清涟就不妖艳。'],
+    right:'我唯独喜爱莲花从淤泥里长出却不沾染污秽，经清水洗涤却不显得妖艳。',
+    why:'濯：洗涤；妖：妖艳、美丽而不端庄。' },
+  { id:'als-c1', k:'comp', piece:'als', stem:'文中写菊、牡丹，对写莲起什么作用？',
+    opts:['正衬与反衬，突出莲的君子品格','与莲并列，说明三种花都可爱','衬托作者爱花之多','说明世人偏爱富贵'],
+    right:'正衬与反衬，突出莲的君子品格',
+    why:'菊为隐逸（正衬），牡丹为富贵（反衬），烘托莲之君子。' },
+
+  { id:'cts-a1', k:'auth', piece:'cts', stem:'《记承天寺夜游》的作者苏轼，其号是？',
+    opts:['东坡居士','五柳先生','香山居士','六一居士'], right:'东坡居士',
+    why:'苏轼，字子瞻，号东坡居士，北宋文学家，「唐宋八大家」之一。' },
+  { id:'cts-w1', k:'word', piece:'cts', stem:'「念无与为乐者」中「念」的意思是？',
+    opts:['考虑，想到','思念','念诵','怀念'], right:'考虑，想到',
+    why:'念：考虑、想到。引出下文寻张怀民。' },
+  { id:'cts-w2', k:'word', piece:'cts', stem:'「相与步于中庭」中「相与」的意思是？',
+    opts:['共同，一起','相互赠予','相继','相伴而谈'], right:'共同，一起',
+    why:'相与：共同、一起。步：散步。' },
+  { id:'cts-t1', k:'trans', piece:'cts', stem:'「庭下如积水空明，水中藻、荇交横，盖竹柏影也」的正确译文是？',
+    opts:['庭院中的月光如积水般清澈透明，水中的藻、荇交错纵横，原来是竹子和柏树的影子。',
+          '庭院下像积水一样空荡明亮，水藻和荇菜交错，大概是竹柏的倒影。',
+          '庭中积水清澈，水草纵横，盖住了竹柏的影子。',
+          '月光洒在庭下如积水，藻荇在水中交错，竹柏的影子盖在上面。'],
+    right:'庭院中的月光如积水般清澈透明，水中的藻、荇交错纵横，原来是竹子和柏树的影子。',
+    why:'以「积水空明」喻月光，「藻、荇」喻竹柏影；盖：原来是。' },
+  { id:'cts-c1', k:'comp', piece:'cts', stem:'「但少闲人如吾两人者耳」表达的情感是？',
+    opts:['贬谪的悲凉中又有自我排遣的旷达','纯粹的闲适快乐，没有愁绪','对张怀民的不满','对月色的厌倦'],
+    right:'贬谪的悲凉中又有自我排遣的旷达',
+    why:'「闲人」既是自嘲，也是自得，悲凉与旷达并存。' },
+
+  { id:'sx-a1', k:'auth', piece:'sx', stem:'《三峡》选自哪部著作？',
+    opts:['《水经注》','《山海经》','《世说新语》','《搜神记》'], right:'《水经注》',
+    why:'作者郦道元，北魏地理学家，《水经注》是我国古代地理名著。' },
+  { id:'sx-w1', k:'word', piece:'sx', stem:'「略无阙处」中「阙」的意思是？',
+    opts:['通「缺」，缺口','宫殿','缺失的城池','过错'], right:'通「缺」，缺口',
+    why:'阙（quē）通「缺」，缺口。略无：完全没有。' },
+  { id:'sx-w2', k:'word', piece:'sx', stem:'「虽乘奔御风」中「奔」的意思是？',
+    opts:['飞奔的马','奔跑','奔向','奔流的水'], right:'飞奔的马',
+    why:'奔：动词作名词，飞奔的马；御风：驾着风。' },
+  { id:'sx-t1', k:'trans', piece:'sx', stem:'「自非亭午夜分，不见曦月」的正确译文是？',
+    opts:['如果不是正午和半夜，就看不到太阳和月亮。',
+          '从不是中午和半夜，看不见日光月色。',
+          '除非在亭中夜半，才能见到日月。',
+          '自己不在正午夜半，就看不到晨曦和月亮。'],
+    right:'如果不是正午和半夜，就看不到太阳和月亮。',
+    why:'自非：如果不是；亭午：正午；夜分：半夜；曦：日光，这里指太阳。' },
+  { id:'sx-c1', k:'comp', piece:'sx', stem:'文末引用渔歌「巴东三峡巫峡长，猿鸣三声泪沾裳」的作用是？',
+    opts:['渲染三峡秋日萧瑟凄凉的气氛','说明三峡渔人生活富足','赞美三峡猿猴众多','交代三峡的地理位置'],
+    right:'渲染三峡秋日萧瑟凄凉的气氛',
+    why:'以歌谣作结，进一步烘托秋峡的凄清，情景交融。' },
+
+  { id:'dxx-a1', k:'auth', piece:'dxx', stem:'《答谢中书书》的作者陶弘景，生活在哪个时期？',
+    opts:['南朝齐梁','东晋','唐','北宋'], right:'南朝齐梁',
+    why:'陶弘景，号华阳隐居，南朝齐梁间人，隐居句曲山，人称「山中宰相」。' },
+  { id:'dxx-w1', k:'word', piece:'dxx', stem:'「青林翠竹，四时俱备」中「四时」的意思是？',
+    opts:['四季','四个时辰','清晨与傍晚','第四个季节'], right:'四季',
+    why:'时：季节；四时即春夏秋冬四季，言美景常在。' },
+  { id:'dxx-w2', k:'word', piece:'dxx', stem:'「沉鳞竞跃」中「沉鳞」指的是？',
+    opts:['潜游水中的鱼','沉底的鱼鳞','坠落的水滴','水底的水草'], right:'潜游水中的鱼',
+    why:'以鳞代鱼；沉鳞即潜藏在水中争相跳跃的鱼。' },
+  { id:'dxx-t1', k:'trans', piece:'dxx', stem:'「夕日欲颓，沉鳞竞跃」的正确译文是？',
+    opts:['夕阳快要落山了，潜游水中的鱼争相跳出水面。',
+          '太阳将要下山了，水底的鱼鳞闪闪发光。',
+          '夕阳西下，鱼儿在水中沉浮嬉戏。',
+          '傍晚太阳落山，鱼儿纷纷沉入水底。'],
+    right:'夕阳快要落山了，潜游水中的鱼争相跳出水面。',
+    why:'颓：坠落；竞：争相；跃：跳跃、跃出水面。' },
+  { id:'dxx-c1', k:'comp', piece:'dxx', stem:'「晓雾将歇，猿鸟乱鸣；夕日欲颓，沉鳞竞跃」主要表现了什么？',
+    opts:['晨昏景物变化中的蓬勃生机','山中清晨的寂静凄清','四季更替的自然规律','游人谈笑的欢愉场面'],
+    right:'晨昏景物变化中的蓬勃生机',
+    why:'朝暮两幅画面，一鸣一跃，以动写静，尽显山川之奇。' }
+];
+/* ===== DATA-END ===== */
+
+const KIND_NAME = {
+  dict:'选字填空', punct:'加句读', listen:'听音辨句',
+  auth:'文学常识', word:'词义解释', trans:'句子翻译', comp:'内容理解'
+};
+const PUNCT_CHARS = '，。！？、；：「」『』…—';
+const PUNCT_RE = /[\s，。！？、；：「」『』…—]/g;
+
+/* ================= 工具 ================= */
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+function stripPunct(s) { return String(s || '').replace(PUNCT_RE, ''); }
+function metaOf(piece) {
+  for (let i = 0; i < PIECE_META.length; i++) {
+    if (PIECE_META[i].id === piece) return PIECE_META[i];
+  }
+  return { id: piece || '', name: '古文', who: '' };
+}
+/* 稳定短 hash：同题同 id */
+function qidOf(k, piece, q) {
+  const s = (k || '') + '|' + (piece || '') + '|' + (q || '');
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) { h = (((h << 5) + h) + s.charCodeAt(i)) >>> 0; }
+  return (k ? k.charAt(0) : 'x') + h.toString(36);
+}
+function questionKey(q) {
+  if (q.k === 'dict') return q.before + '＿' + q.after;
+  if (q.k === 'punct') return q.plain;
+  if (q.k === 'listen') return '听写：' + q.answer;
+  return q.stem;
+}
+function qidOfQ(q) { return qidOf(q.k, q.piece, questionKey(q)); }
+function punctView(plain, set) {
+  let out = '';
+  for (let i = 0; i < plain.length; i++) {
+    out += plain.charAt(i);
+    if (set.indexOf(i) >= 0) out += ' / ';
+  }
+  return out;
+}
+
+/* ================= 客观题干扰项 ================= */
+/* 易混字形（正确字 → 三个干扰字） */
+const CONFUSE = {
+  '冽':'洌烈例', '坻':'抵砥邸', '嵁':'堪勘湛', '怆':'创沧伧', '邃':'隧燧随',
+  '俨':'严岩延', '要':'邀腰遥', '邑':'悒挹巴', '骥':'冀翼骏', '髫':'条笤髻',
+  '馨':'磬罄声', '牍':'犊渎读', '庐':'炉芦卢', '蜀':'属署塾',
+  '淤':'於迂瘀', '濯':'浊擢灼', '涟':'莲连怜', '亵':'泄屑谢',
+  '遂':'隧逐随', '寝':'侵浸秦', '荇':'杏幸行', '柏':'伯泊舶',
+  '阙':'缺阕撅', '曦':'熙熹牺', '襄':'镶攘壤', '溯':'朔塑素',
+  '御':'驭愈遇', '漱':'嗽簌数'
+};
+const FALLBACK_CHARS = '之其以而于乃则矣焉';
+/* 同音/近音字：听辨题把正解中的一个字换掉，做出高难度干扰项 */
+const HOMO = {
+  '青':'清轻', '树':'竖', '翠':'脆', '蔓':'慢漫', '蒙':'朦濛', '络':'落', '摇':'遥瑶', '缀':'坠',
+  '参':'餐', '差':'叉查', '披':'批', '拂':'佛弗',
+  '潭':'谭谈', '鱼':'余', '可':'克刻', '百':'白', '许':'虚', '头':'投', '皆':'街', '若':'弱',
+  '空':'孔', '游':'由油', '无':'吾', '所':'索', '依':'衣',
+  '凄':'妻栖', '神':'伸', '寒':'含', '骨':'古谷', '悄':'巧俏', '怆':'创沧', '幽':'悠忧', '邃':'隧随',
+  '芳':'方', '草':'曹', '鲜':'仙先', '美':'每', '英':'莺', '缤':'宾滨', '纷':'芬',
+  '土':'吐', '地':'弟', '平':'凭', '旷':'矿', '屋':'巫', '舍':'社设', '俨':'严岩', '然':'燃',
+  '良':'粮凉', '田':'甜填', '池':'迟持', '桑':'丧嗓', '竹':'烛', '属':'主',
+  '阡':'千迁', '陌':'莫漠', '交':'郊', '通':'同', '鸡':'机', '犬':'太', '相':'箱', '闻':'文',
+  '斯':'思', '是':'事', '陋':'漏', '室':'市', '惟':'唯', '德':'得', '馨':'心新',
+  '谈':'谭', '笑':'孝', '有':'又', '鸿':'红', '儒':'如', '往':'网', '来':'莱', '丁':'钉',
+  '丝':'思', '乱':'卵', '耳':'尔', '案':'暗', '牍':'读犊', '劳':'牢', '形':'行刑',
+  '水':'谁', '陆':'路', '木':'目', '爱':'艾', '者':'这', '甚':'肾渗', '蕃':'繁翻',
+  '远':'院', '观':'关', '亵':'泄谢', '玩':'完', '焉':'烟',
+  '莲':'连', '予':'余', '何':'河', '人':'仁',
+  '月':'悦', '色':'涩', '入':'褥', '户':'护', '欣':'新', '起':'启', '行':'形',
+  '庭':'亭', '下':'夏', '如':'儒', '积':'击', '明':'鸣', '藻':'早', '荇':'杏幸', '横':'衡',
+  '盖':'概', '柏':'伯', '影':'映', '也':'野',
+  '但':'淡', '少':'邵', '闲':'咸',
+  '巴':'芭', '东':'冬', '三':'山', '峡':'侠', '长':'常', '猿':'元', '鸣':'明', '声':'生',
+  '泪':'类', '沾':'粘', '裳':'尝',
+  '重':'虫', '岩':'严', '叠':'蝶', '嶂':'障', '隐':'引', '天':'添', '蔽':'闭', '日':'入',
+  '自':'字', '非':'飞', '午':'舞', '夜':'叶', '分':'芬', '见':'建', '曦':'熙',
+  '至':'志', '于':'余', '襄':'镶', '陵':'凌', '沿':'延', '溯':'塑', '阻':'组', '绝':'决'
+};
+/* 把整句中某一字换成同音/近音字，生成 n 个干扰句 */
+function nearVariants(line, n) {
+  const chars = Array.from(line);
+  const spots = [];
+  chars.forEach(function (c, i) { if (HOMO[c]) spots.push(i); });
+  const outs = [];
+  shuffle(spots).forEach(function (i) {
+    shuffle(HOMO[chars[i]].split('')).forEach(function (c) {
+      if (outs.length >= n) return;
+      const cp = chars.slice();
+      cp[i] = c;
+      const s = cp.join('');
+      if (s !== line && outs.indexOf(s) < 0) outs.push(s);
+    });
+  });
+  return outs.slice(0, n);
+}
+/* 同篇/跨篇原句池：供听辨题做同长度干扰 */
+const ALL_LINES = (function () {
+  const out = [];
+  Object.keys(PIECES_FT).forEach(function (pid) {
+    PIECES_FT[pid].forEach(function (par) {
+      par.forEach(function (line) {
+        if (out.indexOf(line) < 0) out.push(line);
+      });
+    });
+  });
+  return out;
+})();
+function dictOptions(q) {
+  const right = q.answers[0];
+  const pool = (CONFUSE[right] || '').split('').filter(function (c) {
+    return c && c !== right;
+  });
+  let guard = 0;
+  while (pool.length < 3 && guard++ < 80) {
+    const c = FALLBACK_CHARS.charAt((Math.random() * FALLBACK_CHARS.length) | 0);
+    if (c !== right && pool.indexOf(c) < 0) pool.push(c);
+  }
+  return shuffle([right].concat(pool.slice(0, 3)));
+}
+function listenOptions(q) {
+  const right = q.answer;
+  let pick = nearVariants(right, 3);
+  if (pick.length < 3) {
+    const want = stripPunct(right).length;
+    const pool = ALL_LINES.filter(function (s) {
+      return s !== right && pick.indexOf(s) < 0 && Math.abs(stripPunct(s).length - want) <= 4;
+    });
+    shuffle(pool).forEach(function (s) {
+      if (pick.length < 3 && s !== right && pick.indexOf(s) < 0) pick.push(s);
+    });
+  }
+  let guard = 0;
+  while (pick.length < 3 && guard++ < 80) {
+    const s = ALL_LINES[(Math.random() * ALL_LINES.length) | 0];
+    if (s && s !== right && pick.indexOf(s) < 0) pick.push(s);
+  }
+  return shuffle(pick.concat([right]));
+}
+
+/* ================= 本地进度（容错读、try/catch 写） ================= */
+const KEY = 'gushi_v1';
+function loadData() {
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(KEY)); } catch (e) { d = null; }
+  if (!d || d.v !== 1 || !d.p) d = { v: 1, p: {} };
+  if (!d.btf || typeof d.btf !== 'object') d.btf = {};
+  const b = d.btf;
+  if (!Array.isArray(b.answered)) b.answered = [];
+  if (!Array.isArray(b.wrong)) b.wrong = [];
+  if (!Array.isArray(b.mastered)) b.mastered = [];
+  if (!b.srs || typeof b.srs !== 'object') b.srs = {};
+  return d;
+}
+function saveData(d) { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) {} }
+let DATA = loadData();
+function btf() { return DATA.btf; }
+function persist() { saveData(DATA); }
+function recAnswered(id) { btf().answered.push(id); persist(); }
+function recWrong(rec) { btf().wrong.push(rec); persist(); }
+function recMastered(id) {
+  if (btf().mastered.indexOf(id) < 0) { btf().mastered.push(id); persist(); }
+}
+/* ================= 错题间隔复习（1/3/7 日回炉 · 连对两次掌握） ================= */
+const DAY = 86400000;
+const SRS_GAP = [1, 3, 7];
+function srsBook() {
+  if (!btf().srs || typeof btf().srs !== 'object') btf().srs = {};
+  return btf().srs;
+}
+function srsRecord(id) {
+  const b = srsBook();
+  return b[id] || null;
+}
+/* 答错：从头计，一日后再温 */
+function srsMiss(id) {
+  const b = srsBook();
+  b[id] = { n: 0, st: 0, due: Date.now() + SRS_GAP[0] * DAY, last: Date.now() };
+  persist();
+}
+/* 答对：连对两次即掌握，否则顺延到下一个间隔 */
+function srsHit(id) {
+  const b = srsBook();
+  const o = b[id] || { n: 0, st: 0 };
+  const n = (o.n || 0) + 1;
+  if (n >= 2) {
+    b[id] = { n: n, st: 2, due: 0, last: Date.now(), done: true };
+    persist();
+    recMastered(id);
+    return 'done';
+  }
+  const st = Math.min((o.st || 0) + 1, SRS_GAP.length - 1);
+  b[id] = { n: n, st: st, due: Date.now() + SRS_GAP[st] * DAY, last: Date.now() };
+  persist();
+  return 'again';
+}
+function srsDue(id) {
+  const o = srsRecord(id);
+  if (!o) return true;              /* 旧数据未入簿：视为今日可温 */
+  return (o.due || 0) <= Date.now();
+}
+function srsWaitText(id) {
+  const o = srsRecord(id);
+  if (!o || !o.due) return '今日可温';
+  const d = o.due - Date.now();
+  if (d <= 0) return '今日可温';
+  const day = Math.ceil(d / DAY);
+  return day <= 1 ? '明日可温' : day + ' 日后可温';
+}
+function pendingWrongItems() {
+  const map = collectWrongMap();
+  const mastered = btf().mastered;
+  return Object.keys(map)
+    .filter(function (id) { return mastered.indexOf(id) < 0; })
+    .map(function (id) { return map[id]; })
+    .sort(function (a, b) { return (a.ts || 0) - (b.ts || 0); });
+}
+function trk(ev, v) {
+  try {
+    const t = localStorage.getItem('gushi_token');
+    if (!t) return;
+    fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: t, ev: ev, k: '', v: v || 0, t: Date.now(),
+        blob: (function () { try { return JSON.parse(localStorage.getItem(KEY)); } catch (e) { return null; } })() }) });
+  } catch (e) {}
+}
+
+/* ================= 朗读（与各游戏同实现） ================= */
+/* 朗读正音（教材注音，TTS 易错字→同音字；词组键先于单字应用） */
+const SAY_FIX={'屋舍':'屋社','卷石底':'全石底','差互':'疵互','语云':'玉云','为外人':'谓外人','为具':'谓具','便要':'便邀','鲜有闻':'显有闻','斗折':'陡折','篁':'皇','冽':'列','坻':'池','嵁':'堪','佁':'以','俶':'怵','翕':'息','悄':'巧','怆':'创','髫':'条','诣':'易','骥':'寄','蕃':'繁','濯':'浊','亵':'屑','予':'余','荇':'幸','阙':'缺','溯':'素','巘':'演','属':'主','裳':'常','曦':'西','朝':'招','牍':'渎','调素琴':'条素琴','明灭可见':'明灭可建','下见':'下建','心乐':'心勒','相乐':'相勒','翠蔓':'翠腕','珮':'佩','为':'唯','种作':'众作','重岩':'虫岩'};
+/* 真人感朗读引擎 v2：优选神经网络声线 · 古文句读停顿 · 标点语调 · 抗 cancel 吞音 */
+const SAY_ENGINE=(function(){
+  let bestVoice=null;
+  function pickVoice(){
+    try{
+      const vs=window.speechSynthesis.getVoices()||[];
+      let best=null,bs=-99;
+      for(const v of vs){
+        if(!/zh|Chinese|cmn/i.test(v.lang+v.name))continue;
+        const t=v.name||''; let s=0;
+        if(/online|natural|neural|google/i.test(t))s+=12;
+        if(/云希|云健|云扬|晓晓|晓伊|晓秋|Yunxi|Yunjian|Yunyang|Xiaoxiao|Xiaoyi|Xiaoyou/i.test(t))s+=8;
+        if(/zh-CN|zh_CN|cmn-Hans/i.test(v.lang))s+=2;
+        if(/Huihui|Kangkang|Zhiyu|Yaoyao|Desktop/i.test(t))s-=6;
+        if(s>bs){bs=s;best=v;}
+      }
+      if(best)bestVoice=best;
+    }catch(e){}
+  }
+  try{ pickVoice(); window.speechSynthesis.addEventListener('voiceschanged',pickVoice); }catch(e){}
+  let seq=0, kick=null;
+  function clearKick(){ if(kick){ clearTimeout(kick); kick=null; } }
+  function run(ss,my,items){
+    let i=0;
+    function go(){
+      if(my!==seq||i>=items.length)return;
+      const it=items[i++];
+      const u=new SpeechSynthesisUtterance(it.t);
+      u.lang='zh-CN'; u.rate=it.rate; u.pitch=it.pitch; u.volume=1;
+      if(bestVoice)u.voice=bestVoice;
+      let done=false, started=false, timer=null;
+      function guard(){
+        if(done||my!==seq)return;
+        done=true; clearTimeout(timer);
+        if(!started){
+          try{ ss.cancel(); }catch(e){}
+          kick=setTimeout(go,300);
+        }else{
+          kick=setTimeout(go,it.pause);
+        }
+      }
+      timer=setTimeout(guard,4000);
+      u.onstart=function(){ started=true; clearTimeout(timer); timer=setTimeout(guard,Math.max(12000,it.t.length*620)); };
+      u.onend=function(){ if(done)return; done=true; clearTimeout(timer); kick=setTimeout(go,it.pause); };
+      u.onerror=function(){ if(done)return; done=true; clearTimeout(timer); kick=setTimeout(go,260); };
+      try{ ss.resume(); }catch(e){}
+      ss.speak(u);
+    }
+    kick=setTimeout(go,120);
+  }
+  function say(text){
+    try{
+      if(!('speechSynthesis' in window))return;
+      const ss=window.speechSynthesis, my=++seq;
+      clearKick();
+      ss.cancel();
+      let s=String(text).replace(/\s+/g,'');
+      if(!s)return;
+      for(const k in SAY_FIX)s=s.split(k).join(SAY_FIX[k]);
+      if(!bestVoice)pickVoice();
+      const parts=s.match(/[^。！？；，、：,.!?;:]+[。！？；，、：,.!?;:]?/g)||[s];
+      /* 逗号短句并入整句，朗读更连贯 */
+      const groups=[]; let buf='';
+      for(const p1 of parts){
+        const p2=p1.trim(); if(!p2)continue;
+        buf+=p2;
+        if(/[。！？；!?;]$/.test(p2)){ groups.push(buf); buf=''; }
+      }
+      if(buf)groups.push(buf);
+      const items=[];
+      for(const p0 of groups){
+        const p=p0.trim(); if(!p)continue;
+        const end=p.slice(-1), core=p.replace(/[。！？；，、：,.!?;:]+$/,'');
+        let rate=1.02, pitch=1;
+        if(/[？?]/.test(end)){ pitch=1.1; rate=1.0; }
+        else if(/[！!]/.test(end)){ pitch=.94; rate=.98; }
+        else if(/[。；;]/.test(end)){ pitch=.985; rate=.98; }
+        if(/[也矣焉耳哉]$/.test(core))rate-=.03;
+        const pause=/[。！？；;!?]/.test(end)?140:(/[，、：,:]/.test(end)?60:40);
+        items.push({t:p,rate:rate,pitch:pitch,pause:pause});
+        if(items.length>=80)break;
+      }
+      run(ss,my,items);
+    }catch(e){}
+  }
+  function stop(){ seq++; clearKick(); try{ if('speechSynthesis' in window)window.speechSynthesis.cancel(); }catch(e){} }
+  return {say:say,stop:stop};
+})();
+function SAY(t){ SAY_ENGINE.say(t); }
+function SAYSTOP(){ SAY_ENGINE.stop(); }
+window.addEventListener('pagehide', function () { SAYSTOP(); });
+
+/* ================= 音效（五声音阶：成功角+徵，失败低商） ================= */
+let AC = null;
+function tone(freq, dur, type, vol, when) {
+  try {
+    if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+    const t = AC.currentTime + (when || 0);
+    const o = AC.createOscillator(), gn = AC.createGain();
+    o.type = type || 'sine'; o.frequency.value = freq;
+    gn.gain.setValueAtTime(vol || .08, t);
+    gn.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(gn); gn.connect(AC.destination);
+    o.start(t); o.stop(t + dur);
+  } catch (e) {}
+}
+const chime = function () { tone(659.25, .22, 'triangle', .09); tone(783.99, .4, 'triangle', .07, .09); };
+const lowTone = function () { tone(293.66, .26, 'sine', .09); };
+
+/* ================= 视图切换 ================= */
+const VIEWS = ['gate', 'pick', 'quiz', 'review', 'result'];
+function showView(name) {
+  for (let i = 0; i < VIEWS.length; i++) {
+    const node = document.getElementById('view-' + VIEWS[i]);
+    if (node) node.classList.toggle('show', VIEWS[i] === name);
+  }
+  window.scrollTo(0, 0);
+}
+
+/* ================= 概览统计 ================= */
+function collectWrongMap() {
+  /* 聚合游戏内错题（d.p[*].exam.wrong）与本坊错题；按 qid 去重留最新 */
+  const map = {};
+  const p = DATA.p || {};
+  PIECE_META.forEach(function (m) {
+    const o = p[m.id];
+    if (!o || !o.exam || !Array.isArray(o.exam.wrong)) return;
+    o.exam.wrong.forEach(function (r) {
+      if (!r) return;
+      const id = qidOf(r.k, m.id, r.q);
+      if (!map[id] || (r.ts || 0) > (map[id].ts || 0)) {
+        map[id] = {
+          kind: 'game', qid: id, k: r.k || '', piece: m.id,
+          q: r.q || '', you: r.you == null ? '' : String(r.you),
+          right: r.right || '', ts: r.ts || 0
+        };
+      }
+    });
+  });
+  btf().wrong.forEach(function (r) {
+    if (!r || !r.qid) return;
+    if (!map[r.qid] || (r.ts || 0) > (map[r.qid].ts || 0)) {
+      map[r.qid] = {
+        kind: 'btf', qid: r.qid, k: r.k || '', piece: r.piece || '',
+        q: r.q || '', you: r.you == null ? '' : String(r.you),
+        right: r.right || '', ts: r.ts || 0
+      };
+    }
+  });
+  return map;
+}
+function pendingWrongIds() {
+  const map = collectWrongMap();
+  const mastered = btf().mastered;
+  return Object.keys(map).filter(function (id) { return mastered.indexOf(id) < 0; });
+}
+function renderStats() {
+  const b = btf();
+  const doneSet = {};
+  b.answered.forEach(function (id) { doneSet[id] = 1; });
+  const doneN = Object.keys(doneSet).length;
+  document.getElementById('stat-done').textContent = doneN;
+  document.getElementById('stat-wrong').textContent = pendingWrongIds().length;
+  /* 错题二刷卡：今日可温 / 未到期 */
+  const desc = document.getElementById('review-desc');
+  if (desc) {
+    const pend = pendingWrongItems();
+    const dueN = pend.filter(function (it) { return srsDue(it.qid); }).length;
+    const waitN = pend.length - dueN;
+    desc.innerHTML = '今日可温 <b>' + dueN + '</b> 题<br>未到期 <b>' + waitN + '</b> 题<br>隔 1/3/7 日回炉 · 连对两次掌握';
+  }
+}
+
+/* ================= 坊门 ================= */
+function renderGate(note) {
+  renderStats();
+  const n = document.getElementById('gate-note');
+  n.classList.toggle('show', !!note);
+  showView('gate');
+}
+
+/* ================= 选篇 ================= */
+function renderPick() {
+  const grid = document.getElementById('piece-grid');
+  grid.textContent = '';
+  const answeredSet = {};
+  btf().answered.forEach(function (id) { answeredSet[id] = 1; });
+  PIECE_META.forEach(function (m) {
+    const qs = BANK.filter(function (q) { return q.piece === m.id; });
+    let done = 0;
+    qs.forEach(function (q) { if (answeredSet[qidOfQ(q)]) done++; });
+    const card = el('div', 'piece-card');
+    card.dataset.act = 'pick-piece';
+    card.dataset.piece = m.id;
+    const nm = el('div', 'p-name', m.name);
+    const who = el('div', 'p-who', m.who);
+    const prog = el('div', 'p-prog');
+    prog.appendChild(el('span', null, '本题库 ' + qs.length + ' 题'));
+    const num = el('b', done >= qs.length ? 'gold' : null, '已习 ' + done + ' 题');
+    prog.appendChild(num);
+    card.appendChild(nm); card.appendChild(who); card.appendChild(prog);
+    if (DATA.p && DATA.p[m.id] && DATA.p[m.id].done) card.appendChild(el('div', 'p-done-seal', '学成'));
+    grid.appendChild(card);
+  });
+  showView('pick');
+}
+
+/* ================= 做题状态机 ================= */
+const BANK_BY_ID = {};
+BANK.forEach(function (q) { BANK_BY_ID[qidOfQ(q)] = q; });
+
+let ROUND = null;       /* 当前轮次 */
+let REVIEW = null;      /* 错题二刷队列 */
+let advanceTimer = null;
+function clearAdvance() { if (advanceTimer !== null) { clearTimeout(advanceTimer); advanceTimer = null; } }
+function scheduleAdvance(ms) { clearAdvance(); advanceTimer = setTimeout(function () { advanceTimer = null; goNext(); }, ms); }
+
+function startRound(mode, piece) {
+  let list;
+  if (mode === 'piece') {
+    list = shuffle(BANK.filter(function (q) { return q.piece === piece; }));
+  } else {
+    list = shuffle(BANK).slice(0, 10);
+  }
+  ROUND = {
+    mode: mode, piece: piece || '', list: list, idx: 0,
+    right: 0, wrong: 0, startTs: Date.now(), wrongs: [], locked: false
+  };
+  REVIEW = null;
+  renderQuestion();
+}
+
+function goNext() {
+  clearAdvance();
+  if (REVIEW) { reviewNext(); return; }
+  if (!ROUND) return;
+  ROUND.idx++;
+  if (ROUND.idx >= ROUND.list.length) { endRound(); return; }
+  renderQuestion();
+}
+
+function currentPieceName() {
+  if (REVIEW) return metaOf(REVIEW.queue[REVIEW.idx] ? REVIEW.queue[REVIEW.idx].piece : '').name;
+  if (ROUND.mode === 'piece') return metaOf(ROUND.piece).name;
+  return '百题混练';
+}
+
+function renderQuestion() {
+  const q = ROUND.list[ROUND.idx];
+  SAYSTOP();
+  document.getElementById('quiz-piece').textContent = currentPieceName();
+  document.getElementById('quiz-kind').textContent = KIND_NAME[q.k];
+  document.getElementById('quiz-prog').textContent = '第 ' + (ROUND.idx + 1) + ' / ' + ROUND.list.length + ' 题';
+  const kind = document.getElementById('q-kind');
+  kind.textContent = KIND_NAME[q.k];
+  const face = document.getElementById('q-face');
+  const ans = document.getElementById('q-answer');
+  const hint = document.getElementById('q-hint');
+  face.textContent = ''; ans.textContent = ''; hint.textContent = ''; hint.classList.remove('show');
+  document.getElementById('q-feedback').textContent = '';
+  const paper = document.getElementById('q-paper');
+  paper.classList.remove('good', 'bad');
+  ROUND.locked = false;
+  showView('quiz');
+  if (q.k === 'dict') mountDict(q, face, ans, hint);
+  else if (q.k === 'punct') mountPunct(q, face, ans);
+  else if (q.k === 'listen') mountListen(q, face, ans);
+  else mountOpts(q, face, ans, hint, function () { return ROUND.locked; }, function (ok, v) {
+    ROUND.locked = true;
+    handleJudge(ok, v, q, null);
+  });
+}
+
+/* —— 判定与反馈（做题屏；错题二刷另走 reviewJudge） —— */
+function handleJudge(ok, youText, q) {
+  const paper = document.getElementById('q-paper');
+  const fb = document.getElementById('q-feedback');
+  fb.textContent = '';
+  const id = qidOfQ(q);
+  recAnswered(id);
+  if (ok) {
+    chime();
+    trk('btf-answered', 1);
+    srsHit(id);
+    paper.classList.remove('good'); void paper.offsetWidth; paper.classList.add('good');
+    fb.appendChild(el('div', 'fb-ok', '中！墨韵生辉'));
+    ROUND.right++;
+    scheduleAdvance(1100);
+    return;
+  }
+  /* 错题写本坊错题本 */
+  const rightText = rightAnswerText(q);
+  recWrong({ qid: id, k: q.k, piece: q.piece, q: questionKey(q), you: youText, right: rightText, ts: Date.now() });
+  srsMiss(id);
+  trk('btf-answered', 0);
+  ROUND.wrong++;
+  ROUND.wrongs.push({ q: q, you: youText });
+  lowTone();
+  paper.classList.remove('bad'); void paper.offsetWidth; paper.classList.add('bad');
+  fb.appendChild(el('div', 'fb-bad', '未中——'));
+  const r = el('div', 'fb-right');
+  r.appendChild(document.createTextNode('正解：'));
+  r.appendChild(el('b', null, rightText));
+  fb.appendChild(r);
+  scheduleAdvance(2500);
+}
+function rightAnswerText(q) {
+  if (q.k === 'dict') return q.answers[0];
+  if (q.k === 'punct') return punctView(q.plain, q.cuts);
+  if (q.k === 'listen') return q.answer;
+  return q.right;
+}
+
+/* —— 题型 A：选字填空（四选一，做题屏） —— */
+function mountDict(q, face, ans, hint) {
+  face.appendChild(document.createTextNode(q.before));
+  face.appendChild(el('span', 'blank'));
+  face.appendChild(document.createTextNode(q.after));
+  face.appendChild(el('div', 'pick-tip', '选出原文所缺之字'));
+  hint.textContent = '提示：' + q.hint;
+  const hintBtn = el('button', 'btn btn-ghost', '提示');
+  hintBtn.type = 'button';
+  hintBtn.addEventListener('click', function () { hint.classList.toggle('show'); });
+  const wrap = el('div', 'choice-wrap');
+  const right = q.answers[0];
+  dictOptions(q).forEach(function (c) {
+    const b = el('button', 'choice-btn', c);
+    b.type = 'button';
+    b.addEventListener('click', function () {
+      if (ROUND.locked) return;
+      ROUND.locked = true;
+      const ok = c === right;
+      Array.prototype.forEach.call(wrap.children, function (node) {
+        node.disabled = true;
+        if (node.textContent === right) node.classList.add('gold');
+      });
+      if (!ok) b.classList.remove('gold'), b.classList.add('wrong');
+      handleJudge(ok, c, q, null);
+    });
+    wrap.appendChild(b);
+  });
+  face.appendChild(wrap);
+  ans.appendChild(hintBtn);
+}
+
+/* —— 题型 B：加句读（做题屏） —— */
+function mountPunct(q, face, ans) {
+  const wrap = el('div', 'punct-wrap');
+  const chosen = {};
+  const cuts = [];
+  for (let i = 0; i < q.plain.length; i++) {
+    const cell = el('div', 'pcell', q.plain.charAt(i));
+    wrap.appendChild(cell);
+    const cut = el('button', 'pcut');
+    cut.type = 'button'; cut.dataset.i = String(i);
+    cut.setAttribute('aria-label', '第' + (i + 1) + '字后断句');
+    const bar = el('span', 'bar');
+    cut.appendChild(bar);
+    cut.addEventListener('click', function () {
+      if (ROUND.locked) return;
+      if (chosen[i]) { delete chosen[i]; cut.classList.remove('on'); }
+      else { chosen[i] = 1; cut.classList.add('on'); }
+    });
+    cuts.push(cut);
+    wrap.appendChild(cut);
+  }
+  face.appendChild(wrap);
+  const tip = el('div', 'punct-tip', '点竖线断句，再行提交（含句末）');
+  face.appendChild(tip);
+  const subBtn = el('button', 'btn', '提交句读');
+  subBtn.type = 'button';
+  subBtn.addEventListener('click', function () {
+    if (ROUND.locked) return;
+    const userSet = Object.keys(chosen).map(Number).sort(function (a, b) { return a - b; });
+    const target = q.cuts.slice().sort(function (a, b) { return a - b; });
+    const same = userSet.length === target.length && userSet.every(function (v, i) { return v === target[i]; });
+    ROUND.locked = true;
+    subBtn.disabled = true;
+    if (!same) {
+      /* 正确断点标金、多断标红虚、漏断闪烁一次 */
+      cuts.forEach(function (c) {
+        const i = Number(c.dataset.i);
+        const isUser = chosen[i] === 1, isTarget = target.indexOf(i) >= 0;
+        if (isTarget && !isUser) c.classList.add('gold', 'miss');
+        else if (isTarget && isUser) { c.classList.remove('on'); c.classList.add('gold'); }
+        else if (!isTarget && isUser) { c.classList.remove('on'); c.classList.add('extra'); }
+      });
+    }
+    handleJudge(same, punctView(q.plain, userSet), q, null);
+  });
+  ans.appendChild(subBtn);
+}
+
+/* —— 题型 C：听音辨句（四选一，做题屏） —— */
+function mountListen(q, face, ans) {
+  const n = stripPunct(q.answer).length;
+  const title = el('div', null, '听音辨句 · ' + n + ' 字');
+  title.style.fontSize = '1.35rem';
+  face.appendChild(title);
+  const btn = el('button', 'speak-btn', '🔊');
+  btn.type = 'button';
+  let plays = 0;
+  function play() {
+    if (plays >= 3) return;
+    plays++;
+    SAY(q.answer);
+    if (plays >= 3) { btn.disabled = true; btn.title = '已听三次'; }
+  }
+  btn.addEventListener('click', play);
+  face.appendChild(btn);
+  face.appendChild(el('div', 'listen-tip', '可重听三遍，辨出所读之句（留意同音字）'));
+  const col = el('div', 'choice-col');
+  listenOptions(q).forEach(function (s) {
+    const b = el('button', 'choice-btn', s);
+    b.type = 'button';
+    b.addEventListener('click', function () {
+      if (ROUND.locked) return;
+      ROUND.locked = true;
+      SAYSTOP();
+      const ok = s === q.answer;
+      Array.prototype.forEach.call(col.children, function (node) {
+        node.disabled = true;
+        if (node.textContent === q.answer) node.classList.add('gold');
+      });
+      if (!ok) b.classList.remove('gold'), b.classList.add('wrong');
+      handleJudge(ok, s, q, null);
+    });
+    col.appendChild(b);
+  });
+  face.appendChild(col);
+  setTimeout(play, 250);   /* 自动播第一遍（由进入模式的点击手势激活） */
+}
+
+/* —— 题型 D：文学常识 / 词义解释 / 句子翻译 / 内容理解（四选一，做题屏） —— */
+function mountOpts(q, face, ans, hint, isLocked, onPick) {
+  const stem = el('div', 'q-stem');
+  stem.appendChild(el('span', 'stem-no', '问'));
+  stem.appendChild(document.createTextNode(q.stem));
+  face.appendChild(stem);
+  face.appendChild(el('div', 'q-meta', '四选其一'));
+  hint.textContent = '解析：' + q.why;
+  const hintBtn = el('button', 'btn btn-ghost', '看解析');
+  hintBtn.type = 'button';
+  hintBtn.addEventListener('click', function () { hint.classList.toggle('show'); });
+  const col = el('div', 'choice-col');
+  const right = q.right;
+  q.opts.forEach(function (s) {
+    const b = el('button', 'choice-btn', s);
+    b.type = 'button';
+    b.addEventListener('click', function () {
+      if (isLocked()) return;
+      const ok = s === right;
+      Array.prototype.forEach.call(col.children, function (node) {
+        node.disabled = true;
+        if (node.textContent === right) node.classList.add('gold');
+      });
+      if (!ok) b.classList.remove('gold'), b.classList.add('wrong');
+      hint.classList.add('show');   /* 判后自动展开解析，便于就地讲评 */
+      onPick(ok, s);
+    });
+    col.appendChild(b);
+  });
+  face.appendChild(col);
+  ans.appendChild(hintBtn);
+}
+
+/* ================= 结算 ================= */
+function endRound() {
+  SAYSTOP();
+  const used = Math.max(1, Math.round((Date.now() - ROUND.startTs) / 1000));
+  document.getElementById('rs-right').textContent = ROUND.right;
+  document.getElementById('rs-wrong').textContent = ROUND.wrong;
+  document.getElementById('rs-time').textContent = used >= 60 ? Math.floor(used / 60) + '分' + (used % 60) + '秒' : used + '秒';
+  document.getElementById('result-title').textContent = ROUND.mode === 'piece' ? '本卷结算' : '本轮结算';
+  const list = document.getElementById('rs-list');
+  list.textContent = '';
+  if (ROUND.wrongs.length) {
+    list.appendChild(el('div', 'wl-title', '错题清单（已录错题本，可往二刷）'));
+    ROUND.wrongs.forEach(function (w) {
+      const item = el('div', 'wl-item');
+      const tag = el('div', 'wl-piece', metaOf(w.q.piece).name + ' · ' + KIND_NAME[w.q.k]);
+      const qLine = el('div', 'wl-q');
+      qLine.appendChild(el('span', null, '题面：'));
+      qLine.appendChild(document.createTextNode(displayQuestion(w.q)));
+      const yLine = el('div', 'wl-you');
+      yLine.appendChild(el('span', null, '你的答案：'));
+      yLine.appendChild(document.createTextNode(w.you || '（空）'));
+      const rLine = el('div', 'wl-rt');
+      rLine.appendChild(el('span', null, '正确答案：'));
+      rLine.appendChild(document.createTextNode(rightAnswerText(w.q)));
+      item.appendChild(tag); item.appendChild(qLine); item.appendChild(yLine); item.appendChild(rLine);
+      list.appendChild(item);
+    });
+  }
+  renderStats();
+  if (ROUND.mode === 'piece') {
+    const nm = checkPieceDone(ROUND.piece);
+    if (nm) list.appendChild(el('div', 'rs-done', '《' + nm + '》百题通过——本篇学成！'));
+  }
+  showView('result');
+}
+function displayQuestion(q) {
+  if (q.k === 'dict') return q.before + '＿' + q.after;
+  if (q.k === 'punct') return q.plain;
+  if (q.k === 'listen') return '听音辨句 · ' + stripPunct(q.answer).length + ' 字';
+  return q.stem;
+}
+
+/* ================= 本篇学成判定（卷尾答题通道） ================= */
+function pieceQuizState(pid) {
+  const qs = BANK.filter(function (q) { return q.piece === pid; });
+  if (!qs.length) return { total: 0, ok: 0, all: false };
+  const ans = {}, bad = {}, mas = {};
+  btf().answered.forEach(function (id) { ans[id] = 1; });
+  btf().wrong.forEach(function (w) { bad[w.qid] = 1; });
+  btf().mastered.forEach(function (id) { mas[id] = 1; });
+  let ok = 0;
+  qs.forEach(function (q) { const id = qidOfQ(q); if (ans[id] && (!bad[id] || mas[id])) ok++; });
+  return { total: qs.length, ok: ok, all: ok === qs.length };
+}
+function checkPieceDone(pid) {
+  const st = pieceQuizState(pid);
+  if (!st.all) return null;
+  DATA.p = DATA.p || {};
+  const p = DATA.p[pid] = DATA.p[pid] || {};
+  if (!p.done) { p.done = true; p.ts = Date.now(); persist(); return metaOf(pid).name; }
+  return null;
+}
+
+/* ================= 错题二刷（间隔复习） ================= */
+function buildReviewQueue(early) {
+  const all = pendingWrongItems();
+  if (early) return all;
+  return all.filter(function (it) { return srsDue(it.qid); });
+}
+function enterReview(early) {
+  const q0 = buildReviewQueue(early);
+  if (!q0.length && !pendingWrongItems().length) { renderGate(true); return; }
+  REVIEW = { queue: q0, idx: 0, locked: false, early: !!early };
+  ROUND = null;
+  renderReview();
+}
+function renderReview() {
+  const body = document.getElementById('review-body');
+  body.textContent = '';
+  const total = REVIEW.queue.length;
+  if (!total || REVIEW.idx >= total) {
+    renderStats();
+    const left = pendingWrongItems();
+    const card = el('div', 'fix-card');
+    if (left.length) {
+      const e = el('div', 'empty-state');
+      e.appendChild(el('div', 'es-seal', '待'));
+      e.appendChild(el('div', null, '今日到期错题已清'));
+      e.appendChild(el('div', null, '尚有 ' + left.length + ' 题未到温习之日'));
+      card.appendChild(e);
+      const tip = el('div', 'srs-tip');
+      tip.textContent = left.slice(0, 6).map(function (it) {
+        return metaOf(it.piece).name + ' · ' + srsWaitText(it.qid);
+      }).join('　');
+      card.appendChild(tip);
+    } else {
+      card.appendChild(emptyStateDom());
+    }
+    const tools = el('div', 'fix-tools');
+    if (left.length) {
+      const early = el('button', 'btn', '提前温习 ' + left.length + ' 题');
+      early.type = 'button'; early.dataset.act = 'review-early';
+      tools.appendChild(early);
+    }
+    const home = el('button', 'btn btn-ghost', '回坊门');
+    home.type = 'button'; home.dataset.act = 'review-home';
+    tools.appendChild(home);
+    card.appendChild(tools);
+    body.appendChild(card);
+    document.getElementById('review-prog').textContent = left.length ? '待温' : '错题已清';
+    showView('review');
+    return;
+  }
+  const item = REVIEW.queue[REVIEW.idx];
+  document.getElementById('review-prog').textContent = '第 ' + (REVIEW.idx + 1) + ' / ' + total + ' 题';
+  if (item.kind === 'game') {
+    body.appendChild(buildGameFixCard(item));
+  } else {
+    body.appendChild(buildBtfFixCard(item));
+  }
+  showView('review');
+}
+function emptyStateDom() {
+  const e = el('div', 'empty-state');
+  const seal = el('div', 'es-seal', '清');
+  const line = el('div', null, '案头错题已清');
+  const line2 = el('div', null, '且去书卷中历练');
+  e.appendChild(seal); e.appendChild(line); e.appendChild(line2);
+  return e;
+}
+/* 游戏内错题：订正卡（无可作答控件） */
+function buildGameFixCard(item) {
+  const card = el('div', 'fix-card');
+  const tag = el('span', 'fix-tag', metaOf(item.piece).name + ' · 卷中错题');
+  const qd = el('div', 'fix-q'); qd.textContent = item.q;
+  const you = el('div', 'fix-you');
+  you.textContent = '你曾答：' + (item.you || '（空）') + '（错）';
+  const right = el('div', 'fix-right');
+  right.textContent = '正解：' + item.right;
+  const tools = el('div', 'fix-tools');
+  const reveal = el('button', 'btn', '翻看正解');
+  reveal.type = 'button';
+  const known = el('button', 'btn', '记住了，验过');
+  known.type = 'button'; known.style.display = 'none';
+  const again = el('button', 'btn btn-red', '仍未记牢');
+  again.type = 'button'; again.style.display = 'none';
+  reveal.addEventListener('click', function () {
+    right.classList.add('show');
+    reveal.style.display = 'none';
+    known.style.display = '';
+    again.style.display = '';
+  });
+  known.addEventListener('click', function () {
+    srsHit(item.qid);
+    chime();
+    reviewNext();
+  });
+  again.addEventListener('click', function () {
+    lowTone();
+    reviewSink();
+  });
+  tools.appendChild(reveal); tools.appendChild(known); tools.appendChild(again);
+  card.appendChild(tag); card.appendChild(qd); card.appendChild(you); card.appendChild(right); card.appendChild(tools);
+  return card;
+}
+/* 本坊错题：按原题型重新作答 */
+function buildBtfFixCard(item) {
+  const q = BANK_BY_ID[item.qid];
+  if (!q) return buildGameFixCard(item);   /* 旧记录或题库已改：退化为订正卡 */
+  const card = el('div', 'fix-card');
+  const tag = el('span', 'fix-tag', metaOf(item.piece).name + ' · ' + KIND_NAME[item.k] + ' · 再答');
+  card.appendChild(tag);
+  const face = el('div', 'q-face');
+  face.style.textAlign = 'center';
+  const hint = el('div', 'q-hint-line');
+  const ans = el('div', 'q-answer');
+  const fb = el('div', 'feedback');
+  card.appendChild(face); card.appendChild(hint); card.appendChild(ans); card.appendChild(fb);
+  /* 复用做题屏判定：借一个轻量 ROUND 影子不合适，故在 review 上下文中直接挂载 */
+  const ctx = { review: true, locked: false, fb: fb, card: card, item: item };
+  if (q.k === 'dict') mountReviewWidget(q, card, face, ans, hint, fb, item, ctx, 'dict');
+  else if (q.k === 'punct') mountReviewWidget(q, card, face, ans, hint, fb, item, ctx, 'punct');
+  else if (q.k === 'listen') mountReviewWidget(q, card, face, ans, hint, fb, item, ctx, 'listen');
+  else mountReviewWidget(q, card, face, ans, hint, fb, item, ctx, 'opts');
+  return card;
+}
+function mountReviewWidget(q, card, face, ans, hint, fb, item, ctx, kind) {
+  /* 二刷卡使用卡内节点与独立判定 reviewJudge（不触碰做题屏固定 id 节点） */
+  if (kind === 'dict') {
+    face.appendChild(document.createTextNode(q.before));
+    face.appendChild(el('span', 'blank'));
+    face.appendChild(document.createTextNode(q.after));
+    face.appendChild(el('div', 'pick-tip', '选出原文所缺之字'));
+    hint.textContent = '提示：' + q.hint;
+    const hintBtn = el('button', 'btn btn-ghost', '提示');
+    hintBtn.type = 'button';
+    hintBtn.addEventListener('click', function () { hint.classList.toggle('show'); });
+    const wrap = el('div', 'choice-wrap');
+    const right = q.answers[0];
+    dictOptions(q).forEach(function (c) {
+      const b = el('button', 'choice-btn', c);
+      b.type = 'button';
+      b.addEventListener('click', function () {
+        if (ctx.locked) return;
+        ctx.locked = true;
+        const ok = c === right;
+        Array.prototype.forEach.call(wrap.children, function (node) {
+          node.disabled = true;
+          if (node.textContent === right) node.classList.add('gold');
+        });
+        if (!ok) b.classList.remove('gold'), b.classList.add('wrong');
+        reviewJudge(ok, c, q, item, ctx, card, fb);
+      });
+      wrap.appendChild(b);
+    });
+    face.appendChild(wrap);
+    ans.appendChild(hintBtn);
+  } else if (kind === 'punct') {
+    const wrap = el('div', 'punct-wrap');
+    const chosen = {}; const cuts = [];
+    for (let i = 0; i < q.plain.length; i++) {
+      wrap.appendChild(el('div', 'pcell', q.plain.charAt(i)));
+      const cut = el('button', 'pcut');
+      cut.type = 'button'; cut.dataset.i = String(i);
+      cut.appendChild(el('span', 'bar'));
+      cut.addEventListener('click', function () {
+        if (ctx.locked) return;
+        if (chosen[i]) { delete chosen[i]; cut.classList.remove('on'); }
+        else { chosen[i] = 1; cut.classList.add('on'); }
+      });
+      cuts.push(cut);
+      wrap.appendChild(cut);
+    }
+    face.appendChild(wrap);
+    face.appendChild(el('div', 'punct-tip', '点竖线断句，再行提交（含句末）'));
+    const sub = el('button', 'btn', '提交句读');
+    sub.type = 'button';
+    sub.addEventListener('click', function () {
+      if (ctx.locked) return;
+      ctx.locked = true; sub.disabled = true;
+      const userSet = Object.keys(chosen).map(Number).sort(function (a, b) { return a - b; });
+      const target = q.cuts.slice().sort(function (a, b) { return a - b; });
+      const same = userSet.length === target.length && userSet.every(function (v, i) { return v === target[i]; });
+      if (!same) {
+        cuts.forEach(function (c) {
+          const i = Number(c.dataset.i);
+          const isUser = chosen[i] === 1, isTarget = target.indexOf(i) >= 0;
+          if (isTarget && !isUser) c.classList.add('gold', 'miss');
+          else if (isTarget && isUser) { c.classList.remove('on'); c.classList.add('gold'); }
+          else if (!isTarget && isUser) { c.classList.remove('on'); c.classList.add('extra'); }
+        });
+      }
+      reviewJudge(same, punctView(q.plain, userSet), q, item, ctx, card, fb);
+    });
+    ans.appendChild(sub);
+  } else if (kind === 'listen') {
+    const n = stripPunct(q.answer).length;
+    const t = el('div', null, '听音辨句 · ' + n + ' 字');
+    t.style.fontSize = '1.35rem';
+    face.appendChild(t);
+    const btn = el('button', 'speak-btn', '🔊');
+    btn.type = 'button';
+    let plays = 0;
+    btn.addEventListener('click', function () {
+      if (plays >= 3) return;
+      plays++; SAY(q.answer);
+      if (plays >= 3) btn.disabled = true;
+    });
+    face.appendChild(btn);
+    face.appendChild(el('div', 'listen-tip', '可重听三遍，辨出所读之句（留意同音字）'));
+    const col = el('div', 'choice-col');
+    listenOptions(q).forEach(function (s) {
+      const b = el('button', 'choice-btn', s);
+      b.type = 'button';
+      b.addEventListener('click', function () {
+        if (ctx.locked) return;
+        ctx.locked = true;
+        SAYSTOP();
+        const ok = s === q.answer;
+        Array.prototype.forEach.call(col.children, function (node) {
+          node.disabled = true;
+          if (node.textContent === q.answer) node.classList.add('gold');
+        });
+        if (!ok) b.classList.remove('gold'), b.classList.add('wrong');
+        reviewJudge(ok, s, q, item, ctx, card, fb);
+      });
+      col.appendChild(b);
+    });
+    face.appendChild(col);
+    setTimeout(function () { try { btn.click(); } catch (e) {} }, 250);
+  } else {
+    const stem = el('div', 'q-stem');
+    stem.appendChild(el('span', 'stem-no', '问'));
+    stem.appendChild(document.createTextNode(q.stem));
+    face.appendChild(stem);
+    hint.textContent = '解析：' + q.why;
+    const hintBtn = el('button', 'btn btn-ghost', '看解析');
+    hintBtn.type = 'button';
+    hintBtn.addEventListener('click', function () { hint.classList.toggle('show'); });
+    const col = el('div', 'choice-col');
+    q.opts.forEach(function (s) {
+      const b = el('button', 'choice-btn', s);
+      b.type = 'button';
+      b.addEventListener('click', function () {
+        if (ctx.locked) return;
+        ctx.locked = true;
+        const ok = s === q.right;
+        Array.prototype.forEach.call(col.children, function (node) {
+          node.disabled = true;
+          if (node.textContent === q.right) node.classList.add('gold');
+        });
+        if (!ok) b.classList.remove('gold'), b.classList.add('wrong');
+        hint.classList.add('show');
+        reviewJudge(ok, s, q, item, ctx, card, fb);
+      });
+      col.appendChild(b);
+    });
+    face.appendChild(col);
+    ans.appendChild(hintBtn);
+  }
+}
+function reviewJudge(ok, youText, q, item, ctx, card, fb) {
+  recAnswered(item.qid);
+  if (ok) {
+    chime();
+    card.classList.add('good');
+    fb.textContent = '';
+    const res = srsHit(item.qid);
+    fb.appendChild(el('div', 'fb-ok', res === 'done' ? '中！连对两次，此题已掌握' : '中！记为一温，' + srsWaitText(item.qid) + '再验'));
+    if (res === 'done') trk('btf-mastered', 1);
+    const dn = checkPieceDone(q.piece);
+    if (dn) fb.appendChild(el('div', 'fb-ok', '《' + dn + '》百题已通——本篇学成！'));
+    clearAdvance();
+    advanceTimer = setTimeout(function () { advanceTimer = null; reviewNext(); }, 1100);
+  } else {
+    lowTone();
+    card.classList.add('bad');
+    recWrong({ qid: item.qid, k: q.k, piece: q.piece, q: questionKey(q), you: youText, right: rightAnswerText(q), ts: Date.now() });
+    srsMiss(item.qid);
+    trk('btf-answered', 0);
+    fb.textContent = '';
+    fb.appendChild(el('div', 'fb-bad', '仍未中的——'));
+    const r = el('div', 'fb-right');
+    r.appendChild(document.createTextNode('正解：'));
+    r.appendChild(el('b', null, rightAnswerText(q)));
+    fb.appendChild(r);
+    clearAdvance();
+    advanceTimer = setTimeout(function () { advanceTimer = null; reviewSink(); }, 2600);
+  }
+}
+function reviewNext() {
+  clearAdvance();
+  if (!REVIEW) return;
+  REVIEW.queue.splice(REVIEW.idx, 1);
+  if (!REVIEW.queue.length) { REVIEW = { queue: [], idx: 0, locked: false }; renderReview(); return; }
+  if (REVIEW.idx >= REVIEW.queue.length) REVIEW.idx = 0;
+  renderReview();
+}
+function reviewSink() {
+  clearAdvance();
+  if (!REVIEW) return;
+  const cur = REVIEW.queue[REVIEW.idx];
+  REVIEW.queue.splice(REVIEW.idx, 1);
+  REVIEW.queue.push(cur);   /* 仍未记牢：沉底 */
+  REVIEW.idx = Math.min(REVIEW.idx, REVIEW.queue.length - 1);
+  renderReview();
+}
+
+/* ================= 退出 / 事件绑定 ================= */
+function exitToGate() {
+  clearAdvance(); SAYSTOP();
+  ROUND = null; REVIEW = null;
+  renderGate(false);
+}
+document.getElementById('app').addEventListener('click', function (e) {
+  const t = e.target.closest ? e.target.closest('[data-act]') : null;
+  if (!t) return;
+  const act = t.dataset.act;
+  if (act === 'mode') {
+    chime();
+    const mode = t.dataset.mode;
+    if (mode === 'piece') renderPick();
+    else if (mode === 'review') enterReview(false);
+    else startRound('mixed', '');
+  } else if (act === 'review-early') {
+    chime();
+    enterReview(true);
+  } else if (act === 'pick-back') {
+    renderGate(false);
+  } else if (act === 'pick-piece') {
+    chime();
+    startRound('piece', t.dataset.piece);
+  } else if (act === 'quiz-exit') {
+    exitToGate();
+  } else if (act === 'result-retry') {
+    if (ROUND) startRound(ROUND.mode, ROUND.piece);
+    else startRound('mixed', '');
+  } else if (act === 'result-home' || act === 'review-home') {
+    exitToGate();
+  }
+});
+
+/* ================= 初始化 ================= */
+renderStats();
+/* —— 游戏卷尾通道：自动进入该篇答题 —— */
+(function () {
+  let pid = null;
+  try { pid = localStorage.getItem('gushi_btf_target') || ''; localStorage.removeItem('gushi_btf_target'); } catch (e) {}
+  if (pid && metaOf(pid)) startRound('piece', pid);
+})();
+</script>
+</body>
+</html>

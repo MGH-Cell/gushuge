@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>古书阁 · 古诗文学习平台</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { min-height:100%; }
+  body {
+    min-height:100vh; overflow-x:hidden;
+    background:#f2ead7; color:#2e2820;
+    font-family:"KaiTi","STKaiti","楷体",serif;
+    user-select:none;
+  }
+
+  /* ============ 背景层：宣纸 · 淡墨远山 ============ */
+  #bg { position:fixed; inset:0; z-index:0; overflow:hidden;
+    background:
+      radial-gradient(1100px 520px at 78% -8%, rgba(255,250,238,.85) 0%, rgba(255,250,238,0) 60%),
+      linear-gradient(180deg, #f6efdd 0%, #f1e8d3 52%, #e9dfc7 100%);
+  }
+  #bg::after { /* 宣纸纤维细纹 */
+    content:''; position:absolute; inset:0; pointer-events:none; opacity:.5;
+    background:
+      repeating-linear-gradient(0deg, rgba(120,95,55,.025) 0 1px, transparent 1px 3px),
+      repeating-linear-gradient(90deg, rgba(120,95,55,.02) 0 1px, transparent 1px 3px);
+  }
+  #moon { display:none; }
+  .m-layer { position:absolute; left:-4%; right:-4%; bottom:0; }
+  .m-layer svg { display:block; width:100%; height:100%; }
+  #mFar  { height:34vh; opacity:.5; }
+  #mMid  { height:38vh; opacity:.55; }
+  #mNear { height:42vh; opacity:.6; }
+  #mFar path  { fill:#c6ccb8; }
+  #mMid path  { fill:#aeb79d; }
+  #mNear path { fill:#96a188; }
+
+  /* ============ 入场动效 ============ */
+  .rise { opacity:0; transform:translateY(28px);
+    animation:rise 1s cubic-bezier(.19,1,.22,1) forwards; animation-delay:var(--d,0s);
+  }
+  @keyframes rise { to { opacity:1; transform:translateY(0); } }
+  @keyframes stampIn {
+    0% { opacity:0; transform:translateX(-50%) scale(1.7) rotate(-14deg); }
+    60%{ opacity:1; transform:translateX(-50%) scale(.94) rotate(-5deg); }
+    100%{ opacity:1; transform:translateX(-50%) scale(1) rotate(-6deg); }
+  }
+
+  /* ============ 顶栏 ============ */
+  #brand {
+    position:fixed; top:20px; left:26px; z-index:15;
+    display:flex; align-items:center; gap:12px;
+  }
+  .b-seal {
+    width:32px; height:32px; border-radius:5px;
+    background:#a8412e; color:#fbeeda;
+    font-size:1rem; display:flex; align-items:center; justify-content:center;
+    box-shadow:inset 0 0 0 1.5px rgba(251,238,218,.5);
+    transform:rotate(-4deg);
+  }
+  .b-name { font-size:1.05rem; letter-spacing:.42rem; color:#2e2820; }
+  .b-sub {
+    font-size:.66rem; letter-spacing:.3rem; color:#8c7d63;
+    border-left:1px solid rgba(138,106,62,.45); padding-left:12px; margin-left:2px;
+  }
+
+  /* ===== 顶部名牌（登录态与已读计数一体） ===== */
+  #userbar {
+    position:static;
+    display:flex; align-items:center; height:42px;
+    background:rgba(252,247,233,.94);
+    border:1px solid rgba(94,72,42,.35); border-radius:21px;
+    box-shadow:0 2px 10px rgba(94,72,42,.14);
+    overflow:hidden;
+    color:#5a3c20; font-size:.92rem; letter-spacing:.08rem;
+  }
+  #userbar .ub-seal {
+    flex:0 0 auto; width:30px; height:30px; margin-left:7px; border-radius:5px;
+    background:#a8412e; color:#fbeeda;
+    font-size:.92rem; display:flex; align-items:center; justify-content:center;
+    box-shadow:inset 0 0 0 1.5px rgba(251,238,218,.45);
+  }
+  #userbar .ub-cell {
+    display:flex; align-items:center; gap:5px; padding:0 12px;
+    height:100%; white-space:nowrap;
+  }
+  #userbar .ub-cell + .ub-cell { border-left:1px dashed rgba(138,90,50,.45); }
+  #userbar .ub-name { color:#432810; font-weight:bold; }
+  #userbar .ub-score { color:#9a7420; }
+  #userbar .ub-num b { color:#a8412e; font-size:1.02rem; }
+  #userbar a.ub-btn {
+    display:flex; align-items:center; justify-content:center;
+    align-self:stretch; padding:0 14px; cursor:pointer; text-decoration:none;
+    color:#fbeeda; background:#7a5a36;
+    border-left:1px solid rgba(94,72,42,.4);
+    font-size:.9rem; letter-spacing:.14rem;
+  }
+  #userbar a.ub-btn:hover { background:#8a6a42; }
+  #userbar a.ub-btn.ub-red { background:#a8412e; border-left-color:rgba(120,50,38,.5); }
+  #userbar a.ub-btn.ub-red:hover { background:#b64c38; }
+  /* 纯静态托管（无后端）：隐藏留名入口，自动游客游览 */
+  body.no-api #ub-in { display:none; }
+
+  /* ============ 主区：横排题字 + 卷轴画廊 ============ */
+  #hall {
+    position:relative; z-index:10;
+    max-width:1180px; margin:0 auto;
+    min-height:100vh;
+    display:flex; flex-direction:column; align-items:stretch; justify-content:center;
+    gap:clamp(24px,3.6vh,44px);
+    padding:110px clamp(20px,4.5vw,60px) 118px;
+  }
+
+  /* —— 横排英雄题字 —— */
+  #hero {
+    flex:0 0 auto;
+    display:flex; align-items:center; gap:clamp(14px,2.2vw,30px);
+    flex-wrap:wrap;
+  }
+  .h-seal {
+    flex:0 0 auto;
+    width:50px; height:50px; border-radius:6px;
+    background:#a8412e; color:#fbeeda;
+    font-size:1.55rem; display:flex; align-items:center; justify-content:center;
+    box-shadow:inset 0 0 0 2px rgba(251,238,218,.45), 0 2px 8px rgba(120,50,38,.25);
+    transform:rotate(-4deg);
+  }
+  .h-title {
+    font-size:clamp(2rem,4vw,3.1rem); font-weight:normal; white-space:nowrap;
+    letter-spacing:.2em; color:#2b241b; line-height:1.1;
+  }
+  .h-vrule { flex:0 0 auto; width:clamp(28px,4.5vw,72px); height:1px;
+    background:linear-gradient(90deg, rgba(138,106,62,.7), rgba(138,106,62,0));
+  }
+  .h-sub { font-size:.95rem; letter-spacing:.42rem; color:#7a6c52; white-space:nowrap; }
+  .h-count {
+    margin-left:auto; font-size:.92rem; letter-spacing:.26rem; color:#8c7d63;
+    white-space:nowrap;
+  }
+  .h-count b { color:#a8412e; font-size:1.28rem; padding:0 .18em; }
+
+  /* —— 首页搜索 · 通万卷楼 —— */
+  #topright { position:fixed; top:18px; right:20px; z-index:30;
+    display:flex; align-items:center; gap:10px; }
+  #userbar { position:static; }
+  #srch { position:relative; display:flex; align-items:center; gap:10px; user-select:text; }
+  .s-seal { flex:0 0 auto; width:32px; height:32px; border-radius:5px;
+    background:#a8412e; color:#fbeeda; font-size:.95rem;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:inset 0 0 0 1.5px rgba(251,238,218,.5); transform:rotate(-4deg); }
+  #sInput { width:clamp(180px,20vw,280px); height:42px; padding:0 18px; font-family:inherit; font-size:1rem;
+    letter-spacing:.08rem; color:#432810;
+    background:#fcf7e9; border:1px solid rgba(94,72,42,.45); border-radius:21px;
+    outline:none;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 2px 8px rgba(94,72,42,.10);
+    transition:border-color .25s ease, box-shadow .25s ease; }
+  #sInput::placeholder { color:#a5946f; letter-spacing:.13rem; }
+  #sInput:focus { border-color:#9c3222; box-shadow:0 0 0 3px rgba(156,50,34,.10), 0 2px 10px rgba(94,72,42,.14); }
+  #sDrop { position:absolute; top:calc(100% + 9px); right:0; width:360px; max-height:290px; overflow-y:auto; z-index:60; display:none;
+    background:#fffdf2; border:1.5px solid rgba(94,72,42,.55); border-radius:10px;
+    box-shadow:0 14px 34px rgba(60,45,25,.34); }
+  .s-item { display:flex; align-items:center; gap:10px; padding:9px 15px; cursor:pointer; }
+  .s-item:hover, .s-item.act { background:rgba(196,145,46,.15); }
+  .s-t { color:#432810; font-size:.98rem; letter-spacing:.05em; white-space:nowrap; }
+  .s-m { color:#8a6238; font-size:.76rem; letter-spacing:.05em; flex:1;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .s-gm { flex:0 0 auto; font-size:.66rem; letter-spacing:.08rem;
+    color:#fbeeda; background:#a8412e; border-radius:3px; padding:1px 5px; }
+  .s-none { padding:10px 15px; color:#8a6238; font-size:.9rem; letter-spacing:.08rem; }
+
+  /* —— 画廊 —— */
+  #gallery { flex:1 1 auto; width:100%; display:flex; flex-direction:column; gap:clamp(22px,3vh,34px); }
+  .sec-head { display:flex; align-items:center; gap:14px; }
+  .sec-seal {
+    flex:0 0 auto; width:27px; height:27px; border-radius:4px;
+    background:#a8412e; color:#fbeeda;
+    font-size:.85rem; display:flex; align-items:center; justify-content:center;
+    box-shadow:inset 0 0 0 1px rgba(251,238,218,.4);
+  }
+  .sec-name { font-size:1.05rem; letter-spacing:.44rem; color:#2e2820; white-space:nowrap; }
+  .sec-line { flex:1 1 auto; height:1px; min-width:30px;
+    background:linear-gradient(90deg, rgba(94,72,42,.4), rgba(94,72,42,0));
+  }
+  .sec-note { font-size:.8rem; letter-spacing:.22rem; color:#8c7d63; white-space:nowrap; }
+
+  /* —— 卷轴卡 —— */
+  .scroll-row { display:flex; gap:clamp(14px,1.7vw,26px); flex-wrap:wrap; justify-content:flex-start; }
+  .scroll-card { position:relative; width:118px; cursor:pointer; text-align:center;
+    transition:transform .4s cubic-bezier(.19,1,.22,1);
+  }
+  .scroll-card:not(.sealed):hover { transform:translateY(-8px); }
+  .rod {
+    position:relative; height:13px; margin:0 -5px; border-radius:7px;
+    background:linear-gradient(180deg,#9a6c3e 0%,#7a5228 45%,#5e3d1c 100%);
+    box-shadow:0 2px 5px rgba(94,72,42,.28), inset 0 1px 0 rgba(255,225,170,.28);
+  }
+  .rod::before,.rod::after {
+    content:''; position:absolute; top:50%; width:9px; height:15px; border-radius:50%;
+    transform:translateY(-50%);
+    background:radial-gradient(circle at 34% 32%, #f0d59a, #c89a3e 60%, #7c5a1e);
+    box-shadow:0 1px 3px rgba(94,72,42,.3);
+  }
+  .rod::before { left:-3px; } .rod::after { right:-3px; }
+  .scroll-card .body {
+    position:relative; height:196px; margin:3px 4px; border-radius:5px; overflow:hidden;
+    background:linear-gradient(90deg,#e3d3a8 0%,#f2e8cd 18%,#f9f1dc 48%,#ecdcb8 80%,#ddc99c 100%);
+    border:1px solid rgba(122,90,46,.42);
+    box-shadow:0 6px 16px rgba(94,72,42,.2);
+    transition:box-shadow .3s ease, border-color .3s ease;
+  }
+  /* —— 卷内古画 —— */
+  .scroll-card .art {
+    position:absolute; inset:0;
+    background-size:cover; background-position:center 32%;
+    filter:sepia(.05) saturate(1.05) contrast(1) brightness(1.02);
+    opacity:0; transition:opacity 1s ease;
+  }
+  .scroll-card .art.on { opacity:1; }
+  /* 古画做旧融入：四周宣纸晕染 + 顶部卷轴阴影 */
+  .scroll-card .artveil {
+    position:absolute; inset:0; pointer-events:none;
+    background:
+      linear-gradient(180deg, rgba(94,72,42,.18), rgba(94,72,42,0) 9%, rgba(94,72,42,0) 88%, rgba(120,90,50,.22)),
+      radial-gradient(120% 90% at 50% 50%, rgba(0,0,0,0) 62%, rgba(122,90,46,.18) 100%);
+    box-shadow:inset 0 0 0 1px rgba(122,90,46,.18);
+  }
+  .scroll-card:not(.sealed):hover .body {
+    border-color:#a8412e;
+    box-shadow:0 12px 26px rgba(94,72,42,.28);
+  }
+  .scroll-card .sheen {
+    position:absolute; inset:0; pointer-events:none;
+    background:linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.16) 50%, rgba(255,255,255,0) 100%);
+  }
+  .scroll-card .label {
+    position:absolute; top:10px; left:10px;
+    writing-mode:vertical-rl; letter-spacing:.16em;
+    background:#fbf3dc; color:#432810; border:1px solid #caa24e; border-radius:3px;
+    padding:7px 3px; font-size:1.02rem; font-weight:bold; line-height:1.15;
+    box-shadow:0 2px 5px rgba(94,72,42,.22);
+    transition:border-color .3s ease;
+  }
+  .scroll-card:not(.sealed):hover .label { border-color:#9a7420; }
+  .scroll-card .stamp {
+    position:absolute; bottom:12px; left:50%;
+    width:23px; height:23px; border-radius:4px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:.82rem; font-weight:bold;
+    transform:translateX(-50%) rotate(-6deg);
+  }
+  .scroll-card .stamp.done {
+    background:linear-gradient(160deg,#e3b64d,#b9861f); color:#4a2e10;
+    box-shadow:inset 0 0 0 1.5px rgba(74,46,16,.5);
+    animation:stampIn .5s cubic-bezier(.19,1,.22,1) backwards; animation-delay:calc(var(--d,0s) + .55s);
+  }
+  .scroll-card .meta { margin-top:11px; }
+  .scroll-card .s-name { font-size:1.04rem; letter-spacing:.14rem; color:#2e2820; }
+  .scroll-card .s-who  { font-size:.76rem; letter-spacing:.14rem; color:#8c7d63; margin-top:3px; }
+
+  /* 封口之卷（未启） */
+  .scroll-card.sealed { width:96px; cursor:default; }
+  .scroll-card.sealed .body {
+    height:150px;
+    background:linear-gradient(90deg,#ddd4bf 0%,#e7dfcc 22%,#efe8d6 50%,#e2d9c4 78%,#d4cbb4 100%);
+    border:1px solid rgba(122,106,78,.35);
+    box-shadow:0 5px 12px rgba(94,72,42,.14);
+  }
+  .scroll-card.sealed .rod { background:linear-gradient(180deg,#8a7a62,#5e5140); }
+  .scroll-card.sealed .art { filter:grayscale(.42) brightness(.78) sepia(.12) contrast(.95); }
+  .scroll-card.sealed .artveil {
+    background:
+      linear-gradient(180deg, rgba(60,50,38,.32), rgba(60,50,38,.12) 22%, rgba(60,50,38,.12) 78%, rgba(80,66,44,.3)),
+      radial-gradient(120% 90% at 50% 50%, rgba(0,0,0,0) 58%, rgba(60,48,30,.28) 100%);
+  }
+  .scroll-card.sealed .label { background:#e6dfcd; color:#8a8070; border-color:#b3a88e; }
+  .scroll-card.sealed .stamp {
+    background:#a8412e; color:#fbeeda;
+    box-shadow:inset 0 0 0 1.5px rgba(251,238,218,.4);
+    animation:stampIn .5s cubic-bezier(.19,1,.22,1) backwards; animation-delay:calc(var(--d,0s) + .55s);
+  }
+  .scroll-card.sealed .s-name { color:#9a8e76; }
+  .scroll-card.sealed .s-who  { color:#b0a58c; }
+  @keyframes shakex { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 50%{transform:translateX(5px)} 75%{transform:translateX(-4px)} }
+  .scroll-card.shake { animation:shakex .36s ease; }
+
+  /* —— 书阁别业 —— */
+  .annex-row { display:flex; gap:clamp(14px,1.8vw,24px); flex-wrap:wrap; }
+  .annex {
+    flex:1 1 300px; display:flex; align-items:center; gap:17px;
+    padding:17px 24px; cursor:pointer; text-decoration:none;
+    background:rgba(252,247,233,.82);
+    border:1px solid rgba(94,72,42,.3); border-radius:10px;
+    box-shadow:0 3px 12px rgba(94,72,42,.1);
+    transition:transform .3s cubic-bezier(.19,1,.22,1), border-color .3s ease, box-shadow .3s ease;
+  }
+  .annex:hover {
+    transform:translateY(-4px);
+    border-color:#a8412e;
+    box-shadow:0 10px 24px rgba(94,72,42,.2);
+  }
+  .an-seal {
+    flex:0 0 auto; width:47px; height:47px; border-radius:6px;
+    background:#a8412e; color:#fbeeda;
+    font-size:1.4rem; display:flex; align-items:center; justify-content:center;
+    box-shadow:inset 0 0 0 2px rgba(251,238,218,.4);
+    transform:rotate(-3deg);
+    transition:transform .3s ease;
+  }
+  .annex:hover .an-seal { transform:rotate(0deg) scale(1.05); }
+  .an-name { font-size:1.22rem; letter-spacing:.34rem; color:#2e2820; }
+  .an-desc { font-size:.82rem; letter-spacing:.14rem; color:#8c7d63; margin-top:5px; }
+  .an-arrow { margin-left:auto; font-size:.9rem; letter-spacing:.22rem; color:#a8412e;
+    transition:transform .3s ease; }
+  .annex:hover .an-arrow { transform:translateX(5px); }
+
+  /* ===== 宣纸木框铭牌 ===== */
+  #plaque {
+    position:fixed; left:50%; bottom:2.6%;
+    transform:translateX(-50%) translateY(16px);
+    width:min(720px,94vw);
+    background:linear-gradient(180deg,#fbf4e2,#f2e8d0);
+    border:1px solid rgba(94,72,42,.5);
+    border-radius:7px;
+    box-shadow:0 10px 32px rgba(94,72,42,.28), inset 0 0 0 1px rgba(138,106,62,.2);
+    padding:13px 22px 13px 18px;
+    color:#3a2a18; z-index:30;
+    opacity:0; transition:opacity .22s ease, transform .22s ease;
+    display:flex; align-items:center; gap:15px;
+  }
+  #plaque.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  #plaque::before {
+    content:''; position:absolute; inset:4px; border:1px solid rgba(138,106,62,.3);
+    border-radius:4px; pointer-events:none;
+  }
+  #plaque .seal {
+    flex:0 0 auto; width:48px; height:48px; border-radius:5px;
+    background:#a8412e;
+    color:#fbeeda; font-size:1.35rem; letter-spacing:0;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:inset 0 0 0 2px rgba(251,238,218,.4);
+  }
+  #plaque .seal.go {
+    background:linear-gradient(160deg,#e3b64d,#c4912e);
+    color:#4a2e10; box-shadow:inset 0 0 0 2px rgba(74,46,16,.28);
+  }
+  #plaque .body { flex:1 1 auto; min-width:0; }
+  #plaque .title-line {
+    font-size:1.42rem; font-weight:bold; letter-spacing:.14rem; color:#4a2e12;
+    display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;
+  }
+  #plaque .author-line { font-size:.95rem; color:#8a6238; letter-spacing:.12rem; margin-top:1px; }
+  #plaque .quote {
+    font-size:1.05rem; color:#6b4a2a; letter-spacing:.06rem; margin-top:2px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  #plaque .action {
+    flex:0 0 auto; font-size:1rem; letter-spacing:.24rem;
+    color:#fbeeda; background:#7a5a36;
+    border:1px solid #5e3a1c; border-radius:5px; padding:8px 18px;
+    white-space:nowrap;
+  }
+  #plaque.idle {
+    width:auto; max-width:94vw; padding:10px 26px; text-align:center;
+    color:#5a3c20; font-size:1.02rem; letter-spacing:.18rem;
+    white-space:nowrap;
+  }
+  #plaque .mini { font-size:.8rem; color:#a08158; letter-spacing:.14rem; margin-left:12px; }
+  @keyframes shake {
+    0%,100%{transform:translateX(-50%) translateY(0);}
+    20%{transform:translateX(calc(-50% - 8px)) translateY(0);}
+    40%{transform:translateX(calc(-50% + 8px)) translateY(0);}
+    60%{transform:translateX(calc(-50% - 6px)) translateY(0);}
+    80%{transform:translateX(calc(-50% + 6px)) translateY(0);}
+  }
+  #plaque.shake { animation:shake .35s; }
+
+  /* 过场墨幕 */
+  #fade {
+    position:fixed; inset:0; background:#2b241b; z-index:40;
+    opacity:0; pointer-events:none; transition:opacity .5s;
+  }
+  #fade.show { opacity:1; }
+
+  /* ===== 登录浮层 ===== */
+  #auth {
+    position:fixed; inset:0; z-index:60;
+    background:rgba(43,36,27,.42);
+    backdrop-filter:blur(2px);
+    display:none; align-items:center; justify-content:center;
+  }
+  #auth.show { display:flex; }
+  #auth-card {
+    position:relative; width:min(400px,92vw);
+    background:linear-gradient(180deg,#fbf4e2,#f2e8d0);
+    border:1px solid rgba(94,72,42,.5); border-radius:10px;
+    box-shadow:0 24px 70px rgba(43,36,27,.35), inset 0 0 0 1px rgba(138,106,62,.2);
+    padding:30px 34px 26px; text-align:center;
+  }
+  #auth-card::before {
+    content:''; position:absolute; inset:6px;
+    border:1px solid rgba(138,106,62,.3); border-radius:6px;
+    pointer-events:none;
+  }
+  #auth-card .a-seal {
+    width:52px; height:52px; margin:0 auto 8px; border-radius:6px;
+    background:#a8412e;
+    color:#fbeeda; font-size:1.6rem;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:inset 0 0 0 2px rgba(251,238,218,.4);
+    transform:rotate(-4deg);
+  }
+  #auth-card h1 {
+    font-size:1.7rem; font-weight:normal; letter-spacing:.4rem;
+    color:#432810; margin-bottom:4px;
+  }
+  #auth-card .a-sub {
+    font-size:.86rem; color:#8a6238; letter-spacing:.08rem; line-height:1.8;
+    margin-bottom:16px;
+  }
+  #auth-card .a-tabs {
+    display:flex; gap:0; margin-bottom:16px;
+    border:1px solid #8a5a32; border-radius:6px; overflow:hidden;
+  }
+  #auth-card .a-tabs button {
+    flex:1; font-family:inherit; cursor:pointer;
+    font-size:.98rem; letter-spacing:.22rem;
+    color:#6e4522; background:rgba(138,90,50,.08);
+    border:none; padding:8px 0;
+  }
+  #auth-card .a-tabs button.on {
+    color:#fbeeda; background:#7a5a36;
+  }
+  #auth-card input {
+    width:100%; font-family:inherit; font-size:1.02rem; letter-spacing:.08rem;
+    color:#3a2a18; background:#fdf7e6;
+    border:1px solid #a5793f; border-radius:6px;
+    padding:10px 14px; margin-bottom:11px; outline:none;
+    box-shadow:inset 0 2px 5px rgba(120,80,30,.1);
+  }
+  #auth-card input:focus { border-color:#9a7420; box-shadow:inset 0 2px 5px rgba(120,80,30,.1), 0 0 0 2px rgba(202,162,78,.35); }
+  #auth-card #a-err {
+    min-height:1.35em; font-size:.86rem; color:#b03926;
+    letter-spacing:.06rem; margin-bottom:6px;
+  }
+  #auth-card #a-go {
+    width:100%; font-family:inherit; cursor:pointer;
+    font-size:1.08rem; letter-spacing:.4rem; color:#fbeeda;
+    background:#7a5a36;
+    border:1px solid #5e3a1c; border-radius:6px; padding:11px 0;
+  }
+  #auth-card #a-go:hover { background:#8a6a42; }
+  #auth-card #a-skip {
+    display:inline-block; margin-top:13px;
+    font-size:.88rem; color:#8a6238; letter-spacing:.1rem;
+    text-decoration:underline; text-underline-offset:3px; cursor:pointer;
+  }
+  #auth-card #a-skip:hover { color:#6e4522; }
+
+  /* ============ 响应式 ============ */
+  @media (max-width:980px) {
+    #hall { padding-top:100px; }
+    .h-count { margin-left:0; flex-basis:100%; }
+    #sInput { width:170px; }
+    #moon { width:160px; height:160px; opacity:.55; }
+  }
+  @media (max-width:560px) {
+    .b-sub { display:none; }
+    #topright { top:66px; right:12px; gap:8px; }
+    #sInput { width:132px; }
+    #sDrop { width:300px; }
+    .scroll-card { width:100px; }
+    .scroll-card .body { height:168px; }
+    .scroll-card.sealed { width:84px; }
+    .scroll-card.sealed .body { height:132px; }
+    #plaque.idle { font-size:.88rem; }
+  }
+  @media (prefers-reduced-motion:reduce) {
+    *,*::before,*::after { animation-duration:.01s !important; transition-duration:.01s !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ 背景：墨夜远山 ============ -->
+<div id="bg">
+  <div id="moon" data-depth=".45"></div>
+  <div class="m-layer" id="mFar" data-depth=".3">
+    <svg viewBox="0 0 1440 400" preserveAspectRatio="none">
+      <path fill="#262015" d="M0,300 C180,240 330,270 520,230 C710,190 900,250 1100,215 C1230,192 1350,205 1440,190 L1440,400 L0,400 Z"/>
+    </svg>
+  </div>
+  <div class="m-layer" id="mMid" data-depth=".6">
+    <svg viewBox="0 0 1440 400" preserveAspectRatio="none">
+      <path fill="#1b150d" d="M0,330 C160,280 300,310 470,272 C640,235 830,300 1010,262 C1170,230 1310,255 1440,238 L1440,400 L0,400 Z"/>
+    </svg>
+  </div>
+  <div class="m-layer" id="mNear" data-depth="1">
+    <svg viewBox="0 0 1440 400" preserveAspectRatio="none">
+      <path fill="#100b06" d="M0,360 C200,320 360,345 560,318 C760,290 960,345 1160,315 C1290,296 1380,305 1440,298 L1440,400 L0,400 Z"/>
+    </svg>
+  </div>
+</div>
+
+<!-- ============ 顶栏 ============ -->
+<div id="brand" class="rise" style="--d:.05s">
+  <span class="b-seal">閣</span>
+  <span class="b-name">古詩文</span>
+  <span class="b-sub">INTERACTIVE STUDY HALL</span>
+</div>
+<div id="topright">
+  <div id="srch">
+    <span class="s-seal">索</span>
+    <input id="sInput" type="text" placeholder="搜古文 · 篇名 / 作者" autocomplete="off">
+    <div id="sDrop"></div>
+  </div>
+  <div id="userbar"></div>
+</div>
+
+<!-- ============ 主区 ============ -->
+<main id="hall">
+  <aside id="hero" class="rise" style="--d:.12s">
+    <div class="h-seal">閣</div>
+    <h1 class="h-title">古书阁</h1>
+    <div class="h-vrule"></div>
+    <div class="h-sub">展卷习文 · 与古人对坐</div>
+    <div class="h-count">已读<b id="heroNum">0</b>卷 · 句读入耳</div>
+  </aside>
+
+  <section id="gallery">
+
+    <div class="sec-head rise" style="--d:.24s">
+      <span class="sec-seal">卷</span><span class="sec-name">可展之卷</span>
+      <span class="sec-line"></span><span class="sec-note">点亮句读 · 闯关全篇</span>
+    </div>
+    <div class="scroll-row" id="rowReady"></div>
+
+    <div class="sec-head rise" style="--d:.5s">
+      <span class="sec-seal">封</span><span class="sec-name">封口之卷</span>
+      <span class="sec-line"></span><span class="sec-note">他日续启</span>
+    </div>
+    <div class="scroll-row rise" id="rowSealed" style="--d:.56s"></div>
+
+    <div class="sec-head rise" style="--d:.7s">
+      <span class="sec-seal">业</span><span class="sec-name">书阁别业</span>
+      <span class="sec-line"></span><span class="sec-note">张于五壁</span>
+    </div>
+    <div class="annex-row rise" style="--d:.76s">
+      <a class="annex" id="wall0">
+        <span class="an-seal">坊</span>
+        <span><span class="an-name">百 题 坊</span><div class="an-desc">常识 · 词义 · 翻译 · 句读 · 听辨 · 错题二刷</div></span>
+        <span class="an-arrow">前 往 →</span>
+      </a>
+      <a class="annex" id="wall1">
+        <span class="an-seal">堂</span>
+        <span><span class="an-name">文 鉴 堂</span><div class="an-desc">逐句注译 · 白话对照 · 语法考点</div></span>
+        <span class="an-arrow">前 往 →</span>
+      </a>
+      <a class="annex" id="wall2">
+        <span class="an-seal">鉴</span>
+        <span><span class="an-name">文 脉 图 鉴</span><div class="an-desc">千年文脉轴 · 意象图鉴</div></span>
+        <span class="an-arrow">前 往 →</span>
+      </a>
+      <a class="annex" id="wall3">
+        <span class="an-seal">楼</span>
+        <span><span class="an-name">万 卷 楼</span><div class="an-desc">中小学古文全览 · 原文注译 · 随时翻阅</div></span>
+        <span class="an-arrow">前 往 →</span>
+      </a>
+      <a class="annex" id="wall4">
+        <span class="an-seal">社</span>
+        <span><span class="an-name">论 学 社</span><div class="an-desc">问答回廊 · 话题广场 · 结社论学 · 传声驿</div></span>
+        <span class="an-arrow">前 往 →</span>
+      </a>
+    </div>
+  </section>
+</main>
+
+<div id="plaque" class="idle show">
+  点击发光卷轴 · 展卷习文<span class="mini">封口之卷未启</span>
+</div>
+
+<div id="auth">
+  <div id="auth-card">
+    <div class="a-seal">閣</div>
+    <h1>古文書閣</h1>
+    <p class="a-sub">书名 + 口令 · 即可入阁习文<br>进度云端留存 · 与同窗共争学分金榜</p>
+    <div class="a-tabs">
+      <button id="tab-in" class="on" type="button">登 录</button>
+      <button id="tab-up" type="button">登记新书生</button>
+    </div>
+    <input id="a-u" maxlength="12" placeholder="书名（2~12 字）" autocomplete="username">
+    <input id="a-p" type="password" maxlength="32" placeholder="口令（至少 4 位）" autocomplete="current-password">
+    <div id="a-err"></div>
+    <button id="a-go" type="button">入 阁</button>
+    <a id="a-skip">游客试玩 · 稍后再说</a>
+  </div>
+</div>
+
+<div id="fade"></div>
+
+<script>
+'use strict';
+
+/* ================= 卷轴书目（接入新游戏只需改这里 url+ready） ================= */
+const SCROLLS=[
+  {abbr:'石潭', name:'小石潭记',   who:'唐 · 柳宗元',   quote:'青树翠蔓，蒙络摇缀，参差披拂。', url:'xiaoshitan.html', ready:true, pid:'xst', art:'assets/scrolls/xiaoshitan.jpg', ay:'30%', af:'sepia(.05) saturate(1.24) contrast(1.06) brightness(1.0)'},
+  {abbr:'桃源', name:'桃花源记',   who:'东晋 · 陶渊明', quote:'芳草鲜美，落英缤纷。',           url:'taohuayuan.html', ready:true, pid:'thy', art:'assets/scrolls/taohuayuan.jpg', ay:'34%', af:'sepia(.04) saturate(1.42) contrast(1.1) brightness(.99)'},
+  {abbr:'陋室', name:'陋室铭',     who:'唐 · 刘禹锡',   quote:'斯是陋室，惟吾德馨。',           url:'loushiming.html', ready:true, pid:'lsm', art:'assets/scrolls/loushiming.jpg', ay:'42%', af:'sepia(.05) saturate(1.22) contrast(1.07) brightness(.99)'},
+  {abbr:'爱莲', name:'爱莲说',     who:'北宋 · 周敦颐', quote:'出淤泥而不染，濯清涟而不妖。',   url:'ailianshuo.html', ready:true, pid:'als', art:'assets/scrolls/ailianshuo.jpg', ay:'38%', af:'sepia(.05) saturate(1.24) contrast(1.06) brightness(1.0)'},
+  {abbr:'夜游', name:'记承天寺夜游', who:'北宋 · 苏轼', quote:'何夜无月？何处无竹柏？',         url:'chengtiansi.html', ready:true, pid:'cts', art:'assets/scrolls/chengtiansi.jpg', ay:'26%', af:'sepia(.05) saturate(1.2) contrast(1.05) brightness(1.02)'},
+  {abbr:'三峡', name:'三峡',       who:'北魏 · 郦道元', quote:'巴东三峡巫峡长，猿鸣三声泪沾裳。', url:'sanxia.html', ready:true, pid:'sx', art:'assets/scrolls/sanxia.jpg', ay:'30%'},
+  {abbr:'答谢', name:'答谢中书书', who:'南朝 · 陶弘景', quote:'山川之美，古来共谈。',           url:'dazhongshushu.html', ready:true, pid:'dxx', art:'assets/scrolls/dazhongshushu.jpg', ay:'26%'},
+  {abbr:'岳阳', name:'岳阳楼记',   who:'北宋 · 范仲淹', quote:'先天下之忧而忧，后天下之乐而乐。', url:'', ready:false, art:'assets/scrolls/yueyang.jpg', ay:'30%'},
+  {abbr:'醉翁', name:'醉翁亭记',   who:'北宋 · 欧阳修', quote:'醉翁之意不在酒，在乎山水之间也。', url:'', ready:false, art:'assets/scrolls/zuiweng.jpg', ay:'34%'}
+];
+
+/* ================= 读取本地学习进度 ================= */
+let PROGDATA={};
+try{ const d=JSON.parse(localStorage.getItem('gushi_v1')); if(d&&d.v===1&&d.p)PROGDATA=d.p; }catch(e){}
+SCROLLS.forEach(s=>{
+  const o=s.pid?PROGDATA[s.pid]:null;
+  s.done=!!(o&&o.done);
+  s.perfect=!!(s.done&&o.exam&&o.exam.perfect);
+});
+
+/* ================= 音效 ================= */
+let AC=null;
+function tone(freq,dur,type,vol,when){
+  try{
+    if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)();
+    const t=AC.currentTime+(when||0), o=AC.createOscillator(), gn=AC.createGain();
+    o.type=type||'sine'; o.frequency.value=freq;
+    gn.gain.setValueAtTime(vol||.08,t);
+    gn.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.connect(gn); gn.connect(AC.destination);
+    o.start(t); o.stop(t+dur);
+  }catch(e){}
+}
+const chime=()=>{ tone(660,.2,'triangle',.09); tone(990,.36,'triangle',.07,.1); };
+const thunk=()=>{ tone(150,.18,'square',.06); };
+
+/* ================= 铭牌 ================= */
+const plaque=document.getElementById('plaque');
+function idlePlaque(){
+  plaque.className='idle show';
+  plaque.innerHTML='点击发光卷轴 · 展卷习文';
+}
+function showPlaque(i){
+  const s=SCROLLS[i];
+  plaque.classList.remove('shake');
+  plaque.className='show';
+  plaque.innerHTML=
+    '<div class="seal'+(s.ready?' go':'')+'">'+(s.done?'读':(s.ready?'启':'封'))+'</div>'+
+    '<div class="body">'+
+      '<div class="title-line">'+s.name+'</div>'+
+      '<div class="author-line">'+s.who+'</div>'+
+      '<div class="quote">「'+s.quote+'」</div>'+
+    '</div>'+
+    '<div class="action">'+(s.ready?'展 卷':'未 启')+'</div>';
+}
+function showWallPlaque(p){
+  plaque.classList.remove('shake');
+  plaque.className='show';
+  plaque.innerHTML=
+    '<div class="seal go">'+p.ch+'</div>'+
+    '<div class="body">'+
+      '<div class="title-line">'+p.name+'</div>'+
+      '<div class="author-line">书阁别业</div>'+
+      '<div class="quote">'+p.desc+'</div>'+
+    '</div>'+
+    '<div class="action">前 往</div>';
+}
+
+/* ================= 渲染卷轴卡 ================= */
+const rowReady=document.getElementById('rowReady');
+const rowSealed=document.getElementById('rowSealed');
+SCROLLS.forEach((s,i)=>{
+  const card=document.createElement('div');
+  card.className='scroll-card'+(s.ready?'':' sealed');
+  if(!s.ready){
+    const w=document.createElement('div'); // 封口行自带 rise，卡内无需入场壳
+    w.appendChild(card);
+  }
+  card.innerHTML=
+    '<div class="rod"></div>'+
+    '<div class="body">'+
+      (s.art?'<div class="art" style="background-position:center '+(s.ay||'32%')+(s.af?';filter:'+s.af:'')+'"></div><div class="artveil"></div>':'')+
+      '<div class="sheen"></div>'+
+      '<div class="label">'+s.name+'</div>'+
+      (s.ready ? (s.done?'<div class="stamp done">读</div>':'') : '<div class="stamp">封</div>')+
+    '</div>'+
+    '<div class="rod"></div>'+
+    '<div class="meta"><div class="s-name">'+s.name+'</div><div class="s-who">'+s.who+'</div></div>';
+  /* 古画懒加载：加载完成后淡入，避免阻塞首屏与滚动 */
+  if(s.art){
+    const im=new Image();
+    im.onload=()=>{ const a=card.querySelector('.art'); if(a){ a.style.backgroundImage='url("'+s.art+'")'; requestAnimationFrame(()=>a.classList.add('on')); } };
+    im.src=s.art;
+  }
+  s._el=card;
+  card.addEventListener('mouseenter',()=>showPlaque(i));
+  card.addEventListener('click',()=>activate(i));
+  if(s.ready){
+    const wrap=document.createElement('div');
+    wrap.className='rise'; wrap.style.setProperty('--d',(.3+i*.07)+'s');
+    card.style.setProperty('--d',(.3+i*.07)+'s');
+    wrap.appendChild(card);
+    wrap.addEventListener('mouseleave',idlePlaque);
+    rowReady.appendChild(wrap);
+  }else{
+    card.style.setProperty('--d','.56s');
+    card.addEventListener('mouseleave',idlePlaque);
+    rowSealed.appendChild(card);
+  }
+});
+function setHeroNum(){
+  const n=SCROLLS.filter(s=>s.done).length;
+  const hn=document.getElementById('heroNum'); if(hn)hn.textContent=n;
+}
+setHeroNum();
+
+/* ================= 别业五匾 ================= */
+const WALLS=[
+  {ch:'坊', name:'百 题 坊',     desc:'常识 · 词义 · 翻译 · 句读 · 听辨 · 错题二刷', url:'baitifang.html'},
+  {ch:'堂', name:'文 鉴 堂',     desc:'逐句注译 · 白话对照 · 语法考点', url:'wenjian.html'},
+  {ch:'鉴', name:'文 脉 图 鉴', desc:'千年文脉轴 · 意象图鉴',       url:'wenmai.html'},
+  {ch:'楼', name:'万 卷 楼',     desc:'中小学古文全览 · 原文注译 · 随时翻阅', url:'wanjuan.html'},
+  {ch:'社', name:'论 学 社',     desc:'问答回廊 · 话题广场 · 结社论学 · 传声驿', url:'shequ.html'}
+];
+WALLS.forEach((p,i)=>{
+  const a=document.getElementById('wall'+i);
+  a.addEventListener('mouseenter',()=>showWallPlaque(p));
+  a.addEventListener('mouseleave',idlePlaque);
+  a.addEventListener('click',()=>goUrl(p.url));
+});
+
+/* ================= 交互动作 ================= */
+/* ================= 万卷楼 · 全书搜索 ================= */
+const WJ_INDEX=[
+{id:'smg',t:'司马光',w:'《宋史》',dy:'元',gd:'三上',st:1,kw:'司马光 砸缸 击瓮 群儿'},
+{id:'szdt',t:'守株待兔',w:'韩非',dy:'战国',gd:'三下',st:1,kw:'守株待兔 兔子 耕者 寓言'},
+{id:'jwth',t:'精卫填海',w:'《山海经》',dy:'先秦',gd:'四上',st:1,kw:'精卫填海 女娃 神话 山海经'},
+{id:'wrbq',t:'王戎不取道旁李',w:'刘义庆',dy:'南朝',gd:'四上',st:1,kw:'王戎 道旁李 苦李 世说新语'},
+{id:'nyyd',t:'囊萤夜读',w:'房玄龄 等',dy:'唐',gd:'四下',st:1,kw:'车胤 囊萤 夜读 勤学'},
+{id:'tccz',t:'铁杵成针',w:'祝穆',dy:'宋',gd:'四下',st:1,kw:'李白 铁杵磨针 老媪 毅力'},
+{id:'zxmd',t:'自相矛盾',w:'韩非',dy:'战国',gd:'五下',st:1,kw:'矛盾 楚人 鬻盾与矛 寓言 思维'},
+{id:'yszz',t:'杨氏之子',w:'刘义庆',dy:'南朝',gd:'五下',st:1,kw:'杨氏之子 杨梅 孔君平 风趣 世说新语'},
+{id:'bygq',t:'伯牙鼓琴',w:'《吕氏春秋》',dy:'战国',gd:'六上',st:1,kw:'伯牙 锺子期 知音 高山流水'},
+{id:'sdshn',t:'书戴嵩画牛',w:'苏轼',dy:'宋',gd:'六上',st:1,kw:'苏轼 戴嵩 斗牛 牧童 艺术源于生活'},
+{id:'xy',t:'学弈',w:'孟子',dy:'战国',gd:'六下',st:1,kw:'学弈 弈秋 专心致志 孟子'},
+{id:'lxeb',t:'两小儿辩日',w:'《列子》',dy:'战国',gd:'六下',st:1,kw:'两小儿 辩日 孔子 汤车盖 探汤'},
+{id:'grds',t:'古人谈读书',w:'孔子 等',dy:'先秦—清',gd:'六上',st:1,kw:'读书 方法 敏而好学 三到 有志有识有恒'},
+{id:'yx',t:'咏雪',w:'刘义庆',dy:'南朝',gd:'七上',st:2,kw:'咏雪 谢道韫 柳絮 世说新语'},
+{id:'ctqy',t:'陈太丘与友期行',w:'刘义庆',dy:'南朝',gd:'七上',st:2,kw:'陈太丘 元方 期行 信与礼 世说新语'},
+{id:'ly7',t:'《论语》十二章',w:'孔子弟子及再传弟子',dy:'先秦',gd:'七上',st:2,kw:'论语 学习态度 修身 温故知新 三省吾身'},
+{id:'jzs',t:'诫子书',w:'诸葛亮',dy:'三国',gd:'七上',st:2,kw:'诫子书 诸葛亮 静以修身 淡泊 宁静致远 家训'},
+{id:'lang',t:'狼',w:'蒲松龄',dy:'清',gd:'七上',st:2,kw:'狼 蒲松龄 屠户 聊斋 志怪 寓言'},
+{id:'cjdy',t:'穿井得一人',w:'《吕氏春秋》',dy:'战国',gd:'七上',st:2,kw:'穿井得一人 谣言 寓言 吕氏春秋'},
+{id:'qryt',t:'杞人忧天',w:'《列子》',dy:'战国',gd:'七上',st:2,kw:'杞人忧天 寓言 列子 天地崩坠'},
+{id:'sqqx',t:'孙权劝学',w:'司马光',dy:'宋',gd:'七下',st:2,kw:'孙权劝学 吕蒙 鲁肃 刮目相待 资治通鉴'},
+{id:'myw',t:'卖油翁',w:'欧阳修',dy:'宋',gd:'七下',st:2,kw:'卖油翁 欧阳修 熟能生巧 陈尧咨'},
+{id:'hzjs',t:'河中石兽',w:'纪昀',dy:'清',gd:'七下',st:2,kw:'河中石兽 纪昀 阅微草堂 老河兵 物理'},
+{id:'lsm',t:'陋室铭',w:'刘禹锡',dy:'唐',gd:'七下',st:2,kw:'陋室铭 刘禹锡 山不在高 惟吾德馨',g:'loushiming.html'},
+{id:'als',t:'爱莲说',w:'周敦颐',dy:'宋',gd:'七下',st:2,kw:'爱莲说 周敦颐 出淤泥而不染 君子 花中君子',g:'ailianshuo.html'},
+{id:'sx',t:'三峡',w:'郦道元',dy:'北魏',gd:'八上',st:2,kw:'三峡 郦道元 水经注 夏水 猿鸣',g:'sanxia.html'},
+{id:'dxszs',t:'答谢中书书',w:'陶弘景',dy:'南朝',gd:'八上',st:2,kw:'答谢中书书 陶弘景 山川之美 仙都 清流见底',g:'dazhongshushu.html'},
+{id:'jcts',t:'记承天寺夜游',w:'苏轼',dy:'宋',gd:'八上',st:2,kw:'记承天寺夜游 苏轼 月色 闲人 张怀民',g:'chengtiansi.html'},
+{id:'yzyx',t:'与朱元思书',w:'吴均',dy:'南朝',gd:'八上',st:2,kw:'与朱元思书 吴均 富春江 骈文 奇山异水'},
+{id:'dddz',t:'得道多助，失道寡助',w:'孟子',dy:'战国',gd:'八上',st:2,kw:'孟子 得道多助 天时地利人和'},
+{id:'fgbn',t:'富贵不能淫',w:'孟子',dy:'战国',gd:'八上',st:2,kw:'孟子 大丈夫 富贵不能淫 威武不能屈'},
+{id:'syyh',t:'生于忧患，死于安乐',w:'孟子',dy:'战国',gd:'八上',st:2,kw:'孟子 生于忧患 天将降大任 苦其心志'},
+{id:'ygy',t:'愚公移山',w:'《列子》',dy:'战国',gd:'八上',st:2,kw:'愚公移山 列子 寓言 太行王屋 坚持不懈'},
+{id:'zyfjx',t:'周亚夫军细柳',w:'司马迁',dy:'西汉',gd:'八上',st:2,kw:'周亚夫 细柳营 司马迁 真将军'},
+{id:'tyh',t:'桃花源记',w:'陶渊明',dy:'东晋',gd:'八下',st:2,kw:'桃花源记 陶渊明 世外桃源 芳草鲜美',g:'taohuayuan.html'},
+{id:'xst',t:'小石潭记',w:'柳宗元',dy:'唐',gd:'八下',st:2,kw:'小石潭记 柳宗元 永州八记 潭中鱼可百许头',g:'xiaoshitan.html'},
+{id:'hzj',t:'核舟记',w:'魏学洢',dy:'明',gd:'八下',st:2,kw:'核舟记 王叔远 大苏泛赤壁 微雕'},
+{id:'bmyy',t:'北冥有鱼',w:'庄子',dy:'战国',gd:'八下',st:2,kw:'庄子 北冥有鱼 鲲鹏 逍遥游'},
+{id:'haoliang',t:'庄子与惠子游于濠梁之上',w:'庄子',dy:'战国',gd:'八下',st:2,kw:'庄子 惠子 濠梁 鱼之乐 辩论'},
+{id:'syjy',t:'虽有嘉肴',w:'《礼记》',dy:'西汉',gd:'八下',st:2,kw:'礼记 教学相长 虽有嘉肴'},
+{id:'ddzh',t:'大道之行也',w:'《礼记》',dy:'西汉',gd:'八下',st:2,kw:'礼记 天下为公 大同 选贤与能'},
+{id:'ms',t:'马说',w:'韩愈',dy:'唐',gd:'八下',st:2,kw:'马说 韩愈 伯乐 千里马 世有伯乐'},
+{id:'yylj',t:'岳阳楼记',w:'范仲淹',dy:'北宋',gd:'九上',st:2,kw:'岳阳楼记 范仲淹 洞庭湖 先天下之忧而忧 迁客骚人'},
+{id:'zwtj',t:'醉翁亭记',w:'欧阳修',dy:'北宋',gd:'九上',st:2,kw:'醉翁亭记 欧阳修 琅琊山 醉翁之意不在酒 太守'},
+{id:'htxkx',t:'湖心亭看雪',w:'张岱',dy:'明末清初',gd:'九上',st:2,kw:'湖心亭看雪 张岱 西湖 大雪 雾凇沆砀 痴'},
+{id:'ywsyy',t:'鱼我所欲也',w:'《孟子》',dy:'战国',gd:'九下',st:2,kw:'孟子 舍生取义 鱼我所欲也 嗟来之食 万钟'},
+{id:'sdmys',t:'送东阳马生序',w:'宋濂',dy:'明',gd:'九下',st:2,kw:'宋濂 送东阳马生序 勤学 借书 负箧曳屣'},
+{id:'cglz',t:'曹刿论战',w:'《左传》',dy:'春秋',gd:'九下',st:2,kw:'曹刿论战 长勺之战 一鼓作气 肉食者鄙 左传'},
+{id:'zjfj',t:'邹忌讽齐王纳谏',w:'《战国策》',dy:'西汉',gd:'九下',st:2,kw:'邹忌 讽齐王纳谏 门庭若市 战国策 徐公'},
+{id:'csb',t:'出师表',w:'诸葛亮',dy:'三国',gd:'九下',st:2,kw:'出师表 诸葛亮 刘备 北伐 亲贤远佞 三顾茅庐'},
+{id:'tangju',t:'唐雎不辱使命',w:'《战国策》',dy:'西汉',gd:'九下',st:2,kw:'唐雎 不辱使命 布衣之怒 天子之怒 战国策'},
+{id:'qx',t:'劝学',w:'荀子',dy:'战国',gd:'必修上',st:3,kw:'劝学 荀子 学不可以已 青出于蓝 锲而不舍'},
+{id:'ss',t:'师说',w:'韩愈',dy:'唐',gd:'必修上',st:3,kw:'师说 韩愈 从师 传道受业解惑 圣人无常师'},
+{id:'cbf',t:'赤壁赋',w:'苏轼',dy:'北宋',gd:'必修上',st:3,kw:'赤壁赋 苏轼 前赤壁赋 清风明月 水调歌头不适用 主客问答'},
+{id:'dtsj',t:'登泰山记',w:'姚鼐',dy:'清',gd:'必修上',st:3,kw:'登泰山记 姚鼐 日观峰 苍山负雪 桐城派'},
+{id:'lyg',t:'论语十二章',w:'《论语》',dy:'先秦',gd:'必修上',st:3,kw:'论语 十二章 孔子 君子 仁 克己复礼 己所不欲勿施于人'},
+{id:'dxzd',t:'大学之道',w:'《礼记》',dy:'先秦',gd:'必修上',st:3,kw:'大学之道 明明德 亲民 止于至善 格物致知 修身齐家治国平天下'},
+{id:'rjy',t:'人皆有不忍人之心',w:'《孟子》',dy:'战国',gd:'必修上',st:3,kw:'孟子 四端 恻隐 羞恶 辞让 是非 不忍人之心'},
+{id:'zl',t:'子路、曾皙、冉有、公西华侍坐',w:'《论语》',dy:'先秦',gd:'必修下',st:3,kw:'侍坐 论语 子路曾皙冉有公西华 浴乎沂 吾与点也'},
+{id:'zzwty',t:'烛之武退秦师',w:'《左传》',dy:'春秋',gd:'必修下',st:3,kw:'烛之武退秦师 左传 临晋 郑国 外交辞令'},
+{id:'pdjn',t:'庖丁解牛',w:'《庄子》',dy:'战国',gd:'必修下',st:3,kw:'庖丁解牛 庄子 游刃有余 养生之道 目无全牛'},
+{id:'qhjwzs',t:'齐桓晋文之事',w:'《孟子》',dy:'战国',gd:'必修下',st:3,kw:'齐桓晋文之事 孟子 保民而王 缘木求鱼 老吾老以及人之老'},
+{id:'hmy',t:'鸿门宴',w:'司马迁',dy:'西汉',gd:'必修下',st:3,kw:'鸿门宴 项羽 刘邦 张良 樊哙 项庄舞剑 史记'},
+{id:'jkcs',t:'谏逐客书',w:'李斯',dy:'秦',gd:'必修下',st:3,kw:'谏逐客书 李斯 逐客 太山不让土壤 秦国'},
+{id:'jtzss',t:'谏太宗十思疏',w:'魏征',dy:'唐',gd:'必修下',st:3,kw:'谏太宗十思疏 魏征 居安思危 载舟覆舟 十思'},
+{id:'dsmjw',t:'答司马谏议书',w:'王安石',dy:'北宋',gd:'必修下',st:3,kw:'答司马谏议书 王安石 司马光 变法 侵官生事征利拒谏'},
+{id:'epgf',t:'阿房宫赋',w:'杜牧',dy:'唐',gd:'必修下',st:3,kw:'阿房宫赋 杜牧 六王毕四海一 钩心斗角 楚人一炬'},
+{id:'lgl',t:'六国论',w:'苏洵',dy:'北宋',gd:'必修下',st:3,kw:'六国论 苏洵 弊在赂秦 以地事秦 抱薪救火'},
+{id:'lzsz',t:'老子四章',w:'《老子》',dy:'春秋',gd:'选必上',st:3,kw:'老子四章 道家 无为 慎终如始 千里之行始于足下 知人者智'},
+{id:'wczh',t:'五石之瓠',w:'《庄子》',dy:'战国',gd:'选必上',st:3,kw:'五石之瓠 庄子 逍遥游 无用之用 不龟手之药'},
+{id:'ja',t:'兼爱（上）',w:'《墨子》',dy:'战国',gd:'选必上',st:3,kw:'兼爱 墨子 天下兼相爱则治 交相恶则乱'},
+{id:'qylz',t:'屈原列传（节选）',w:'司马迁',dy:'西汉',gd:'选必中',st:3,kw:'屈原列传 司马迁 离骚 楚辞 举世混浊而我独清 投汨罗'},
+{id:'swc',t:'苏武传（节选）',w:'班固',dy:'东汉',gd:'选必中',st:3,kw:'苏武传 班固 持节 牧羊 汉节 北海 李陵 气节'},
+{id:'gql',t:'过秦论',w:'贾谊',dy:'西汉',gd:'选必中',st:3,kw:'过秦论 贾谊 奋六世之余烈 仁义不施而攻守之势异也'},
+{id:'lgxc',t:'五代史伶官传序',w:'欧阳修',dy:'北宋',gd:'选必中',st:3,kw:'五代史伶官传序 欧阳修 忧劳可以兴国 逸豫可以亡身 三矢 庄宗'},
+{id:'cqb',t:'陈情表',w:'李密',dy:'西晋',gd:'选必下',st:3,kw:'陈情表 李密 孝 乌鸟私情 茕茕孑立 形影相吊 日薄西山'},
+{id:'xjxz',t:'项脊轩志',w:'归有光',dy:'明',gd:'选必下',st:3,kw:'项脊轩志 归有光 老妪 枇杷树 亭亭如盖 南阁子'},
+{id:'ltjx',t:'兰亭集序',w:'王羲之',dy:'东晋',gd:'选必下',st:3,kw:'兰亭集序 王羲之 流觞曲水 修禊 死生亦大矣 俯仰一世'},
+{id:'gqglx',t:'归去来兮辞（并序）',w:'陶渊明',dy:'东晋',gd:'选必下',st:3,kw:'归去来兮辞 陶渊明 彭泽令 归隐 舟遥遥以轻飏 云无心以出岫'},
+{id:'zzgqt',t:'种树郭橐驼传',w:'柳宗元',dy:'唐',gd:'选必下',st:3,kw:'种树郭橐驼传 柳宗元 顺木之天 传其事以为官戒 长人者好烦其令'},
+{id:'szsj',t:'石钟山记',w:'苏轼',dy:'北宋',gd:'选必下',st:3,kw:'石钟山记 苏轼 湖口 郦道元 李渤 噌吰 窾坎镗鞳 目见耳闻'}
+];
+(function(){
+  const sIn=document.getElementById('sInput');
+  const sDrop=document.getElementById('sDrop');
+  if(!sIn||!sDrop)return;
+  let sItems=[],sAct=-1;
+  function sMatch(q){
+    const s=q.trim().toLowerCase();
+    if(!s)return[];
+    return WJ_INDEX.filter(p=>(p.t+'\n'+p.w+'\n'+p.dy+'\n'+p.gd+'\n'+p.kw).toLowerCase().indexOf(s)>=0).slice(0,8);
+  }
+  function sRender(){
+    sItems=sMatch(sIn.value);sAct=-1;
+    sDrop.textContent='';
+    if(!sIn.value.trim()){sDrop.style.display='none';return;}
+    if(!sItems.length){
+      const d=document.createElement('div');d.className='s-none';
+      d.textContent='书阁中未寻得此卷 · 换个字眼试试';
+      sDrop.appendChild(d);
+    }else{
+      sItems.forEach((p,i)=>{
+        const d=document.createElement('div');d.className='s-item';
+        const t=document.createElement('span');t.className='s-t';t.textContent=p.t;
+        const m=document.createElement('span');m.className='s-m';
+        m.textContent=p.w+' · '+p.dy+' · '+p.gd;
+        d.appendChild(t);d.appendChild(m);
+        if(p.g){const g=document.createElement('span');g.className='s-gm';g.textContent='可研学';d.appendChild(g);}
+        d.addEventListener('click',()=>sGo(p));
+        sDrop.appendChild(d);
+      });
+    }
+    sDrop.style.display='block';
+  }
+  function sGo(p){
+    try{localStorage.setItem('gushi_wj_target',p.id);}catch(e){}
+    goUrl('wanjuan.html');
+  }
+  function sHl(){
+    const items=sDrop.querySelectorAll('.s-item');
+    items.forEach((el,i)=>el.classList.toggle('act',i===sAct));
+  }
+  sIn.addEventListener('input',sRender);
+  sIn.addEventListener('keydown',e=>{
+    if(!sItems.length)return;
+    if(e.key==='ArrowDown'){e.preventDefault();sAct=(sAct+1)%sItems.length;sHl();}
+    else if(e.key==='ArrowUp'){e.preventDefault();sAct=(sAct-1+sItems.length)%sItems.length;sHl();}
+    else if(e.key==='Enter'){e.preventDefault();sGo(sItems[sAct>=0?sAct:0]);}
+  });
+  document.addEventListener('click',e=>{
+    if(!e.target||!e.target.closest||!e.target.closest('#srch'))sDrop.style.display='none';
+  });
+})();
+
+const fadeEl=document.getElementById('fade');
+function goUrl(url){
+  chime();
+  fadeEl.classList.add('show');
+  setTimeout(()=>{ location.href=url; },520);
+}
+function activate(i){
+  const s=SCROLLS[i];
+  if(s.ready){
+    goUrl(s.url);
+  }else{
+    thunk();
+    showPlaque(i);
+    const c=s._el;
+    c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake');
+    plaque.classList.remove('shake'); void plaque.offsetWidth; plaque.classList.add('shake');
+    setTimeout(()=>c.classList.remove('shake'),400);
+  }
+}
+
+/* ================= 视差（已移除，背景保持静态简约） ================= */
+
+/* ================= 尘光微粒（已移除，保持简约） ================= */
+
+/* ================= 登录 / 同步（服务器不在时静默降级为单机） ================= */
+(function(){
+  const TKEY='gushi_token';
+  const OKEY='gushi_owner';
+
+  /* ===== 按账号分档：每个账号（含游客）一份独立档案，登录/退出时换档，互不串号 ===== */
+  function slotKey(o){ return o?('gushi_v1@u:'+o):'gushi_v1@guest'; }
+  function readLS(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
+  function switchSlot(owner){
+    try{
+      const prev=localStorage.getItem(OKEY)||'';
+      const cur=readLS('gushi_v1');
+      if(cur&&cur.v===1&&cur.p) localStorage.setItem(slotKey(prev),JSON.stringify(cur));
+      const nxt=readLS(slotKey(owner));
+      localStorage.setItem('gushi_v1',JSON.stringify(nxt&&nxt.v===1&&nxt.p?nxt:{v:1,p:{}}));
+      localStorage.setItem(OKEY,owner||'');
+    }catch(e){}
+  }
+
+  function local(){
+    try{ const d=JSON.parse(localStorage.getItem('gushi_v1')); return (d&&d.v===1&&d.p)?d:{v:1,p:{}}; }
+    catch(e){ return {v:1,p:{}}; }
+  }
+  const arr=a=>Array.isArray(a)?a:[];
+
+  /* 远端快照合并进本地 gushi_v1（并集/取大/取或） */
+  function mergeBlob(remote){
+    try{
+      if(!remote||remote.v!==1||!remote.p) return false;
+      const d=local();
+      if(!d.btf||typeof d.btf!=='object') d.btf={answered:[],wrong:[],mastered:[]};
+      const rb=(remote.btf&&typeof remote.btf==='object')?remote.btf:{};
+      const uni=(a,b)=>{ const s=new Set(arr(a).concat(arr(b))); return [...s]; };
+      d.btf.answered=uni(d.btf.answered,rb.answered);
+      d.btf.mastered=uni(d.btf.mastered,rb.mastered);
+      const wm={};
+      arr(d.btf.wrong).concat(arr(rb.wrong)).forEach(w=>{
+        if(w&&w.qid){ const o=wm[w.qid]; if(!o||(w.ts||0)>=(o.ts||0)) wm[w.qid]=w; }
+      });
+      d.btf.wrong=Object.keys(wm).map(k=>wm[k]);
+      for(const pid in remote.p){
+        const r=remote.p[pid]||{};
+        const o=d.p[pid]||(d.p[pid]={lit:[],done:false,ts:0,exam:{attempts:0,wrong:[],perfect:false}});
+        o.lit=uni(o.lit,r.lit);
+        o.done=!!(o.done||r.done);
+        o.ts=Math.max(o.ts||0,r.ts||0);
+        o.exam=o.exam||{attempts:0,wrong:[],perfect:false};
+        const re=(r.exam&&typeof r.exam==='object')?r.exam:{};
+        o.exam.attempts=Math.max(o.exam.attempts||0,re.attempts||0);
+        o.exam.perfect=!!(o.exam.perfect||re.perfect);
+        const em={};
+        arr(o.exam.wrong).concat(arr(re.wrong)).forEach(w=>{
+          const key=(w.k||'')+'|'+(w.q||''); const old=em[key];
+          if(!old||(w.ts||0)>=(old.ts||0)) em[key]=w;
+        });
+        o.exam.wrong=Object.keys(em).map(k=>em[k]).slice(-60);
+      }
+      localStorage.setItem('gushi_v1',JSON.stringify(d));
+      return true;
+    }catch(e){ return false; }
+  }
+
+  /* 合并后重算书阁读印计数（补盖「读」印需刷新页面） */
+  function refreshAfterMerge(){
+    try{
+      const d=local(); let n=0;
+      SCROLLS.forEach(s=>{
+        const o=s.pid?d.p[s.pid]:null;
+        s.done=!!(o&&o.done);
+        s.perfect=!!(s.done&&o.exam&&o.exam.perfect);
+        if(s.done)n++;
+      });
+      const el=document.getElementById('num'); if(el)el.textContent=n;
+      setHeroNum();
+    }catch(e){}
+  }
+
+  /* 名牌渲染（一体胶囊：印 · 名 · 学分 · 已读 · 按钮） */
+  function curNum(){ return SCROLLS.filter(s=>s.done).length; }
+  function renderBar(u,score){
+    const bar=document.getElementById('userbar');
+    const n=curNum();
+    if(u){
+      bar.innerHTML=
+        '<span class="ub-seal">阁</span>'+
+        '<span class="ub-cell"><span class="ub-name">'+esc(u)+'</span></span>'+
+        '<span class="ub-cell ub-score">学分 '+(score==null?'…':score)+'</span>'+
+        '<span class="ub-cell ub-num">已读 <b id="num">'+n+'</b> 卷</span>'+
+        '<a class="ub-btn" id="ub-mine" title="我的书案">我</a>'+
+        '<a class="ub-btn" id="ub-bang" title="学分金榜">榜</a>'+
+        '<a class="ub-btn ub-red" id="ub-out" title="退出登录">出</a>';
+      document.getElementById('ub-mine').onclick=()=>{ location.href='mine.html'; };
+      document.getElementById('ub-bang').onclick=()=>{ location.href='bang.html'; };
+      document.getElementById('ub-out').onclick=()=>{
+        try{ switchSlot(''); localStorage.removeItem(TKEY); localStorage.removeItem('gushi_local_user'); }catch(e){}
+        location.reload();
+      };
+    }else{
+      bar.innerHTML=
+        '<span class="ub-seal" style="background:linear-gradient(160deg,#8a8478,#6a6558)">客</span>'+
+        '<span class="ub-cell ub-num">已读 <b id="num">'+n+'</b> 卷</span>'+
+        '<a class="ub-btn" id="ub-mine" title="我的书案">我</a>'+
+        '<a class="ub-btn" id="ub-in" title="登录或登记，进度上云可上榜">笔落留名</a>';
+      document.getElementById('ub-mine').onclick=()=>{ location.href='mine.html'; };
+      document.getElementById('ub-in').onclick=()=>{ openAuth(); };
+    }
+  }
+  function esc(s){ return String(s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
+
+  /* 登录浮层 */
+  let mode='up';
+  const authEl=document.getElementById('auth');
+  let firstOpen=true;
+  function openAuth(){ authEl.classList.add('show'); if(firstOpen){ setMode('up'); firstOpen=false; } setTimeout(()=>document.getElementById('a-u').focus(),60); }
+  function closeAuth(){ authEl.classList.remove('show'); }
+  function setMode(m){
+    mode=m;
+    document.getElementById('tab-in').classList.toggle('on',m==='in');
+    document.getElementById('tab-up').classList.toggle('on',m==='up');
+    document.getElementById('a-go').textContent=m==='in'?'入 阁':'登 记 入 阁';
+    document.getElementById('a-err').textContent='';
+  }
+  document.getElementById('tab-in').onclick=()=>setMode('in');
+  document.getElementById('tab-up').onclick=()=>setMode('up');
+  document.getElementById('a-skip').onclick=()=>{ closeAuth(); chime(); };
+  document.getElementById('a-p').addEventListener('keydown',e=>{ if(e.key==='Enter')submit(); });
+  document.getElementById('a-u').addEventListener('keydown',e=>{ if(e.key==='Enter')document.getElementById('a-p').focus(); });
+  document.getElementById('a-go').onclick=submit;
+  function err(msg){ document.getElementById('a-err').textContent=msg; thunk(); }
+
+  async function submit(){
+    const u=document.getElementById('a-u').value.trim();
+    const p=document.getElementById('a-p').value;
+    if(!u||!p) return err('请填写书名与口令');
+    const btn=document.getElementById('a-go'); btn.disabled=true;
+    try{
+      const res=await fetch('/api/'+(mode==='in'?'login':'register'),{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({u:u,p:p})
+      });
+      const data=await res.json();
+      if(!data.ok) return err(data.err||'未知之误');
+      try{ localStorage.setItem(TKEY,data.token); }catch(e){}
+      switchSlot(data.u); /* 换入本账号独立档案，再拉云端合并 */
+      chime();
+      closeAuth();
+      renderBar(data.u,null);
+      await pullSync(data.u,true);
+    }catch(e){
+      /* 后端未启/纯静态：本地建账号，进度存本地 gushi_v1 */
+      try{ localStorage.setItem('gushi_local_user',JSON.stringify({u:u,ts:Date.now()})); }catch(e){}
+      switchSlot(u); /* 本地账号同样分档 */
+      chime(); closeAuth(); renderBar(u,null);
+      document.body.classList.add('no-api');
+    }finally{ btn.disabled=false; }
+  }
+
+  /* 拉取远端快照并合并；有新进度且本页已完成计数会刷新 */
+  async function pullSync(u,toast){
+    try{
+      const t=localStorage.getItem(TKEY);
+      const res=await fetch('/api/sync?token='+encodeURIComponent(t));
+      const data=await res.json();
+      if(data.ok&&data.blob){
+        if(mergeBlob(data.blob)) refreshAfterMerge();
+      }
+      const me=await fetch('/api/me?token='+encodeURIComponent(t));
+      const md=await me.json();
+      if(md.ok) renderBar(u,md.score);
+    }catch(e){}
+  }
+
+  /* 探测后端是否在线（静态托管时 /api 返回 404 页面 → json 解析失败） */
+  async function apiAlive(){
+    try{
+      const ctrl=new AbortController(); const iv=setTimeout(()=>ctrl.abort(),2500);
+      const res=await fetch('/api/board',{signal:ctrl.signal,cache:'no-store'});
+      clearTimeout(iv);
+      await res.json();
+      return true;
+    }catch(e){ return false; }
+  }
+
+  /* 页面加载：有会话则恢复；无会话立即弹注册浮层（不再等探活） */
+  (async function boot(){
+    let t=null; try{ t=localStorage.getItem(TKEY); }catch(e){}
+    if(t){
+      try{
+        const res=await fetch('/api/me?token='+encodeURIComponent(t));
+        const data=await res.json();
+        if(data.ok){
+          try{ localStorage.setItem(OKEY,data.u); }catch(e){} /* 归属旧数据，避免误归游客档 */
+          renderBar(data.u,data.score); await pullSync(data.u,false); return;
+        }
+        try{ localStorage.removeItem(TKEY); }catch(e){}
+      }catch(e){ /* 后端未启，落到本地账号或弹注册 */ }
+    }
+    /* 无有效 token：优先恢复本地账号，否则立即弹注册浮层 */
+    let lu=null; try{ lu=JSON.parse(localStorage.getItem('gushi_local_user')); }catch(e){}
+    if(lu&&lu.u){ try{ localStorage.setItem(OKEY,lu.u); }catch(e){} renderBar(lu.u,null); document.body.classList.add('no-api'); return; }
+    renderBar(null); openAuth();
+    document.body.classList.toggle('no-api',!(await apiAlive()));
+  })();
+})();
+</script>
+</body>
+</html>

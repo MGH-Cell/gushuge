@@ -1,0 +1,3018 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三峡 · 像素泛舟</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#0a1410;
+    font-family:"KaiTi","STKaiti","楷体",serif; user-select:none; }
+  #wrap { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; }
+  #game {
+    image-rendering: auto;
+    background:#000; cursor:pointer;
+  }
+
+  /* ===== 星露谷式对话框 ===== */
+  #dialog {
+    position:fixed; left:50%; bottom:3.5%; transform:translateX(-50%) translateY(24px);
+    width:min(820px,94vw);
+    background:linear-gradient(180deg,#fbf4e2,#f2e8d0);
+    border:1px solid rgba(94,72,42,.55);
+    border-radius:10px;
+    box-shadow:0 10px 32px rgba(43,36,27,.4), inset 0 0 0 1px rgba(138,106,62,.25);
+    padding:18px 22px 20px 128px;
+    color:#3a2a18;
+    z-index:30;
+    opacity:0; pointer-events:none;
+    transition:opacity .18s ease, transform .18s ease;
+  }
+  #dialog.show { opacity:1; transform:translateX(-50%) translateY(0); pointer-events:auto; }
+  #portrait-box {
+    position:absolute; left:18px; top:50%; transform:translateY(-58%);
+    width:88px; height:88px;
+    background:#f1e8d3;
+    border:1px solid rgba(94,72,42,.5); border-radius:6px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:inset 0 0 0 1px rgba(138,106,62,.25);
+  }
+  #portrait { width:72px; height:72px; image-rendering:auto; }
+  #nameplate {
+    position:absolute; top:-16px; left:14px;
+    background:#a8412e; color:#fbeeda;
+    font-size:1.05rem; font-weight:bold; letter-spacing:.15rem;
+    padding:2px 16px; border-radius:5px;
+    box-shadow:0 2px 0 rgba(94,72,42,.45);
+  }
+  #dialog-text {
+    font-size:1.24rem; line-height:1.68; letter-spacing:.04rem;
+    min-height:2.2em; text-shadow:none;
+  }
+  #dialog-orig {
+    font-size:1.04rem; line-height:1.6; letter-spacing:.06rem;
+    color:#a8412e; margin:2px 0 4px; min-height:1.5em;
+    display:none;
+  }
+  #dialog-orig.show { display:block; }
+  #dialog-orig::before {
+    content:'原文'; font-size:.72rem; letter-spacing:.1rem;
+    border:1px solid rgba(168,65,46,.55); border-radius:4px;
+    padding:0 5px; margin-right:8px; opacity:.9;
+  }
+  /* 考察区（点字成句 / 时序排序 / 清荣峻茂配对） */
+  #quiz-opts { display:none; margin-top:8px; flex-direction:column; gap:7px; }
+  #quiz-opts.show { display:flex; }
+  #quiz-opts button {
+    font-family:inherit; font-size:1.02rem; letter-spacing:.05rem; text-align:left;
+    padding:7px 14px; border-radius:8px; cursor:pointer;
+    border:1px solid rgba(94,72,42,.4);
+    background:rgba(252,247,233,.95); color:#2e2820;
+    transition:background .12s, transform .12s;
+  }
+  #quiz-opts button:hover { background:rgba(168,65,46,.1); border-color:#a8412e;}
+  #quiz-opts button.ok { background:#e3ecdf; border-color:#355c35; }
+  #quiz-opts button.bad { border-color:rgba(94,72,42,.25); background:rgba(252,247,233,.6); opacity:.55; text-decoration:line-through;}
+  #quiz-opts button.sel { background:rgba(168,65,46,.16); border-color:#7a2a1c; }
+  #quiz-opts button:disabled { cursor:default; }
+  #quiz-opts button.wch { width:42px; text-align:center; padding:6px 0; font-size:1.14rem; }
+  .quiz-q { font-size:1.1rem; line-height:1.7; letter-spacing:.06rem; }
+  .quiz-q .blank-hint { color:#8c7d63; font-size:.86rem; letter-spacing:.12rem; }
+  @keyframes qshake { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-5px);} 75%{transform:translateX(5px);} }
+  .quiz-exp { font-size:.9rem; line-height:1.55; color:#4f7a52; min-height:1.5em; letter-spacing:.04rem; }
+  .word-ans { font-size:1.26rem; letter-spacing:.3rem; color:#a8412e; min-height:1.7em; padding:1px 0 3px; }
+  .word-pool, .virtue-pool { display:flex; flex-wrap:wrap; gap:6px; }
+  .place-row { display:flex; gap:14px; justify-content:center; }
+  .place-cell { display:flex; flex-direction:column; align-items:center; gap:4px; min-width:110px; }
+  .place-tag { font-size:.94rem; letter-spacing:.2rem; color:rgba(94,72,42,.55); min-height:1.4em; }
+  .place-tag.done { color:#a8412e; text-shadow:none; }
+  #next-arrow {
+    position:absolute; right:16px; bottom:10px;
+    width:0; height:0;
+    border-left:9px solid transparent; border-right:9px solid transparent;
+    border-top:13px solid #a8412e;
+    animation:arrowBounce .7s ease-in-out infinite;
+    opacity:0; transition:opacity .2s;
+  }
+  #next-arrow.show { opacity:1; }
+  @keyframes arrowBounce { 0%,100%{transform:translateY(0);} 50%{transform:translateY(5px);} }
+
+  /* 提示 */
+  #hint {
+    position:fixed; top:52px; left:50%; transform:translateX(-50%);
+    color:#2e2820; font-size:.95rem; letter-spacing:.2rem;
+    background:rgba(252,247,233,.96); padding:5px 18px; border-radius:14px;
+    z-index:20; opacity:0; transition:opacity .4s; pointer-events:none; border:1px solid rgba(94,72,42,.35);}
+  #hint.show { opacity:1; }
+
+  /* 标题 */
+  #title {
+    position:fixed; inset:0; z-index:50;
+    background:radial-gradient(1100px 520px at 78% -8%, rgba(255,250,238,.85) 0%, rgba(255,250,238,0) 60%),linear-gradient(180deg,#f6efdd 0%,#f1e8d3 52%,#e9dfc7 100%);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    color:#2e2820; transition:opacity .8s;
+  }
+  #title::after { content:''; position:absolute; inset:0; pointer-events:none; opacity:.5; background:repeating-linear-gradient(0deg, rgba(120,95,55,.025) 0 1px, transparent 1px 3px),repeating-linear-gradient(90deg, rgba(120,95,55,.02) 0 1px, transparent 1px 3px); }
+  #title h1 {
+    font-size:4.6rem; letter-spacing:.6rem; color:#2b241b;
+    text-shadow:2px 2px 0 rgba(122,90,46,.16);
+    animation:tIn 2s ease;
+  }
+  @keyframes tIn { from{opacity:0;transform:translateY(-30px);} to{opacity:1;transform:none;} }
+  #title .sub { font-size:1.2rem; letter-spacing:.4rem; margin:.8rem 0 .4rem; color:#7a6c52;}
+  #title .author { font-size:.95rem; margin-bottom:3rem; color:#8c7d63;}
+  #start {
+    font-family:inherit; font-size:1.3rem; letter-spacing:.5rem;
+    padding:.7rem 2.6rem; border-radius:26px; cursor:pointer;
+    background:#7a5a36; color:#fbeeda; border:1px solid #5e3a1c;
+    animation:pulse 1.8s ease-in-out infinite;
+  }
+  #start:hover { background:#8a6a42; }
+  @keyframes pulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.06);} }
+  #title .tip { margin-top:2.4rem; font-size:.9rem; color:#8c7d63; letter-spacing:.15rem; }
+
+  /* 音乐 */
+  #music {
+    position:fixed; top:14px; right:14px; z-index:60;
+    width:42px; height:42px; border-radius:50%;
+    background:rgba(252,247,233,.94); color:#a8412e; border:1px solid rgba(94,72,42,.4);
+    font-size:1.1rem; cursor:pointer; line-height:1;
+    box-shadow:0 2px 8px rgba(94,72,42,.18);
+  }
+
+  /* 返回书阁 */
+  #back-shelf {
+    position:fixed; top:14px; left:14px; z-index:60;
+    height:42px; padding:0 16px; border-radius:21px;
+    background:rgba(252,247,233,.94); color:#a8412e; border:1px solid rgba(94,72,42,.4);
+    font-family:inherit; font-size:.92rem; letter-spacing:.18rem;
+    cursor:pointer; line-height:1; text-decoration:none;
+    display:flex; align-items:center; box-shadow:0 2px 8px rgba(94,72,42,.18);
+  }
+  #back-shelf:hover { background:rgba(238,228,200,.97); color:#a8412e;}
+
+  /* 序章·宣纸 */
+  #prologue {
+    position:fixed; inset:0; z-index:55; display:none;
+    align-items:center; justify-content:center;
+    background:rgba(43,36,27,.5);
+  }
+  #prologue.show { display:flex; }
+  .paper {
+    width:min(580px,90vw);
+    background:linear-gradient(180deg,#f3e8cc,#e8d8b2);
+    border:1px solid rgba(94,72,42,.5); border-radius:6px;
+    box-shadow:0 24px 60px rgba(43,36,27,.32), inset 0 0 0 1px rgba(138,106,62,.2);
+    padding:30px 36px 26px; color:#3a2a14; position:relative;
+  }
+  .paper::before, .paper::after {
+    content:''; position:absolute; left:0; right:0; height:6px;
+    background:repeating-linear-gradient(90deg,#7a5a2c 0 26px,#8f6e3c 26px 52px);
+  }
+  .paper::before { top:-3px; } .paper::after { bottom:-3px; }
+  .paper h2 { font-size:1.7rem; letter-spacing:.5rem; text-align:center; margin-bottom:4px; }
+  .paper .kicker { text-align:center; font-size:.86rem; letter-spacing:.3rem; color:#7a5a2c; margin-bottom:18px; }
+  .paper p { font-size:1.06rem; line-height:2.0; letter-spacing:.06rem; }
+  .paper p+p { margin-top:10px; }
+  .paper .em { color:#34684a; font-weight:bold; }
+  #unroll {
+    display:block; margin:22px auto 0;
+    font-family:inherit; font-size:1.05rem; letter-spacing:.4rem;
+    padding:.55rem 2.2rem; border-radius:22px; cursor:pointer;
+    background:#7a5a36; color:#fbeeda; border:1px solid #5e3a1c;
+  }
+  #unroll:hover { background:#8a6a42; }
+
+  /* 顶部原文名句 HUD */
+  #hud {
+    position:fixed; top:12px; left:50%; transform:translateX(-50%);
+    z-index:15; max-width:92vw;
+    background:rgba(252,247,233,.95);
+    border:1px solid rgba(94,72,42,.4); border-radius:8px;
+    padding:5px 18px;
+    color:#5e4e36; font-size:.92rem; letter-spacing:.12rem;
+    opacity:0; transition:opacity .5s; pointer-events:none;
+    text-align:center;
+  }
+  #hud.show { opacity:1; }
+  #hud .steps { color:#a8412e; margin-left:10px; font-size:.84rem; letter-spacing:.05rem; }
+
+  /* 文言知识小卡 */
+  #note {
+    position:fixed; top:66px; right:14px; z-index:25;
+    width:min(290px,78vw);
+    background:rgba(243,232,204,.96);
+    border:2px solid #8a6a38; border-radius:8px;
+    color:#3a2a14; padding:10px 14px 11px;
+    box-shadow:0 8px 26px rgba(0,0,0,.45);
+    opacity:0; transform:translateX(18px); pointer-events:none;
+    transition:opacity .25s, transform .25s;
+  }
+  #note.show { opacity:1; transform:none; }
+  #note .n-title { font-size:1rem; font-weight:bold; letter-spacing:.1rem; color:#34684a; }
+  #note .n-orig { font-size:1.02rem; color:#5a3a18; margin:3px 0 4px; letter-spacing:.08rem; }
+  #note .n-text { font-size:.9rem; line-height:1.65; }
+  #note .n-say {
+    position:absolute; top:7px; right:9px; width:20px; height:20px;
+    border:1px solid rgba(52,104,74,.55); border-radius:4px;
+    background:rgba(255,248,230,.85); color:#34684a;
+    font-size:12px; line-height:1; cursor:pointer; pointer-events:auto;
+    padding:0; display:flex; align-items:center; justify-content:center;
+  }
+  #note .n-say:hover { background:#dcecdf; }
+
+  /* 结局卷轴 */
+  #scroll {
+    position:fixed; inset:0; z-index:45; display:none;
+    align-items:center; justify-content:center;
+    background:rgba(43,36,27,.5);
+  }
+  #scroll.show { display:flex; }
+  #scroll-inner {
+    height:min(88vh,620px);
+    display:flex; flex-direction:row-reverse; gap:0;
+    background:linear-gradient(180deg,#e8d8b0,#dcc694);
+    border:4px solid #6e4e24; border-radius:8px;
+    box-shadow:0 24px 60px rgba(43,36,27,.4);
+    padding:22px 26px; overflow-x:auto; overflow-y:hidden;
+  }
+  .s-col {
+    writing-mode:vertical-rl;
+    font-family:"KaiTi","STKaiti","楷体",serif;
+    color:#3a2812;
+    padding:0 9px;
+    letter-spacing:.1rem;
+    font-size:1.06rem; line-height:1.52;
+    max-height:100%;
+    opacity:0; animation:colIn .7s forwards;
+    white-space:nowrap;
+  }
+  .s-col.head { font-size:1.9rem; letter-spacing:.6rem; color:#2a1808; font-weight:bold; padding:0 16px; }
+  @keyframes colIn { to{opacity:1;} }
+  .s-col .lit { color:#a8412e; font-weight:bold;
+    text-shadow:none; }
+  .s-seal {
+    writing-mode:vertical-rl;
+    display:flex; align-items:center; justify-content:center;
+    padding:0 8px;
+  }
+  .seal {
+    writing-mode:vertical-rl;
+    background:#a8412e; color:#f6e8c8;
+    border:1px solid rgba(94,30,20,.55); border-radius:4px;
+    font-size:1.05rem; letter-spacing:.35rem;
+    padding:10px 6px; line-height:1.5;
+    transform:rotate(-8deg) scale(0);
+    box-shadow:0 2px 6px rgba(0,0,0,.4);
+    font-weight:bold;
+  }
+  .seal.stamp { animation:stamp .5s cubic-bezier(.2,1.6,.4,1) forwards; }
+  @keyframes stamp { to{transform:rotate(-8deg) scale(1);} }
+  #scroll-tools {
+    position:fixed; bottom:18px; left:50%; transform:translateX(-50%);
+    display:flex; gap:14px; z-index:46;
+  }
+  #scroll-tools button {
+    font-family:inherit; font-size:1rem; letter-spacing:.3rem;
+    padding:.55rem 2rem; border-radius:22px; cursor:pointer;
+    background:rgba(243,232,204,.92); border:1px solid rgba(94,72,42,.55); color:#3a2a14;
+  }
+
+  /* 过场黑幕 */
+  #fade {
+    position:fixed; inset:0; background:#2b241b; z-index:35;
+    opacity:0; pointer-events:none; transition:opacity .6s;
+  }
+  #fade.on { opacity:1; }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="game" width="960" height="540"></canvas></div>
+
+<div id="dialog">
+  <div id="nameplate">郦道元</div>
+  <div id="portrait-box"><canvas id="portrait" width="48" height="48"></canvas></div>
+  <div id="dialog-orig"></div>
+  <div id="dialog-text"></div>
+  <div id="quiz-opts"></div>
+  <div id="next-arrow"></div>
+</div>
+<div id="hint"></div>
+<a id="back-shelf" href="index.html">← 书阁</a>
+<button id="music">♪</button>
+
+<div id="title">
+  <h1>三峡</h1>
+  <div class="sub">像素点击 · 泛舟三峡</div>
+  <div class="author">— 北魏 · 郦道元 —</div>
+  <button id="start">入 峡</button>
+  <div class="tip">连山叠嶂 · 夏水襄陵 · 素湍绿潭 · 林寒涧肃 · 高猿长啸</div>
+</div>
+
+<div id="fade"></div>
+
+<!-- 顶部原文名句 -->
+<div id="hud"></div>
+<!-- 文言知识小卡 -->
+<div id="note">
+  <div class="n-title"></div>
+  <div class="n-orig"></div>
+  <div class="n-text"></div>
+  <button class="n-say" type="button" title="朗读原文">🔊</button>
+</div>
+
+<!-- 序章 -->
+<div id="prologue">
+  <div class="paper">
+    <h2>序</h2>
+    <div class="kicker">北魏 · 郦道元 · 笔下山河</div>
+    <p>郦道元，字<span class="em">善长</span>，北魏地理学家，著《水经注》四十卷——为《水经》作注，记大小河流一千余条。</p>
+    <p>他未必亲至三峡，却以妙笔写尽瞿塘之雄、巫峡之秀、西陵之险。本文节选自<span class="em">《水经注·江水》</span>。</p>
+    <p>「自非亭午夜分，不见曦月」——非到正午半夜，竟不见日月。今日你我且泛舟入峡，看山、看水、听猿。</p>
+    <button id="unroll">启 卷 入 峡</button>
+  </div>
+</div>
+
+<!-- 结局卷轴 -->
+<div id="scroll">
+  <div id="scroll-inner"></div>
+  <div id="scroll-tools">
+    <button id="scroll-say" type="button">🔊 朗读全文</button>
+    <button onclick="SAYSTOP();try{localStorage.setItem('gushi_btf_target','sx')}catch(e){};location.href='baitifang.html';">去百题坊答题 · 学完本篇</button>
+    <button onclick="SAYSTOP();location.reload()">收 卷 再 读</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ===== 学习进度（本地存储）+ 朗读 ===== */
+(function(){
+  const KEY='gushi_v1', PIECE='sx';
+  function load(){ try{ const d=JSON.parse(localStorage.getItem(KEY)); return (d&&d.v===1&&d.p)?d:{v:1,p:{}}; }catch(e){ return {v:1,p:{}}; } }
+  function save(d){ try{ localStorage.setItem(KEY,JSON.stringify(d)); }catch(e){} }
+  function mine(d){ return d.p[PIECE]||(d.p[PIECE]={lit:[],done:false,ts:0,exam:{attempts:0,wrong:[],perfect:false}}); }
+  let wrongThisExam=0;
+  /* 朗读正音（教材注音，TTS 易错字→同音字）：阙quē 溯sù 巘yǎn 属zhǔ引 沾裳cháng 曦xī 朝zhāo发 重chóng岩 */
+  const FIX={'阙':'缺','溯':'素','巘':'演','属':'主','裳':'常','曦':'西','朝':'招','重岩':'虫岩'};
+  function trk(ev,v){
+    try{
+      const t=localStorage.getItem('gushi_token');
+      if(!t)return;
+      fetch('/api/track',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({token:t,ev:ev,k:PIECE,v:v||0,t:Date.now(),
+          blob:ev==='lit'?null:(function(){try{return JSON.parse(localStorage.getItem('gushi_v1'))}catch(e){return null}})()})});
+    }catch(e){}
+  }
+  window.PROG={
+    lit(id){ if(!id)return; const d=load(),o=mine(d); if(!o.lit.includes(id)){o.lit.push(id);save(d);trk('lit');} },
+    examStart(){ wrongThisExam=0; const d=load(),o=mine(d); o.exam.attempts++; save(d); trk('examStart'); },
+    wrong(k,q,you,right){ wrongThisExam++; const d=load(),o=mine(d); o.exam.wrong.push({k:k||'',q:q||'',you:you==null?'':String(you),right:right||'',ts:Date.now()}); if(o.exam.wrong.length>60)o.exam.wrong=o.exam.wrong.slice(-60); save(d); trk('wrong'); },
+    finish(){ const d=load(),o=mine(d); o.clear=true; o.ts=Date.now(); o.exam.perfect=(wrongThisExam===0); wrongThisExam=0; save(d); trk('finish'); }
+  };
+  /* 真人感朗读引擎 v2：优选神经网络声线 · 古文句读停顿 · 标点语调 · 抗 cancel 吞音 */
+  (function(){
+    let bestVoice=null;
+    function pickVoice(){
+      try{
+        const vs=window.speechSynthesis.getVoices()||[];
+        let best=null,bs=-99;
+        for(const v of vs){
+          if(!/zh|Chinese|cmn/i.test(v.lang+v.name))continue;
+          const t=v.name||''; let s=0;
+          if(/online|natural|neural|google/i.test(t))s+=12;
+          if(/云希|云健|云扬|晓晓|晓伊|晓秋|Yunxi|Yunjian|Yunyang|Xiaoxiao|Xiaoyi|Xiaoyou/i.test(t))s+=8;
+          if(/zh-CN|zh_CN|cmn-Hans/i.test(v.lang))s+=2;
+          if(/Huihui|Kangkang|Zhiyu|Yaoyao|Desktop/i.test(t))s-=6;
+          if(s>bs){bs=s;best=v;}
+        }
+        if(best)bestVoice=best;
+      }catch(e){}
+    }
+    try{ pickVoice(); window.speechSynthesis.addEventListener('voiceschanged',pickVoice); }catch(e){}
+    let seq=0, kick=null;
+    function clearKick(){ if(kick){ clearTimeout(kick); kick=null; } }
+    function run(ss,my,items){
+      let i=0;
+      function go(){
+        if(my!==seq||i>=items.length)return;
+        const it=items[i++];
+        const u=new SpeechSynthesisUtterance(it.t);
+        u.lang='zh-CN'; u.rate=it.rate; u.pitch=it.pitch; u.volume=1;
+        if(bestVoice)u.voice=bestVoice;
+        let done=false, started=false, timer=null;
+        function guard(){
+          if(done||my!==seq)return;
+          done=true; clearTimeout(timer);
+          if(!started){
+            /* start 迟迟不来＝引擎空窗卡死：cancel 唤醒后留 300ms 恢复窗口 */
+            try{ ss.cancel(); }catch(e){}
+            kick=setTimeout(go,300);
+          }else{
+            /* 已在朗读但 end 不来：不打断声音，静默推进（新句自然顶替/排队） */
+            kick=setTimeout(go,it.pause);
+          }
+        }
+        timer=setTimeout(guard,4000);
+        u.onstart=function(){ started=true; clearTimeout(timer); timer=setTimeout(guard,Math.max(12000,it.t.length*620)); };
+        u.onend=function(){ if(done)return; done=true; clearTimeout(timer); kick=setTimeout(go,it.pause); };
+        u.onerror=function(){ if(done)return; done=true; clearTimeout(timer); kick=setTimeout(go,260); };
+        try{ ss.resume(); }catch(e){}
+        ss.speak(u);
+      }
+      kick=setTimeout(go,120);   /* 首句延迟 120ms：避开 cancel() 异步吞音窗口 */
+    }
+    window.SAY=function(text){
+      try{
+        if(!('speechSynthesis' in window))return;
+        const ss=window.speechSynthesis, my=++seq;
+        clearKick();
+        ss.cancel();
+        let s=String(text).replace(/\s+/g,'');
+        if(!s)return;
+        for(const k in FIX)s=s.split(k).join(FIX[k]);
+        if(!bestVoice)pickVoice();
+        const parts=s.match(/[^。！？；，、：,.!?;:]+[。！？；，、：,.!?;:]?/g)||[s];
+        /* 逗号短句并入整句，朗读更连贯 */
+        const groups=[]; let buf='';
+        for(const p1 of parts){
+          const p2=p1.trim(); if(!p2)continue;
+          buf+=p2;
+          if(/[。！？；!?;]$/.test(p2)){ groups.push(buf); buf=''; }
+        }
+        if(buf)groups.push(buf);
+        const items=[];
+        for(const p0 of groups){
+          const p=p0.trim(); if(!p)continue;
+          const end=p.slice(-1), core=p.replace(/[。！？；，、：,.!?;:]+$/,'');
+          let rate=1.02, pitch=1;
+          if(/[？?]/.test(end)){ pitch=1.1; rate=1.0; }
+          else if(/[！!]/.test(end)){ pitch=.94; rate=.98; }
+          else if(/[。；;]/.test(end)){ pitch=.985; rate=.98; }
+          if(/[也矣焉耳哉]$/.test(core))rate-=.03;
+          const pause=/[。！？；;!?]/.test(end)?140:(/[，、：,:]/.test(end)?60:40);
+          items.push({t:p,rate:rate,pitch:pitch,pause:pause});
+          if(items.length>=80)break;
+        }
+        run(ss,my,items);
+      }catch(e){}
+    };
+    window.SAYSTOP=function(){ seq++; clearKick(); try{ if('speechSynthesis' in window)window.speechSynthesis.cancel(); }catch(e){} };
+  })();
+})();
+/* ================= 基础 ================= */
+const cv = document.getElementById('game');
+const g = cv.getContext('2d');
+g.scale(2,2);
+g.imageSmoothingEnabled = true;
+const W = 480, H = 270;
+
+function fit() {
+  const s = Math.min(window.innerWidth / W, window.innerHeight / H);
+  cv.style.width = (W * s) + 'px';
+  cv.style.height = (H * s) + 'px';
+}
+window.addEventListener('resize', fit); fit();
+
+let CUR = g;
+function rnd(a,b){ return a + Math.random()*(b-a); }
+function clamp(v,a,b){ return v<a?a:v>b?b:v; }
+
+/* —— 美术工具（平滑矢量） —— */
+function hexRGB(h){ return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]; }
+function rgbLerp(a,b,t){ return 'rgb('+a.map((v,i)=>Math.round(v+(b[i]-v)*t)).join(',')+')'; }
+function vband(y0,y1,c1,c2){
+  const gr=CUR.createLinearGradient(0,y0,0,y1);
+  gr.addColorStop(0,c1); gr.addColorStop(1,c2);
+  CUR.fillStyle=gr; CUR.fillRect(0,y0,W,y1-y0);
+}
+function disc(cx,cy,r,c){
+  CUR.fillStyle=c; CUR.beginPath(); CUR.arc(cx,cy,Math.max(.2,r),0,Math.PI*2); CUR.fill();
+}
+function softGlow(cx,cy,r,c1,c2){
+  const gr=CUR.createRadialGradient(cx,cy,0,cx,cy,Math.max(.5,r));
+  gr.addColorStop(0,c1); gr.addColorStop(1,c2||'rgba(255,255,255,0)');
+  CUR.fillStyle=gr; CUR.beginPath(); CUR.arc(cx,cy,Math.max(.5,r),0,Math.PI*2); CUR.fill();
+}
+function shadow(cx,cy,rx,ry,a=.26){
+  CUR.save(); CUR.translate(cx,cy); CUR.scale(rx,ry);
+  const gr=CUR.createRadialGradient(0,0,0,0,0,1);
+  gr.addColorStop(0,'rgba(22,14,8,'+a+')');
+  gr.addColorStop(.62,'rgba(22,14,8,'+(a*.5)+')');
+  gr.addColorStop(1,'rgba(22,14,8,0)');
+  CUR.fillStyle=gr; CUR.beginPath(); CUR.arc(0,0,1,0,Math.PI*2); CUR.fill();
+  CUR.restore();
+}
+function ellipseFill(cx,cy,rx,ry,c){
+  CUR.fillStyle=c; CUR.beginPath(); CUR.ellipse(cx,cy,Math.max(.2,rx),Math.max(.2,ry),0,0,Math.PI*2); CUR.fill();
+}
+function rockFill(cx,cy,rx,ry,c1,c2){
+  const rg=CUR.createRadialGradient(cx-rx*.4,cy-ry*.9,Math.max(.5,ry*.2),cx,cy,Math.max(rx,ry));
+  rg.addColorStop(0,c2); rg.addColorStop(1,c1);
+  CUR.fillStyle=rg; CUR.beginPath(); CUR.ellipse(cx,cy,rx,ry,0,0,Math.PI*2); CUR.fill();
+}
+function tuft(x,y,c='#4f7a34'){
+  CUR.save(); CUR.lineCap='round';
+  CUR.fillStyle='rgba(32,48,24,.20)';
+  CUR.beginPath(); CUR.ellipse(x,y+.5,3.6,1.0,0,0,6.2832); CUR.fill();
+  for(let i=0;i<4;i++){
+    const d=(i-1.5)/1.6, len=5.4+Math.abs(d)*1.4+hash(x+i*3.1)*1.8;
+    CUR.strokeStyle=c; CUR.lineWidth=1.15;
+    CUR.beginPath(); CUR.moveTo(x+d*1.5,y);
+    CUR.quadraticCurveTo(x+d*3.2,y-len*.6,x+d*4.8,y-len); CUR.stroke();
+    CUR.strokeStyle='rgba(172,208,140,.42)'; CUR.lineWidth=.55;
+    CUR.beginPath(); CUR.moveTo(x+d*1.5,y-.3);
+    CUR.quadraticCurveTo(x+d*3.1,y-len*.58,x+d*4.6,y-len*.94); CUR.stroke();
+  }
+  CUR.restore();
+}
+function waterGlint(x,y,w,c){
+  CUR.save(); CUR.strokeStyle=c; CUR.lineWidth=.9; CUR.lineCap='round';
+  CUR.beginPath(); CUR.moveTo(x,y); CUR.quadraticCurveTo(x+w*.5,y-.9,x+w,y); CUR.stroke();
+  CUR.restore();
+}
+function ridgeRange(x0,x1,base,h,c1,c2,seed){
+  const gr=CUR.createLinearGradient(0,base-h,0,base);
+  gr.addColorStop(0,c1); gr.addColorStop(1,c2);
+  CUR.fillStyle=gr;
+  CUR.beginPath(); CUR.moveTo(x0,base);
+  const n=7;
+  for(let i=0;i<n;i++){
+    const xa=x0+(x1-x0)*i/n, xb=x0+(x1-x0)*(i+1)/n;
+    const hh=h*(.45+hash(seed+i*3.7)*.55);
+    CUR.quadraticCurveTo((xa+xb)/2,base-hh,xb,base-h*(.12+hash(seed+i*2.3)*.22));
+  }
+  CUR.lineTo(x1,base); CUR.closePath(); CUR.fill();
+}
+
+/* ================= 音频 ================= */
+let actx=null, masterGain=null, musicOn=false, mTimer=null;
+function audioInit(){
+  if(actx) return;
+  actx = new (window.AudioContext||window.webkitAudioContext)();
+  masterGain = actx.createGain();
+  masterGain.gain.value = .2; masterGain.connect(actx.destination);
+}
+function tone(freq, t, dur, vol=.15, type='sine', dest=masterGain){
+  const o=actx.createOscillator(), gn=actx.createGain();
+  o.type=type; o.frequency.value=freq;
+  gn.gain.setValueAtTime(0,t);
+  gn.gain.linearRampToValueAtTime(vol,t+.02);
+  gn.gain.exponentialRampToValueAtTime(.001,t+dur);
+  o.connect(gn); gn.connect(dest); o.start(t); o.stop(t+dur+.05);
+}
+function blipSound(){
+  if(!actx||!musicOn) return;
+  tone(680+Math.random()*120, actx.currentTime, .05, .04, 'square');
+}
+function chime(){
+  if(!actx||!musicOn) return;
+  const t=actx.currentTime;
+  tone(523.25,t,.18,.12); tone(659.25,t+.09,.25,.12); tone(783.99,t+.18,.35,.1);
+}
+function sealSound(){
+  if(!actx||!musicOn) return;
+  const t=actx.currentTime;
+  tone(98,t,.22,.18,'triangle');
+  setTimeout(()=>{ if(actx) tone(147,actx.currentTime,.3,.1,'triangle'); },90);
+}
+/* 猿鸣：三声哀转，渐次远去 */
+function yuanCry(){
+  if(!actx||!musicOn) return;
+  const t=actx.currentTime;
+  [0,.6,1.3].forEach((d,i)=>{
+    tone(760-i*90, t+d, .55, .13/(i+1), 'sine');
+    tone(540-i*70, t+d+.24, .55, .09/(i+1), 'sine');
+  });
+}
+const SCALE=[261.63,293.66,329.63,392,440,523.25,587.33,659.25];
+const BASS=[130.81,146.83,164.81,196,220];
+const MELODY=[[5,1],[4,1],[3,1],[2,1],[3,2],[5,1],[3,1],[4,1],[3,1],[2,1],[1,1],[2,2],[4,1],[2,1],
+ [3,1],[4,1],[5,1],[6,1],[5,2],[3,1],[5,1],[4,1],[3,1],[4,1],[5,1],[3,2],[2,1],[1,1],
+ [1,2],[2,1],[3,1],[4,2],[3,1],[2,1],[1,4]];
+let mIdx=0; const BEAT=.55;
+function schedMusic(){
+  if(!musicOn||!actx) return;
+  const [idx,beats]=MELODY[mIdx], f=SCALE[idx-1], t=actx.currentTime;
+  tone(f,t,beats*BEAT,.12);
+  tone(f*2,t+.05,beats*BEAT*.6,.04);
+  if(mIdx%4===0) tone(BASS[(Math.random()*BASS.length)|0],t,BEAT*4,.09,'triangle');
+  mIdx=(mIdx+1)%MELODY.length;
+  mTimer=setTimeout(schedMusic, beats*BEAT*1000);
+}
+document.getElementById('music').addEventListener('click', e=>{
+  e.stopPropagation(); audioInit();
+  if(actx.state==='suspended') actx.resume();
+  if(musicOn){ musicOn=false; clearTimeout(mTimer); e.target.textContent='♪'; }
+  else{ musicOn=true; mIdx=0; schedMusic(); e.target.textContent='♫'; }
+});
+
+/* ================= 像素小人 ================= */
+const CHARS = {
+  ke:{ hair:'#241c14', skin:'#f2c9a2', shade:'#d9a678', blush:'#e88888',
+    cloth:'#3f7a68', cloth2:'#2e5c4e', panel:'#559a84', inner:'#f0e6cc',
+    belt:'#24443a', buckle:'#d8c070', legs:'#33281c', shoe:'#1e150c', futou:true },
+  narrator:{ hair:'#3a2418', skin:'#f0c8a0', shade:'#d8a070', blush:'#e88888',
+    cloth:'#6a4a8a', cloth2:'#523870', panel:'#7e5ea0', inner:'#e8dcf0',
+    belt:'#3a2458', buckle:'#ffd94d', legs:'#2a1a3a', shoe:'#1a1028' },
+  yu:{ hair:'#2a221a', skin:'#f0c8a0', shade:'#d8a070', blush:'#e08888',
+    cloth:'#5e7a84', cloth2:'#475f68', panel:'#74909a', inner:'#e8f0ee',
+    belt:'#2e444a', buckle:'#d8c878', legs:'#39464a', shoe:'#22282a', futou:true, beard:true },
+  fu:{ hair:'#3a2c1c', skin:'#e8b98a', shade:'#c89868', blush:'#d88080',
+    cloth:'#7a5c38', cloth2:'#5c4428', panel:'#8e7046', inner:'#d8cbb0',
+    belt:'#3a2c18', buckle:'#c8a860', legs:'#40331f', shoe:'#241a10', douli:true, beard:true }
+};
+
+// 原点在脚底中心；四方向 + 摆臂摆腿 + 呼吸起伏
+function rrectP(ctx,x,y,w,h,r){
+  const k=Math.min(r,Math.abs(w)/2,Math.abs(h)/2);
+  ctx.beginPath();
+  ctx.moveTo(x+k,y);
+  ctx.lineTo(x+w-k,y); ctx.quadraticCurveTo(x+w,y,x+w,y+k);
+  ctx.lineTo(x+w,y+h-k); ctx.quadraticCurveTo(x+w,y+h,x+w-k,y+h);
+  ctx.lineTo(x+k,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-k);
+  ctx.lineTo(x,y+k); ctx.quadraticCurveTo(x,y,x+k,y);
+  ctx.closePath();
+}
+function rrect(x,y,w,h,r){ rrectP(CUR,x,y,w,h,r); }
+function limb(x0,y0,x1,y1,w,col){
+  CUR.strokeStyle=col; CUR.lineWidth=w; CUR.lineCap='round';
+  CUR.beginPath(); CUR.moveTo(x0,y0); CUR.lineTo(x1,y1); CUR.stroke();
+}
+function eyeAt(ex,ey){
+  CUR.fillStyle='#fff8ee';
+  CUR.beginPath(); CUR.ellipse(ex,ey,.78,1.02,0,0,6.2832); CUR.fill();
+  CUR.fillStyle='#2a1a12';
+  CUR.beginPath(); CUR.ellipse(ex,ey,.42,.6,0,0,6.2832); CUR.fill();
+  CUR.fillStyle='rgba(255,255,255,.85)';
+  CUR.beginPath(); CUR.arc(ex-.16,ey-.28,.19,0,6.2832); CUR.fill();
+}
+function drawHuman(cx, cy, o){
+  const c = CHARS[o.type] || CHARS.ke;
+  const sc = c.child ? .78 : 1;
+  const moving=!!o.moving, f=o.frame||0, dir=o.dir||'d';
+  const idle = moving?0:((f>>4)&1);
+  const ph = moving ? (f%4) : 0;
+  const sw = moving ? [0,1,0,-1][ph] : 0;
+  const bob = moving ? ((ph%2)?-.55:0) : -idle*.7;
+  const br = moving ? 0 : Math.sin(f*.07)*.3;
+
+  CUR.save(); CUR.translate(cx,cy); CUR.scale(sc,sc);
+  shadow(0,0,8.4,2.7,.3);
+  CUR.translate(0,bob);
+
+  /* —— 腿脚 —— */
+  const liftL = moving&&ph===1?1.1:0;
+  const liftR = moving&&ph===3?1.1:0;
+  const sgn = dir==='l'?-1:(dir==='r'?1:0);
+  const fxL = -2.4 + sgn*sw*.9, fxR = 2.4 + sgn*sw*.9;
+  limb(-2.2,-5.4, fxL, -1.4-liftL, 2.5, c.legs);
+  limb( 2.2,-5.4, fxR, -1.4-liftR, 2.5, c.legs);
+  CUR.fillStyle=c.shoe;
+  CUR.beginPath(); CUR.ellipse(fxL-.2,-.75-liftL,2.15,1.15,0,0,6.2832); CUR.fill();
+  CUR.beginPath(); CUR.ellipse(fxR+.2,-.75-liftR,2.15,1.15,0,0,6.2832); CUR.fill();
+  CUR.fillStyle='rgba(255,255,255,.16)';
+  CUR.beginPath(); CUR.ellipse(fxL-.4,-1.1-liftL,1.1,.42,0,0,6.2832); CUR.fill();
+  CUR.beginPath(); CUR.ellipse(fxR,-1.1-liftR,1.1,.42,0,0,6.2832); CUR.fill();
+
+  /* —— 长袍 —— */
+  const robe=CUR.createLinearGradient(0,-17.2,0,-2.4);
+  robe.addColorStop(0,c.panel); robe.addColorStop(.52,c.cloth); robe.addColorStop(1,c.cloth2);
+  CUR.fillStyle=robe;
+  CUR.beginPath();
+  CUR.moveTo(-4.7,-16.3);
+  CUR.bezierCurveTo(-5.9,-13.2,-6.9,-7.4,-7.3,-3.0);
+  CUR.quadraticCurveTo(-3.7,-1.5,0,-1.5);
+  CUR.quadraticCurveTo(3.7,-1.5,7.3,-3.0);
+  CUR.bezierCurveTo(6.9,-7.4,5.9,-13.2,4.7,-16.3);
+  CUR.quadraticCurveTo(2.3,-17.4,0,-17.4);
+  CUR.quadraticCurveTo(-2.3,-17.4,-4.7,-16.3);
+  CUR.closePath(); CUR.fill();
+  /* 衣襟 */
+  CUR.fillStyle=c.panel;
+  CUR.beginPath();
+  CUR.moveTo(-2.0,-16.0); CUR.quadraticCurveTo(-2.7,-9.4,-2.3,-2.1);
+  CUR.lineTo(2.3,-2.1); CUR.quadraticCurveTo(2.7,-9.4,2.0,-16.0);
+  CUR.closePath(); CUR.fill();
+  /* 交领 */
+  CUR.fillStyle=c.inner;
+  CUR.beginPath();
+  CUR.moveTo(-3.3,-16.9); CUR.quadraticCurveTo(-1.6,-13.4,0,-11.9);
+  CUR.quadraticCurveTo(1.6,-13.4,3.3,-16.9);
+  CUR.quadraticCurveTo(0,-15.9,-3.3,-16.9);
+  CUR.closePath(); CUR.fill();
+  /* 腰带 */
+  CUR.fillStyle=c.belt; rrect(-5.6,-8.6,11.2,2.3,.9); CUR.fill();
+  CUR.fillStyle=c.buckle; rrect(-1.3,-8.8,2.6,2.7,.6); CUR.fill();
+  CUR.strokeStyle='rgba(30,20,12,.18)'; CUR.lineWidth=.7;
+  CUR.beginPath(); CUR.moveTo(-6.9,-3.4); CUR.quadraticCurveTo(0,-2.1,6.9,-3.4); CUR.stroke();
+
+  /* —— 手臂 —— */
+  limb(-4.5,-14.9,-6.3,-9.4+sw*.95,2.6,c.cloth2);
+  limb( 4.5,-14.9, 6.3,-9.4-sw*.95,2.6,c.cloth2);
+  CUR.fillStyle=c.skin;
+  CUR.beginPath(); CUR.arc(-6.3,-8.9+sw*.95,1.25,0,6.2832); CUR.fill();
+  CUR.beginPath(); CUR.arc( 6.3,-8.9-sw*.95,1.25,0,6.2832); CUR.fill();
+
+  /* —— 头 —— */
+  const hy=-21.0+br;
+  CUR.fillStyle=c.shade; rrect(-1.7,-18.1,3.4,2.6,.9); CUR.fill();   // 颈
+  if(dir==='u'){
+    CUR.fillStyle=c.hair;
+    CUR.beginPath(); CUR.ellipse(0,hy,4.2,4.5,0,0,6.2832); CUR.fill();
+    CUR.beginPath(); CUR.arc(0,hy-4.0,1.9,0,6.2832); CUR.fill();
+    CUR.fillStyle=c.inner;
+    CUR.beginPath(); CUR.ellipse(0,-14.1,2.0,1.2,0,0,6.2832); CUR.fill();
+    CUR.fillStyle='rgba(255,255,255,.10)';
+    CUR.beginPath(); CUR.ellipse(-1.5,hy-1.6,1.15,2.0,-.32,0,6.2832); CUR.fill();
+  }else{
+    CUR.fillStyle=c.hair;
+    CUR.beginPath(); CUR.ellipse(0,hy-.7,4.2,4.55,0,0,6.2832); CUR.fill();
+    if(c.longhair){ CUR.beginPath(); CUR.ellipse(-3.9,hy+2.3,1.4,3.2,.08,0,6.2832); CUR.fill();
+                    CUR.beginPath(); CUR.ellipse( 3.9,hy+2.3,1.4,3.2,-.08,0,6.2832); CUR.fill(); }
+    CUR.fillStyle=c.skin;
+    CUR.beginPath(); CUR.ellipse(0,hy+1.0,3.55,3.6,0,0,6.2832); CUR.fill();
+    /* 鬓发（朝向侧收窄） */
+    CUR.fillStyle=c.hair;
+    const lw = dir==='l'?.6:1.1, rw = dir==='r'?.6:1.1;
+    CUR.beginPath(); CUR.ellipse(-3.55,hy+1.2,lw,2.45,.10,0,6.2832); CUR.fill();
+    CUR.beginPath(); CUR.ellipse( 3.55,hy+1.2,rw,2.45,-.10,0,6.2832); CUR.fill();
+    CUR.strokeStyle='rgba(255,255,255,.10)'; CUR.lineWidth=.6; CUR.lineCap='round';
+    CUR.beginPath(); CUR.arc(-1.3,hy-1.9,2.5,Math.PI*.92,Math.PI*1.42); CUR.stroke();
+    if(c.bun){
+      CUR.fillStyle=c.hair;
+      CUR.beginPath(); CUR.arc(0,hy-4.6,1.9,0,6.2832); CUR.fill();
+      CUR.fillStyle='#c8a040';
+      CUR.beginPath(); CUR.ellipse(1.0,hy-4.7,.32,.9,0,0,6.2832); CUR.fill();
+    }
+    /* 五官 */
+    const ox = dir==='l'?-.75:(dir==='r'?.75:0);
+    if(dir==='d'){ eyeAt(-1.45,hy+.9); eyeAt(1.45,hy+.9); }
+    else if(dir==='l'){ eyeAt(-1.5,hy+.9); }
+    else{ eyeAt(1.5,hy+.9); }
+    CUR.fillStyle='rgba(226,118,118,.38)';
+    CUR.beginPath(); CUR.ellipse(-2.35+ox*.5,hy+2.15,.95,.58,0,0,6.2832); CUR.fill();
+    CUR.beginPath(); CUR.ellipse( 2.35+ox*.5,hy+2.15,.95,.58,0,0,6.2832); CUR.fill();
+    CUR.strokeStyle='#a8584a'; CUR.lineWidth=.6; CUR.lineCap='round';
+    CUR.beginPath(); CUR.arc(ox*1.1,hy+1.95,1.0,.28,Math.PI-.28); CUR.stroke();
+    /* 白须 */
+    if(c.beard){
+      CUR.fillStyle='#f0f2f2';
+      CUR.beginPath();
+      CUR.moveTo(ox-2.5,hy+3.0);
+      CUR.quadraticCurveTo(ox-2.2,hy+7.6,ox,hy+8.9);
+      CUR.quadraticCurveTo(ox+2.2,hy+7.6,ox+2.5,hy+3.0);
+      CUR.quadraticCurveTo(ox,hy+4.0,ox-2.5,hy+3.0);
+      CUR.closePath(); CUR.fill();
+      CUR.strokeStyle='rgba(206,212,212,.9)'; CUR.lineWidth=.45;
+      CUR.beginPath(); CUR.moveTo(ox-1.0,hy+4.2); CUR.quadraticCurveTo(ox-.7,hy+6.6,ox-.2,hy+8.2);
+      CUR.moveTo(ox+1.0,hy+4.2); CUR.quadraticCurveTo(ox+.7,hy+6.6,ox+.2,hy+8.2); CUR.stroke();
+    }
+  }
+  if(c.futou){ /* 幞头（唐代官帽） */
+    CUR.fillStyle='#14141c';
+    rrect(-5.0,hy-4.9,10.0,3.7,1.3); CUR.fill();
+    rrect(-7.7,hy-4.4,3.4,1.6,.8); CUR.fill();
+    rrect( 4.3,hy-4.4,3.4,1.6,.8); CUR.fill();
+    CUR.fillStyle='#2e2e3e'; rrect(-3.4,hy-4.6,6.8,1.0,.5); CUR.fill();
+  }
+  if(c.douli){ /* 斗笠 */
+    CUR.fillStyle='#7a5c34';
+    CUR.beginPath(); CUR.ellipse(0,hy-3.1,7.6,2.0,0,0,6.2832); CUR.fill();
+    CUR.fillStyle='#8a6a3e';
+    CUR.beginPath(); CUR.ellipse(0,hy-4.2,5.4,2.0,0,0,6.2832); CUR.fill();
+    CUR.fillStyle='#96793f';
+    CUR.beginPath(); CUR.ellipse(0,hy-5.3,2.4,1.2,0,0,6.2832); CUR.fill();
+    CUR.strokeStyle='rgba(70,48,22,.5)'; CUR.lineWidth=.6;
+    CUR.beginPath(); CUR.moveTo(-7.4,hy-3.1); CUR.quadraticCurveTo(0,hy-1.9,7.4,hy-3.1); CUR.stroke();
+  }
+  CUR.restore();
+}
+
+/* ================= 头像（24x24） ================= */
+const pcv = document.getElementById('portrait');
+const pg = pcv.getContext('2d'); pg.scale(2,2); pg.imageSmoothingEnabled=true;
+function drawPortrait(type){
+  const x=pg, S=24;
+  x.clearRect(0,0,S,S);
+  const c=CHARS[type]||CHARS.narrator;
+
+  if(type==='narrator'){
+    const b=x.createLinearGradient(0,0,S,S);
+    b.addColorStop(0,'#f8ecd0'); b.addColorStop(1,'#e0c493');
+    x.fillStyle=b; x.fillRect(0,0,S,S);
+    x.fillStyle='rgba(255,255,255,.30)'; rrectP(x,1.6,1.6,S-3.2,S-3.2,1.0); x.fill();
+    x.fillStyle='#7c5528';
+    rrectP(x,-.6,1.0,S+1.2,2.6,1.1); x.fill();
+    rrectP(x,-.6,S-3.6,S+1.2,2.6,1.1); x.fill();
+    x.fillStyle='#cf9f5e';
+    rrectP(x,.2,1.4,S-.4,.7,.3); x.fill();
+    rrectP(x,.2,S-3.2,S-.4,.7,.3); x.fill();
+    x.strokeStyle='#5a4028'; x.lineWidth=.85; x.lineCap='round';
+    for(let i=0;i<4;i++){
+      const yy=5.6+i*1.95;
+      x.beginPath(); x.moveTo(4.2,yy);
+      x.lineTo(4.2+(i===3?5.5:12.2-i*1.3),yy); x.stroke();
+    }
+    x.fillStyle='#b8382a'; rrectP(x,15.4,14.4,4.6,4.6,.8); x.fill();
+    x.strokeStyle='#ef8a6a'; x.lineWidth=.7;
+    x.beginPath(); x.moveTo(16.6,15.6); x.lineTo(19.2,18.2);
+    x.moveTo(19.2,15.6); x.lineTo(16.6,18.2); x.stroke();
+    return;
+  }
+
+  /* 底：柔光 */
+  const bg=x.createRadialGradient(12,8,2,12,12,15);
+  bg.addColorStop(0,'#3f555f'); bg.addColorStop(.6,'#28404a'); bg.addColorStop(1,'#1b2b32');
+  x.fillStyle=bg; x.fillRect(0,0,S,S);
+  const gl=x.createRadialGradient(12,9,0,12,9,10);
+  gl.addColorStop(0,'rgba(230,242,236,.20)'); gl.addColorStop(1,'rgba(230,242,236,0)');
+  x.fillStyle=gl; x.fillRect(0,0,S,S);
+
+  /* 肩与袍 */
+  x.fillStyle=c.cloth2;
+  x.beginPath(); x.moveTo(2.0,S);
+  x.bezierCurveTo(2.2,18.4,5.4,16.6,8.6,16.2);
+  x.lineTo(15.4,16.2);
+  x.bezierCurveTo(18.6,16.6,21.8,18.4,22.0,S);
+  x.closePath(); x.fill();
+  const robe=x.createLinearGradient(0,16,0,S);
+  robe.addColorStop(0,c.cloth); robe.addColorStop(1,c.cloth2);
+  x.fillStyle=robe;
+  x.beginPath(); x.moveTo(3.2,S);
+  x.bezierCurveTo(3.4,19.0,6.2,17.2,8.8,16.8);
+  x.lineTo(15.2,16.8);
+  x.bezierCurveTo(17.8,17.2,20.6,19.0,20.8,S);
+  x.closePath(); x.fill();
+  /* 衣襟 */
+  x.fillStyle=c.panel;
+  x.beginPath(); x.moveTo(8.6,16.6);
+  x.quadraticCurveTo(11.2,19.4,12,21.4);
+  x.quadraticCurveTo(12.8,19.4,15.4,16.6);
+  x.quadraticCurveTo(12,17.4,8.6,16.6);
+  x.closePath(); x.fill();
+  /* 交领 */
+  x.fillStyle=c.inner;
+  x.beginPath(); x.moveTo(9.0,16.4);
+  x.quadraticCurveTo(10.6,18.6,12,19.6);
+  x.quadraticCurveTo(13.4,18.6,15.0,16.4);
+  x.quadraticCurveTo(12,17.2,9.0,16.4);
+  x.closePath(); x.fill();
+  x.fillStyle=c.belt; rrectP(x,3.6,20.9,16.8,1.5,.7); x.fill();
+  x.fillStyle=c.buckle; rrectP(x,10.9,20.7,2.2,1.9,.5); x.fill();
+
+  /* 颈 */
+  x.fillStyle=c.shade; rrectP(x,9.8,13.8,4.4,3.4,1.2); x.fill();
+
+  /* 头 */
+  x.fillStyle=c.hair;
+  x.beginPath(); x.ellipse(12,9.4,5.5,5.7,0,0,6.2832); x.fill();
+  if(c.longhair){
+    x.beginPath(); x.ellipse(6.6,11.4,1.6,4.0,.10,0,6.2832); x.fill();
+    x.beginPath(); x.ellipse(17.4,11.4,1.6,4.0,-.10,0,6.2832); x.fill();
+  }
+  x.fillStyle=c.skin;
+  x.beginPath(); x.ellipse(12,10.6,4.7,4.85,0,0,6.2832); x.fill();
+  x.fillStyle=c.hair;
+  x.beginPath(); x.ellipse(7.7,10.9,1.5,2.9,.12,0,6.2832); x.fill();
+  x.beginPath(); x.ellipse(16.3,10.9,1.5,2.9,-.12,0,6.2832); x.fill();
+  x.strokeStyle='rgba(255,255,255,.13)'; x.lineWidth=.9; x.lineCap='round';
+  x.beginPath(); x.arc(9.8,7.4,3.1,Math.PI*.92,Math.PI*1.4); x.stroke();
+  /* 眼 */
+  const eye=function(ex,ey){
+    x.fillStyle='#fff8ee';
+    x.beginPath(); x.ellipse(ex,ey,1.0,1.25,0,0,6.2832); x.fill();
+    x.fillStyle='#2a1a12';
+    x.beginPath(); x.ellipse(ex,ey,.52,.72,0,0,6.2832); x.fill();
+    x.fillStyle='rgba(255,255,255,.9)';
+    x.beginPath(); x.arc(ex-.2,ey-.35,.22,0,6.2832); x.fill();
+  };
+  eye(9.9,10.5); eye(14.1,10.5);
+  /* 眉 */
+  x.strokeStyle=c.hair; x.lineWidth=.7;
+  x.beginPath(); x.moveTo(8.6,8.9); x.quadraticCurveTo(9.9,8.4,11.1,8.9); x.stroke();
+  x.beginPath(); x.moveTo(12.9,8.9); x.quadraticCurveTo(14.1,8.4,15.4,8.9); x.stroke();
+  /* 腮红 */
+  x.fillStyle='rgba(232,120,120,.34)';
+  x.beginPath(); x.ellipse(8.5,12.9,1.35,.85,0,0,6.2832); x.fill();
+  x.beginPath(); x.ellipse(15.5,12.9,1.35,.85,0,0,6.2832); x.fill();
+  /* 鼻嘴 */
+  x.strokeStyle=c.shade; x.lineWidth=.6;
+  x.beginPath(); x.moveTo(12,11.4); x.lineTo(11.6,12.2); x.stroke();
+  x.strokeStyle='#a8584a'; x.lineWidth=.8;
+  x.beginPath(); x.arc(12,13.4,1.25,.30,Math.PI-.30); x.stroke();
+  /* 白须 */
+  if(c.beard){
+    x.fillStyle='#f0f2f2';
+    x.beginPath(); x.moveTo(9.2,13.0);
+    x.quadraticCurveTo(9.9,17.4,12,18.2);
+    x.quadraticCurveTo(14.1,17.4,14.8,13.0);
+    x.quadraticCurveTo(12,14.1,9.2,13.0);
+    x.closePath(); x.fill();
+    x.strokeStyle='#cfd6d6'; x.lineWidth=.5;
+    x.beginPath(); x.moveTo(10.8,14.4); x.quadraticCurveTo(11.1,16.6,11.6,17.7);
+    x.moveTo(13.2,14.4); x.quadraticCurveTo(12.9,16.6,12.4,17.7); x.stroke();
+  }
+  /* 幞头 */
+  if(c.futou){
+    x.fillStyle='#14141c';
+    rrectP(x,6.0,3.6,12.0,4.2,1.6); x.fill();
+    rrectP(x,2.4,4.5,4.0,2.0,.9); x.fill();
+    rrectP(x,17.6,4.5,4.0,2.0,.9); x.fill();
+    x.fillStyle='#2e2e3e'; rrectP(x,8.2,4.1,7.6,1.1,.5); x.fill();
+  }
+  /* 斗笠 */
+  if(c.douli){
+    x.fillStyle='#7a5c34';
+    x.beginPath(); x.ellipse(12,5.4,9.4,2.5,0,0,6.2832); x.fill();
+    x.fillStyle='#8a6a3e';
+    x.beginPath(); x.ellipse(12,4.0,6.6,2.3,0,0,6.2832); x.fill();
+    x.fillStyle='#96793f';
+    x.beginPath(); x.ellipse(12,2.4,2.8,1.3,0,0,6.2832); x.fill();
+    x.strokeStyle='rgba(70,48,22,.5)'; x.lineWidth=.7;
+    x.beginPath(); x.moveTo(2.9,5.4); x.quadraticCurveTo(12,6.6,21.1,5.4); x.stroke();
+  }
+}
+
+/* ================= 场景元素绘制 ================= */
+function hash(i){ const v=Math.sin(i*127.1+311.7)*43758.5453; return v-Math.floor(v); }
+
+function mount(cx,base,w,h,main,dark,cap){
+  const gr=CUR.createLinearGradient(cx-w*.5,base-h,cx+w*.5,base);
+  gr.addColorStop(0,cap); gr.addColorStop(.42,main); gr.addColorStop(1,dark);
+  CUR.fillStyle=gr;
+  CUR.beginPath();
+  CUR.moveTo(cx-w,base);
+  CUR.quadraticCurveTo(cx-w*.5,base-h*.42,cx-w*.16,base-h*.9);
+  CUR.quadraticCurveTo(cx-w*.04,base-h*1.02,cx+w*.06,base-h*.82);
+  CUR.quadraticCurveTo(cx+w*.36,base-h*.4,cx+w*.62,base-h*.62);
+  CUR.quadraticCurveTo(cx+w*.86,base-h*.3,cx+w,base);
+  CUR.closePath(); CUR.fill();
+  /* 山脊淡墨轮廓 */
+  CUR.save(); CUR.strokeStyle='rgba(58,74,68,.30)'; CUR.lineWidth=.85; CUR.lineCap='round';
+  CUR.beginPath(); CUR.moveTo(cx-w,base);
+  CUR.quadraticCurveTo(cx-w*.5,base-h*.42,cx-w*.16,base-h*.9);
+  CUR.quadraticCurveTo(cx-w*.04,base-h*1.02,cx+w*.06,base-h*.82);
+  CUR.quadraticCurveTo(cx+w*.36,base-h*.4,cx+w*.62,base-h*.62);
+  CUR.quadraticCurveTo(cx+w*.86,base-h*.3,cx+w,base);
+  CUR.stroke(); CUR.restore();
+}
+function pineTree(x,y){ // 怪柏（崖沿横生）
+  shadow(x+1,y+1.5,10,2.6,.26);
+  CUR.save();
+  CUR.strokeStyle='#3a2c1a'; CUR.lineWidth=2.2; CUR.lineCap='round';
+  CUR.beginPath(); CUR.moveTo(x,y);
+  CUR.bezierCurveTo(x-2.2,y-6,x+2,y-11,x-1.2,y-17); CUR.stroke();
+  CUR.lineWidth=1.4;
+  CUR.beginPath(); CUR.moveTo(x-1,y-10);
+  CUR.bezierCurveTo(x-5,y-12,x-8,y-14,x-12,y-16); CUR.stroke();
+  CUR.beginPath(); CUR.moveTo(x-.6,y-14);
+  CUR.bezierCurveTo(x+3,y-16,x+7,y-18,x+10,y-21); CUR.stroke();
+  CUR.beginPath(); CUR.moveTo(x-1,y-17);
+  CUR.bezierCurveTo(x-2,y-20,x,y-22,x-1.5,y-25); CUR.stroke();
+  /* 针叶团（层叠柔边，底层深、顶层次） */
+  const cl=[[-11,-17,6.4,4.2],[-5,-20,5.8,4.0],[2,-22,6.2,4.2],[8,-23,5.4,3.8],
+            [0,-26.5,6.6,4.4],[-8,-24,5.0,3.6],[5.5,-27.5,4.8,3.4]];
+  cl.forEach(function(c,i){
+    rockFill(x+c[0],y+c[1],c[2],c[3], i%3===0?'#223a28':'#26402c', i%3===0?'#38583c':'#446848');
+  });
+  /* 叶簇受光边 */
+  CUR.strokeStyle='rgba(166,198,148,.42)'; CUR.lineWidth=.75;
+  cl.forEach(function(c){
+    CUR.beginPath(); CUR.moveTo(x+c[0]-c[2]*.62,y+c[1]-c[3]*.28);
+    CUR.quadraticCurveTo(x+c[0],y+c[1]-c[3]*.92,x+c[0]+c[2]*.62,y+c[1]-c[3]*.30); CUR.stroke();
+  });
+  CUR.restore();
+}
+function frostTree(x,y){ // 寒林（霜晨）
+  shadow(x,y+2,11,3,.22);
+  CUR.save();
+  CUR.strokeStyle='#3a2e22'; CUR.lineWidth=2.6; CUR.lineCap='round';
+  CUR.beginPath(); CUR.moveTo(x,y);
+  CUR.bezierCurveTo(x-1.2,y-10,x+1,y-16,x-1,y-23); CUR.stroke();
+  CUR.lineWidth=1.35;
+  CUR.beginPath(); CUR.moveTo(x-1,y-16); CUR.quadraticCurveTo(x-4,y-17,x-7,y-19); CUR.stroke();
+  CUR.beginPath(); CUR.moveTo(x-1,y-19); CUR.quadraticCurveTo(x+2,y-20,x+6,y-22); CUR.stroke();
+  CUR.beginPath(); CUR.moveTo(x-1,y-11); CUR.quadraticCurveTo(x-4,y-11,x-6,y-13); CUR.stroke();
+  CUR.beginPath(); CUR.moveTo(x,y-8); CUR.quadraticCurveTo(x+3,y-9,x+5,y-11); CUR.stroke();
+  /* 树冠：圆润柔边 */
+  CUR.save(); CUR.globalAlpha=.94;
+  rockFill(x-6,y-21,5.2,4.2,'#3c5046','#5c7464');
+  rockFill(x+5,y-24,5.0,4.0,'#354a40','#546c5c');
+  rockFill(x-1,y-28,5.8,4.6,'#3c5046','#607a68');
+  rockFill(x+7,y-15,4.0,3.2,'#33473d','#4e6656');
+  rockFill(x-7,y-14,3.6,3.0,'#33473d','#4e6656');
+  CUR.restore();
+  /* 霜白 */
+  CUR.strokeStyle='rgba(236,244,238,.85)'; CUR.lineWidth=1.0; CUR.lineCap='round';
+  CUR.beginPath(); CUR.moveTo(x-9,y-24); CUR.quadraticCurveTo(x-7,y-25.5,x-5,y-24.5); CUR.stroke();
+  CUR.beginPath(); CUR.moveTo(x-3,y-30.5); CUR.quadraticCurveTo(x-1,y-31.8,x+1.5,y-31); CUR.stroke();
+  CUR.beginPath(); CUR.moveTo(x+4,y-26.5); CUR.quadraticCurveTo(x+6,y-27.8,x+8,y-26.8); CUR.stroke();
+  CUR.fillStyle='rgba(248,252,248,.85)';
+  CUR.beginPath(); CUR.ellipse(x-6.5,y-24.6,2.2,.6,-.2,0,6.2832); CUR.fill();
+  CUR.beginPath(); CUR.ellipse(x+5.2,y-27,2.0,.55,-.15,0,6.2832); CUR.fill();
+  CUR.restore();
+}
+/* ================= 场景定义 ================= */
+const EXITS=[
+  {x:466,y:160,w:14,h:110},
+  {x:466,y:160,w:14,h:110},
+  {x:466,y:160,w:14,h:110},
+  {x:466,y:160,w:14,h:110},
+  null
+];const BACK_EXITS=EXITS.map(function(e,i){ if(i===0) return null; var ref=e||EXITS[i-1]||{y:150,w:14,h:120}; return {x:0,y:ref.y,w:ref.w,h:ref.h}; });
+
+const WALKY=[{a:206,b:258},{a:196,b:258},{a:200,b:258},{a:214,b:258},{a:196,b:258}];
+/* 互动热点坐标 */
+const LSHAN_BOX={x:10,y:96,w:220,h:50};    // 幕0 左岸连山（略无阙处）
+const RSHAN_BOX={x:270,y:78,w:200,h:68};    // 幕0 右岸重岩叠嶂（隐天蔽日）
+const JIANG_BOX={x:120,y:120,w:340,h:115};    // 幕1 汹涌江水（沿溯阻绝）
+const ZHOU_BOX={x:35,y:120,w:70,h:40};        // 幕1 白帝城·顺流飞舟
+const TUAN_BOX={x:86,y:55,w:60,h:115};      // 幕2 素湍（回清）
+const TAN_BOX={x:230,y:190,w:245,h:50};       // 幕2 绿潭（倒影）
+const QUAN_BOX={x:92,y:35,w:60,h:130};      // 幕3 悬泉瀑布（清·水）
+const GUAI_BOX={x:300,y:52,w:56,h:56};        // 幕3 绝巘怪柏（荣·树）
+const YAN_BOX={x:130,y:34,w:110,h:44};        // 幕3 绝巘峰顶（峻·山）
+const CAO_BOX={x:250,y:170,w:84,h:52};        // 幕3 崖间茂草（茂·草）
+const HANLIN_BOX={x:130,y:160,w:160,h:84};    // 幕4 寒林（林寒涧肃）
+const APE_BOX={x:330,y:88,w:56,h:44};         // 幕4 高猿（空谷传响）
+let tFrame=0;
+
+/* —— 静态背景（离屏缓存） —— */
+function drawStatic(idx){
+  if(idx===0){ // 幕0 峡口望山
+    /* 雨前淡青灰天空 */
+    const sky=CUR.createLinearGradient(0,0,0,152);
+    sky.addColorStop(0,'#ccdad2'); sky.addColorStop(.52,'#b2c6bc'); sky.addColorStop(1,'#98ada3');
+    CUR.fillStyle=sky; CUR.fillRect(0,0,W,152);
+    softGlow(250,46,74,'rgba(244,240,214,.40)');
+    disc(250,42,9.5,'rgba(240,234,208,.88)');
+    softGlow(250,41,44,'rgba(238,244,226,.30)');
+    /* 雾中远峰 */
+    CUR.save(); CUR.globalAlpha=.52;
+    ridgeRange(-20,232,144,30,'#8ba098','#7c928a',2.1);
+    ridgeRange(246,502,142,34,'#8ba098','#7c928a',5.3);
+    CUR.restore();
+    /* 左岸连山（略无阙处：连绵一排） */
+    mount(20,168,64,64,'#46605a','#38504a','#5a746c');
+    mount(78,170,70,78,'#4c665e','#3c544c','#5f7a70');
+    mount(140,168,66,70,'#46605a','#38504a','#5a746c');
+    mount(196,170,58,58,'#425c54','#364c46','#567066');
+    /* 右岸重岩叠嶂（赭石黛青相间） */
+    mount(320,170,74,80,'#54645a','#405248','#8a6a4a');
+    mount(392,172,84,96,'#4c5c50','#3c4c42','#967650');
+    mount(456,170,70,74,'#54645a','#405248','#8a6a4a');
+    /* 岩层纹理（嵌在右岸山体内） */
+    CUR.save(); CUR.strokeStyle='rgba(96,70,44,.26)'; CUR.lineWidth=.9; CUR.lineCap='round';
+    for(let i=0;i<3;i++){
+      const yy=148-i*11, xx=298+i*28;
+      CUR.beginPath(); CUR.moveTo(xx,yy);
+      CUR.quadraticCurveTo(xx+12,yy-2.2,xx+24,yy); CUR.stroke();
+      CUR.beginPath(); CUR.moveTo(xx+6,yy+6);
+      CUR.quadraticCurveTo(xx+17,yy+4.6,xx+28,yy+6); CUR.stroke();
+    }
+    CUR.restore();
+    /* 江面（碧绿） */
+    const wg=CUR.createLinearGradient(0,148,0,234);
+    wg.addColorStop(0,'#43806f'); wg.addColorStop(.55,'#376c5c'); wg.addColorStop(1,'#2c5c50');
+    CUR.fillStyle=wg; CUR.fillRect(0,148,W,86);
+    softGlow(250,190,168,'rgba(126,208,182,.16)');
+    for(let i=0;i<24;i++){
+      const x=hash(i*3.7)*W, y=156+hash(i*7.7)*68;
+      waterGlint(x,y,7+hash(i*2.9)*9,'rgba(255,255,255,'+(.14+hash(i*5.1)*.16)+')');
+    }
+    /* 水岸 */
+    const shore=CUR.createLinearGradient(0,232,0,270);
+    shore.addColorStop(0,'#837c66'); shore.addColorStop(1,'#5c5746');
+    CUR.fillStyle=shore; CUR.fillRect(0,232,W,38);
+    CUR.save(); CUR.strokeStyle='rgba(150,144,120,.75)'; CUR.lineWidth=1.4; CUR.lineCap='round';
+    CUR.beginPath(); CUR.moveTo(0,232.5); CUR.quadraticCurveTo(240,230.5,480,233); CUR.stroke();
+    CUR.restore();
+    for(let i=0;i<30;i++){
+      const x=hash(i*9.1)*W, y=238+hash(i*4.7)*28;
+      CUR.save(); CUR.globalAlpha=.55;
+      ellipseFill(x,y,1.5+hash(i*3.3)*1.8,.8+hash(i*1.7)*.7, i%2?'#6e6852':'#857e66');
+      CUR.restore();
+    }
+  }
+  if(idx===1){ // 幕1 夏水襄陵
+    const sky=CUR.createLinearGradient(0,0,0,114);
+    sky.addColorStop(0,'#adbac0'); sky.addColorStop(.55,'#9aada2'); sky.addColorStop(1,'#869a90');
+    CUR.fillStyle=sky; CUR.fillRect(0,0,W,114);
+    softGlow(250,108,200,'rgba(224,234,226,.22)');
+    /* 远山（被水势压低） */
+    CUR.save(); CUR.globalAlpha=.72;
+    ridgeRange(-10,244,114,28,'#7e948c','#6e857c',3.7);
+    ridgeRange(238,500,112,30,'#7e948c','#6e857c',8.1);
+    CUR.restore();
+    /* 白帝城下的江心孤石 */
+    rockFill(40,113,22,5,'#3e4c46','#5d6a62');
+    ellipseFill(40,112,25,2.4,'rgba(210,222,214,.16)');
+    /* 白帝城剪影（左上角小塔） */
+    CUR.save();
+    CUR.fillStyle='#4c5a54';
+    CUR.beginPath(); CUR.moveTo(26,112); CUR.lineTo(29,108); CUR.lineTo(51,108); CUR.lineTo(54,112); CUR.closePath(); CUR.fill();
+    CUR.fillStyle='#46544e';
+    CUR.beginPath(); CUR.moveTo(35.5,108); CUR.lineTo(36.5,87); CUR.lineTo(45.5,87); CUR.lineTo(46.5,108); CUR.closePath(); CUR.fill();
+    CUR.fillStyle='#42504a';
+    CUR.beginPath(); CUR.moveTo(30,87); CUR.quadraticCurveTo(37,83,41,84.5); CUR.quadraticCurveTo(45,83,52,87);
+    CUR.quadraticCurveTo(41,85.5,30,87); CUR.closePath(); CUR.fill();
+    CUR.beginPath(); CUR.moveTo(38,79); CUR.lineTo(39,74); CUR.lineTo(43,74); CUR.lineTo(44,79); CUR.closePath(); CUR.fill();
+    CUR.beginPath(); CUR.moveTo(35,80); CUR.quadraticCurveTo(39.5,77,44.5,80);
+    CUR.quadraticCurveTo(40,78.8,35,80); CUR.closePath(); CUR.fill();
+    CUR.fillStyle='rgba(210,222,214,.22)';
+    CUR.beginPath(); CUR.moveTo(37,88); CUR.lineTo(45,88); CUR.lineTo(45,90); CUR.lineTo(37,90); CUR.closePath(); CUR.fill();
+    CUR.restore();
+    /* 暴涨江面（浊绿） */
+    const wg=CUR.createLinearGradient(0,112,0,248);
+    wg.addColorStop(0,'#547c68'); wg.addColorStop(.45,'#4a705e'); wg.addColorStop(1,'#35584a');
+    CUR.fillStyle=wg; CUR.fillRect(0,112,W,136);
+    softGlow(240,176,190,'rgba(196,220,204,.14)');
+    for(let i=0;i<20;i++){
+      const x=hash(i*4.3)*W, y=118+hash(i*6.9)*118;
+      waterGlint(x,y,9+hash(i*2.7)*13,'rgba(255,255,255,'+(.10+hash(i*4.1)*.14)+')');
+    }
+    /* 待发的轻舟 */
+    CUR.save();
+    CUR.fillStyle='#5a4026';
+    CUR.beginPath(); CUR.moveTo(50,146); CUR.lineTo(78,146);
+    CUR.quadraticCurveTo(75,152,64,152); CUR.quadraticCurveTo(54,152,50,146); CUR.closePath(); CUR.fill();
+    CUR.fillStyle='#4a3420';
+    CUR.beginPath(); CUR.moveTo(54,150); CUR.quadraticCurveTo(64,154,74,150);
+    CUR.quadraticCurveTo(64,152,54,150); CUR.fill();
+    CUR.strokeStyle='#4a3420'; CUR.lineWidth=1.5; CUR.lineCap='round';
+    CUR.beginPath(); CUR.moveTo(65,146); CUR.lineTo(65,132); CUR.stroke();
+    const sail=CUR.createLinearGradient(66,133,75,144);
+    sail.addColorStop(0,'#f2ecd8'); sail.addColorStop(1,'#ddd5bc');
+    CUR.fillStyle=sail;
+    CUR.beginPath(); CUR.moveTo(66,133); CUR.quadraticCurveTo(73,136,74.5,143.5);
+    CUR.lineTo(67,144); CUR.quadraticCurveTo(66,139,66,133); CUR.closePath(); CUR.fill();
+    CUR.strokeStyle='rgba(90,64,38,.45)'; CUR.lineWidth=.6; CUR.stroke();
+    CUR.restore();
+    /* 近岸高滩 */
+    const shore=CUR.createLinearGradient(0,246,0,270);
+    shore.addColorStop(0,'#76705a'); shore.addColorStop(1,'#544e3c');
+    CUR.fillStyle=shore; CUR.fillRect(0,246,W,24);
+    CUR.save(); CUR.strokeStyle='rgba(146,138,114,.7)'; CUR.lineWidth=1.3;
+    CUR.beginPath(); CUR.moveTo(0,246.5); CUR.quadraticCurveTo(240,244.5,480,247); CUR.stroke(); CUR.restore();
+    for(let i=0;i<24;i++){
+      const x=hash(i*6.3)*W, y=250+hash(i*3.1)*18;
+      CUR.save(); CUR.globalAlpha=.5;
+      ellipseFill(x,y,1.4+hash(i*2.1)*1.7,.7+hash(i*1.3)*.6, i%2?'#5e5844':'#756e56');
+      CUR.restore();
+    }
+  }
+  if(idx===2){ // 幕2 春冬素湍
+    const sky=CUR.createLinearGradient(0,0,0,174);
+    sky.addColorStop(0,'#c2d4cc'); sky.addColorStop(.42,'#b0c6bc'); sky.addColorStop(.60,'#9cb2a8');
+    sky.addColorStop(.80,'#89a79b'); sky.addColorStop(1,'#6c9186');
+    CUR.fillStyle=sky; CUR.fillRect(0,0,W,174);
+    softGlow(300,40,120,'rgba(248,252,246,.28)');
+    softGlow(300,150,190,'rgba(228,240,232,.22)');
+    /* 左侧岩壁 */
+    mount(60,196,86,150,'#4c5c52','#3c4c44','#6a7a6a');
+    mount(130,190,60,100,'#54645a','#42524a','#75856e');
+    /* 素湍白带（自岩间泻下） */
+    /* 泉源岩壁：自山坳拔起，托住水带顶端 */
+    CUR.save();
+    const cg=CUR.createLinearGradient(0,48,0,198);
+    cg.addColorStop(0,'#5c6c62'); cg.addColorStop(.42,'#46564c'); cg.addColorStop(1,'#37463d');
+    CUR.fillStyle=cg;
+    CUR.beginPath();
+    CUR.moveTo(72,198);
+    CUR.bezierCurveTo(84,152,90,96,90,58);
+    CUR.quadraticCurveTo(106,46,122,56);
+    CUR.bezierCurveTo(124,100,130,152,142,198);
+    CUR.closePath(); CUR.fill();
+    CUR.strokeStyle='rgba(34,44,38,.32)'; CUR.lineWidth=1;
+    CUR.beginPath(); CUR.moveTo(104,52); CUR.bezierCurveTo(100,100,107,148,102,196); CUR.stroke();
+    CUR.strokeStyle='rgba(150,166,150,.20)'; CUR.lineWidth=.8;
+    CUR.beginPath(); CUR.moveTo(92,60); CUR.bezierCurveTo(86,104,79,150,74,196); CUR.stroke();
+    CUR.restore();
+    tuft(95,55,'#5c7c58'); tuft(112,53,'#57794a');
+    CUR.save();
+    const wf=CUR.createLinearGradient(0,56,0,188);
+    wf.addColorStop(0,'rgba(246,252,248,.96)');
+    wf.addColorStop(.55,'rgba(226,242,234,.88)');
+    wf.addColorStop(1,'rgba(196,222,210,.55)');
+    CUR.fillStyle=wf;
+    CUR.beginPath();
+    CUR.moveTo(96,58);
+    CUR.bezierCurveTo(92,90,100,128,94,188);
+    CUR.lineTo(114,188);
+    CUR.bezierCurveTo(108,130,116,94,112,58);
+    CUR.closePath(); CUR.fill();
+    const core=CUR.createLinearGradient(0,58,0,176);
+    core.addColorStop(0,'rgba(255,255,255,.95)'); core.addColorStop(1,'rgba(235,248,242,.5)');
+    CUR.strokeStyle=core; CUR.lineWidth=6; CUR.lineCap='round';
+    CUR.beginPath(); CUR.moveTo(101,62); CUR.bezierCurveTo(98,96,105,130,101,180); CUR.stroke();
+    CUR.strokeStyle='rgba(214,234,226,.55)'; CUR.lineWidth=2.2;
+    CUR.beginPath(); CUR.moveTo(93,62); CUR.bezierCurveTo(89,84,94,98,91,120); CUR.stroke();
+    CUR.beginPath(); CUR.moveTo(115,68); CUR.bezierCurveTo(118,88,113,104,117,128); CUR.stroke();
+    CUR.restore();
+    /* 绿潭（柔边渐变，无硬椭圆轮廓） */
+    vband(170,246,'#3f7d6c','#2f6154');
+    CUR.save();
+    CUR.beginPath(); CUR.rect(0,168,W,80); CUR.clip();
+    const pool=CUR.createRadialGradient(302,190,8,305,202,148);
+    pool.addColorStop(0,'rgba(134,198,176,.80)');
+    pool.addColorStop(.42,'rgba(92,162,142,.52)');
+    pool.addColorStop(.74,'rgba(68,132,114,.26)');
+    pool.addColorStop(1,'rgba(68,132,114,0)');
+    CUR.fillStyle=pool; CUR.fillRect(0,168,W,80);
+    const refl=CUR.createRadialGradient(300,196,6,306,198,92);
+    refl.addColorStop(0,'rgba(196,232,218,.32)');
+    refl.addColorStop(.55,'rgba(178,220,204,.12)');
+    refl.addColorStop(1,'rgba(178,220,204,0)');
+    CUR.fillStyle=refl; CUR.fillRect(0,168,W,80);
+    CUR.restore();
+    /* 潭面倒影 */
+    CUR.save(); CUR.globalAlpha=.28; CUR.strokeStyle='#234a40'; CUR.lineWidth=2.2; CUR.lineCap='round';
+    CUR.beginPath(); CUR.moveTo(238,206); CUR.quadraticCurveTo(270,203,300,206); CUR.stroke();
+    CUR.beginPath(); CUR.moveTo(250,216); CUR.quadraticCurveTo(278,213,306,216); CUR.stroke();
+    CUR.beginPath(); CUR.moveTo(326,210); CUR.quadraticCurveTo(356,207,382,210); CUR.stroke();
+    CUR.restore();
+    /* 潭边岩石（柔边阴影+受光边+水线） */
+    [[154,198,34,14,'#4d4a3a','#7d7a62','#5e5a48','#928e76'],
+     [432,212,40,16,'#4d4a3a','#7d7a62','#5e5a48','#928e76']].forEach(function(b){
+      const cx=b[0],cy=b[1],rx=b[2],ry=b[3];
+      /* 水下沉影（向下淡出） */
+      const sub=CUR.createLinearGradient(0,cy+ry*.15,0,cy+ry*2.6);
+      sub.addColorStop(0,'rgba(24,50,42,.34)'); sub.addColorStop(.55,'rgba(24,50,42,.16)'); sub.addColorStop(1,'rgba(24,50,42,0)');
+      CUR.fillStyle=sub;
+      CUR.beginPath(); CUR.ellipse(cx,cy+ry*.85,rx*.94,ry*1.5,0,0,Math.PI*2); CUR.fill();
+      shadow(cx,cy+ry*.45,rx*.95,ry*.6,.22);
+      rockFill(cx,cy,rx,ry,b[4],b[5]);
+      rockFill(cx-rx*.12,cy-ry*.55,rx*.66,ry*.52,b[6],b[7]);
+      CUR.save();
+      CUR.strokeStyle='rgba(38,34,24,.30)'; CUR.lineWidth=.75;
+      CUR.beginPath(); CUR.ellipse(cx,cy,rx,ry,0,0,Math.PI*2); CUR.stroke();
+      CUR.strokeStyle='rgba(232,246,238,.42)'; CUR.lineWidth=1;
+      CUR.beginPath(); CUR.moveTo(cx-rx*.78,cy+ry*.10);
+      CUR.quadraticCurveTo(cx,cy+ry*.68,cx+rx*.78,cy+ry*.10); CUR.stroke();
+      CUR.strokeStyle='rgba(168,164,132,.55)'; CUR.lineWidth=.9;
+      CUR.beginPath(); CUR.moveTo(cx-rx*.55,cy-ry*.48);
+      CUR.quadraticCurveTo(cx-rx*.1,cy-ry*.92,cx+rx*.5,cy-ry*.52); CUR.stroke();
+      CUR.restore();
+      /* 石边细浪 */
+      CUR.save(); CUR.strokeStyle='rgba(226,242,234,.30)'; CUR.lineWidth=.8;
+      CUR.beginPath(); CUR.ellipse(cx,cy+ry*.85,rx*.9,ry*.55,0,0.15,Math.PI-0.15); CUR.stroke();
+      CUR.restore();
+    });
+    tuft(126,196,'#55794a'); tuft(182,204,'#4f7046'); tuft(410,214,'#55794a');
+    /* 石滩 */
+    const shore=CUR.createLinearGradient(0,246,0,270);
+    shore.addColorStop(0,'#76705a'); shore.addColorStop(1,'#544e3c');
+    CUR.fillStyle=shore; CUR.fillRect(0,246,W,24);
+    CUR.save(); CUR.strokeStyle='rgba(146,138,114,.7)'; CUR.lineWidth=1.3;
+    CUR.beginPath(); CUR.moveTo(0,246.5); CUR.quadraticCurveTo(240,244.5,480,247); CUR.stroke(); CUR.restore();
+    for(let i=0;i<24;i++){
+      const x=hash(i*4.9)*W, y=250+hash(i*8.3)*18;
+      CUR.save(); CUR.globalAlpha=.5;
+      ellipseFill(x,y,1.4+hash(i*2.3)*1.7,.7+hash(i*1.7)*.6, i%2?'#5e5844':'#756e56');
+      CUR.restore();
+    }
+  }
+  if(idx===3){ // 幕3 绝巘怪柏
+    const sky=CUR.createLinearGradient(0,0,0,270);
+    sky.addColorStop(0,'#a6bbaf'); sky.addColorStop(.5,'#93aa9e'); sky.addColorStop(1,'#7e968a');
+    CUR.fillStyle=sky; CUR.fillRect(0,0,W,270);
+    softGlow(250,40,180,'rgba(236,242,232,.20)');
+    /* 巨崖主体（层叠岩壁，上亮下沉） */
+    const cliffPath=function(){
+      CUR.beginPath();
+      CUR.moveTo(40,248); CUR.lineTo(40,30);
+      CUR.quadraticCurveTo(58,24,76,26);
+      CUR.quadraticCurveTo(94,17,110,22);
+      CUR.quadraticCurveTo(132,11,150,15);
+      CUR.quadraticCurveTo(194,7,224,12);
+      CUR.quadraticCurveTo(258,6,290,13);
+      CUR.quadraticCurveTo(326,9,360,15);
+      CUR.quadraticCurveTo(398,11,414,19);
+      CUR.quadraticCurveTo(430,22,440,30);
+      CUR.lineTo(440,248); CUR.closePath();
+    };
+    const cg=CUR.createLinearGradient(0,10,0,248);
+    cg.addColorStop(0,'#92886a'); cg.addColorStop(.32,'#7a715c');
+    cg.addColorStop(.7,'#5d5646'); cg.addColorStop(1,'#433e33');
+    CUR.fillStyle=cg; cliffPath(); CUR.fill();
+    CUR.save(); cliffPath(); CUR.clip();
+    /* 崖顶天光 */
+    const topLight=CUR.createLinearGradient(0,8,0,96);
+    topLight.addColorStop(0,'rgba(210,206,170,.30)'); topLight.addColorStop(1,'rgba(210,206,170,0)');
+    CUR.fillStyle=topLight; CUR.fillRect(0,0,W,100);
+    /* 大面积明暗 */
+    softGlow(112,74,130,'rgba(222,216,180,.18)');
+    softGlow(372,214,150,'rgba(28,28,20,.20)');
+    softGlow(252,150,120,'rgba(40,36,26,.14)');
+    /* 竖向岩柱（长短错落） */
+    for(let i=0;i<5;i++){
+      const xx=72+i*76, y0=26+hash(i*2.9)*26, y1=200+hash(i*4.7)*46;
+      CUR.strokeStyle='rgba(34,30,20,'+(.045+hash(i*3.7)*.045).toFixed(3)+')';
+      CUR.lineWidth=3.0+hash(i*1.9)*2.6;
+      CUR.beginPath(); CUR.moveTo(xx,y0);
+      CUR.bezierCurveTo(xx-3,y0+54,xx+4,y1-40,xx-1,y1); CUR.stroke();
+      CUR.strokeStyle='rgba(206,202,166,.040)'; CUR.lineWidth=1.0;
+      CUR.beginPath(); CUR.moveTo(xx+3.4,y0+4);
+      CUR.bezierCurveTo(xx+1,y0+58,xx+8,y1-36,xx+4,y1-2); CUR.stroke();
+    }
+    /* 岩面折块（低对比） */
+    [[64,112,34,30],[236,108,44,32],[330,196,38,30]].forEach(function(f,i){
+      const cx=f[0],cy=f[1],w=f[2],h=f[3];
+      CUR.beginPath();
+      CUR.moveTo(cx-w,cy+h*.3);
+      CUR.quadraticCurveTo(cx-w*.8,cy-h*.7,cx-w*.15,cy-h);
+      CUR.quadraticCurveTo(cx+w*.7,cy-h*.85,cx+w,cy-h*.1);
+      CUR.quadraticCurveTo(cx+w*.8,cy+h*.8,cx+w*.1,cy+h);
+      CUR.quadraticCurveTo(cx-w*.75,cy+h*.85,cx-w,cy+h*.3);
+      CUR.closePath();
+      CUR.fillStyle='rgba(124,116,88,'+(.05+i*.012).toFixed(3)+')'; CUR.fill();
+    });
+    /* 横向岩层（低对比） */
+    CUR.lineCap='round';
+    for(let i=0;i<3;i++){
+      const yy=80+i*58;
+      CUR.strokeStyle='rgba(40,34,22,.09)'; CUR.lineWidth=1.6;
+      CUR.beginPath(); CUR.moveTo(40,yy);
+      CUR.bezierCurveTo(140,yy-5+i*2,300,yy+6-i*2,440,yy-2); CUR.stroke();
+      CUR.strokeStyle='rgba(206,202,166,.06)'; CUR.lineWidth=1;
+      CUR.beginPath(); CUR.moveTo(40,yy+2.6);
+      CUR.bezierCurveTo(140,yy-2.4+i*2,300,yy+8.6-i*2,440,yy+.6); CUR.stroke();
+    }
+    /* 裂隙 */
+    CUR.strokeStyle='rgba(28,24,16,.24)'; CUR.lineWidth=1.1;
+    for(let i=0;i<5;i++){
+      const xx=88+i*74, y0=44+((i*43)%80);
+      CUR.beginPath(); CUR.moveTo(xx,y0);
+      CUR.bezierCurveTo(xx-3,y0+14,xx+2,y0+26,xx-1,y0+42);
+      CUR.bezierCurveTo(xx+3,y0+52,xx-2,y0+58,xx+1,y0+70); CUR.stroke();
+    }
+    /* 崖底巨石（椭圆+径向渐变+柔边影） */
+    [[186,236,30,13],[402,232,26,12]].forEach(function(b){
+      const cx=b[0],cy=b[1],rx=b[2],ry=b[3];
+      shadow(cx,cy+ry*.45,rx*.95,ry*.6,.22);
+      rockFill(cx,cy,rx,ry,'#4c4636','#7b735c');
+      CUR.save(); CUR.strokeStyle='rgba(34,30,20,.22)'; CUR.lineWidth=.7;
+      CUR.beginPath(); CUR.ellipse(cx,cy,rx,ry,0,0,Math.PI*2); CUR.stroke();
+      CUR.strokeStyle='rgba(196,192,158,.34)'; CUR.lineWidth=.85;
+      CUR.beginPath(); CUR.moveTo(cx-rx*.62,cy-ry*.42);
+      CUR.quadraticCurveTo(cx,cy-ry*.98,cx+rx*.55,cy-ry*.44); CUR.stroke();
+      CUR.restore();
+    });
+    CUR.restore();
+    /* 崖顶受光脊线 */
+    CUR.save(); CUR.strokeStyle='rgba(198,204,170,.55)'; CUR.lineWidth=2; CUR.lineCap='round';
+    CUR.beginPath(); CUR.moveTo(42,31);
+    CUR.quadraticCurveTo(94,17,150,15); CUR.quadraticCurveTo(224,7,290,13);
+    CUR.quadraticCurveTo(360,15,414,19); CUR.stroke(); CUR.restore();
+    /* 悬泉顶缺口（嵌入崖体的暗凹） */
+    CUR.save();
+    CUR.beginPath();
+    CUR.moveTo(104,40);
+    CUR.quadraticCurveTo(112,36,118,37);
+    CUR.quadraticCurveTo(124,36,132,41);
+    CUR.quadraticCurveTo(128,50,116,51);
+    CUR.quadraticCurveTo(108,50,104,40);
+    CUR.closePath();
+    const gap=CUR.createRadialGradient(118,43,2,118,44,16);
+    gap.addColorStop(0,'#42432f'); gap.addColorStop(.62,'#50503a'); gap.addColorStop(1,'rgba(72,68,50,.50)');
+    CUR.fillStyle=gap; CUR.fill();
+    CUR.strokeStyle='rgba(204,200,164,.35)'; CUR.lineWidth=.9;
+    CUR.beginPath(); CUR.moveTo(105,39); CUR.quadraticCurveTo(112,35.5,118,36.5);
+    CUR.quadraticCurveTo(125,35.5,131,40); CUR.stroke();
+    softGlow(116,57,24,'rgba(40,38,28,.26)');
+    CUR.restore();
+    /* 悬泉瀑布（素练垂落） */
+    CUR.save();
+    const fall=CUR.createLinearGradient(0,48,0,206);
+    fall.addColorStop(0,'rgba(250,254,250,.92)');
+    fall.addColorStop(.35,'rgba(234,246,238,.86)');
+    fall.addColorStop(.72,'rgba(210,232,220,.70)');
+    fall.addColorStop(1,'rgba(196,222,210,.40)');
+    CUR.fillStyle=fall;
+    CUR.beginPath();
+    CUR.moveTo(108,49);
+    CUR.bezierCurveTo(104,88,112,140,106,198);
+    CUR.lineTo(126,198);
+    CUR.bezierCurveTo(120,140,128,90,124,49);
+    CUR.closePath(); CUR.fill();
+    CUR.strokeStyle='rgba(255,255,255,.92)'; CUR.lineWidth=5.2; CUR.lineCap='round';
+    CUR.beginPath(); CUR.moveTo(115,54); CUR.bezierCurveTo(112,92,120,146,114,192); CUR.stroke();
+    CUR.strokeStyle='rgba(222,240,232,.55)'; CUR.lineWidth=1.6;
+    CUR.beginPath(); CUR.moveTo(107,56); CUR.bezierCurveTo(104,84,109,108,106,132); CUR.stroke();
+    CUR.beginPath(); CUR.moveTo(126,62); CUR.bezierCurveTo(129,92,123,118,126,146); CUR.stroke();
+    CUR.restore();
+    /* 瀑底水花 */
+    softGlow(116,200,26,'rgba(240,250,244,.55)');
+    CUR.save(); CUR.strokeStyle='rgba(246,252,248,.55)'; CUR.lineWidth=1;
+    CUR.beginPath(); CUR.moveTo(102,201); CUR.quadraticCurveTo(116,205.4,132,201); CUR.stroke();
+    CUR.beginPath(); CUR.moveTo(97,205.5); CUR.quadraticCurveTo(116,210.4,139,205.5); CUR.stroke();
+    CUR.beginPath(); CUR.moveTo(106,209.5); CUR.quadraticCurveTo(118,212,130,209.5); CUR.stroke();
+    CUR.restore();
+    /* 怪柏：崖沿小台+横生怪柏 */
+    rockFill(326,94,15,4.6,'#4a4434','#7d765e');
+    rockFill(323,92.5,9.5,2.8,'#5a5440','#8e876c');
+    pineTree(326,92);
+    tuft(314,93,'#57794a'); tuft(338,93.5,'#4f7044');
+    /* 崖间茂草（成丛，柔边） */
+    for(let i=0;i<8;i++) tuft(224+i*10,170+(i%3)*6,'#547447');
+    for(let i=0;i<6;i++) tuft(238+i*11,188,'#57794a');
+    tuft(268,160,'#628a52'); tuft(252,178,'#628a52');
+    tuft(300,196,'#4f7044'); tuft(330,204,'#547447'); tuft(360,196,'#5b7c4a');
+    /* 底部石台 */
+    const shore=CUR.createLinearGradient(0,240,0,270);
+    shore.addColorStop(0,'#76705a'); shore.addColorStop(1,'#544e3c');
+    CUR.fillStyle=shore; CUR.fillRect(0,240,W,30);
+    CUR.save(); CUR.strokeStyle='rgba(146,138,114,.7)'; CUR.lineWidth=1.3;
+    CUR.beginPath(); CUR.moveTo(0,240.5); CUR.quadraticCurveTo(240,238.5,480,241); CUR.stroke(); CUR.restore();
+    for(let i=0;i<24;i++){
+      const x=hash(i*7.7)*W, y=244+hash(i*2.9)*22;
+      CUR.save(); CUR.globalAlpha=.5;
+      ellipseFill(x,y,1.4+hash(i*2.7)*1.7,.7+hash(i*1.1)*.6, i%2?'#5e5844':'#756e56');
+      CUR.restore();
+    }
+  }
+  if(idx===4){ // 幕4 晴初霜旦
+    /* 霜晨天空过渡到寒涧谷地（一体化渐变，无接缝） */
+    const sky=CUR.createLinearGradient(0,0,0,220);
+    sky.addColorStop(0,'#cad4ce'); sky.addColorStop(.30,'#b0c0b6'); sky.addColorStop(.55,'#9aaca2');
+    sky.addColorStop(.72,'#78897d'); sky.addColorStop(1,'#4e5a4c');
+    CUR.fillStyle=sky; CUR.fillRect(0,0,W,220);
+    softGlow(300,60,190,'rgba(236,242,234,.18)');
+    /* 晨雾山影 */
+    CUR.save(); CUR.globalAlpha=.55;
+    ridgeRange(-20,250,122,30,'#8ba098','#7b9088',4.9);
+    ridgeRange(240,500,120,28,'#8ba098','#7b9088',9.3);
+    CUR.restore();
+    /* 远涧林影（第二层） */
+    CUR.save(); CUR.globalAlpha=.38;
+    ridgeRange(-10,244,178,26,'#6c7e71','#596a5e',6.1);
+    ridgeRange(238,500,176,24,'#6c7e71','#596a5e',10.7);
+    CUR.restore();
+    softGlow(240,124,230,'rgba(238,244,238,.22)');
+    /* 寒林 */
+    frostTree(80,196); frostTree(130,202); frostTree(180,198); frostTree(224,204);
+    /* 高猿崖石（自谷底耸起，临江绝壁） */
+    CUR.save();
+    const cragPath=function(){
+      CUR.beginPath();
+      CUR.moveTo(292,240);
+      CUR.bezierCurveTo(295,214,296,190,299,170);
+      CUR.bezierCurveTo(297,156,302,140,305,126);
+      CUR.bezierCurveTo(309,112,313,104,318,101);
+      CUR.quadraticCurveTo(324,93,330,92.4);
+      CUR.quadraticCurveTo(338,93,343,101);
+      CUR.bezierCurveTo(347,112,349,126,352,144);
+      CUR.bezierCurveTo(356,162,355,180,359,196);
+      CUR.bezierCurveTo(362,212,363,228,366,240);
+      CUR.closePath();
+    };
+    const rock=CUR.createLinearGradient(298,92,352,220);
+    rock.addColorStop(0,'#6d6753'); rock.addColorStop(.42,'#575244');
+    rock.addColorStop(1,'#38352c');
+    CUR.fillStyle=rock; cragPath(); CUR.fill();
+    CUR.save(); cragPath(); CUR.clip();
+    /* 竖向石纹 */
+    CUR.lineCap='round';
+    for(let i=0;i<4;i++){
+      const xx=308+i*8+hash(i*5.3)*3;
+      CUR.strokeStyle='rgba(32,30,22,'+(.22+hash(i*2.1)*.10).toFixed(3)+')';
+      CUR.lineWidth=1.0+hash(i*1.7)*.5;
+      CUR.beginPath(); CUR.moveTo(xx,98+hash(i*3.3)*8);
+      CUR.bezierCurveTo(xx-2,128,xx+2,168,xx-1,202-hash(i*4.1)*14); CUR.stroke();
+    }
+    CUR.strokeStyle='rgba(180,176,146,.18)'; CUR.lineWidth=.9;
+    CUR.beginPath(); CUR.moveTo(322,100); CUR.bezierCurveTo(320,128,324,164,321,196); CUR.stroke();
+    /* 岩层（断续，避免网格感） */
+    CUR.strokeStyle='rgba(30,28,20,.13)'; CUR.lineWidth=.9;
+    for(let i=0;i<3;i++){
+      const yy=118+i*30;
+      CUR.beginPath(); CUR.moveTo(304+hash(i*6.7)*4,yy);
+      CUR.bezierCurveTo(318,yy-2,336,yy+2,348-hash(i*2.3)*5,yy+hash(i*1.9)*2); CUR.stroke();
+    }
+    /* 苔痕 */
+    CUR.save(); CUR.globalAlpha=.5;
+    ellipseFill(318,206,9,3.4,'#4b6440'); ellipseFill(340,186,7,2.6,'#47603e');
+    CUR.restore();
+    CUR.restore();
+    /* 崖壁淡墨轮廓 */
+    CUR.save(); CUR.strokeStyle='rgba(34,32,24,.34)'; CUR.lineWidth=.9; cragPath(); CUR.stroke(); CUR.restore();
+    /* 崖顶石台（承猿足） */
+    CUR.save();
+    const ledge=CUR.createLinearGradient(310,92,348,102);
+    ledge.addColorStop(0,'#928d76'); ledge.addColorStop(.55,'#7b7663'); ledge.addColorStop(1,'#605b4b');
+    CUR.fillStyle=ledge;
+    CUR.beginPath(); CUR.moveTo(309,100);
+    CUR.quadraticCurveTo(313,92.8,324,92.3);
+    CUR.quadraticCurveTo(337,92,346,95.4);
+    CUR.quadraticCurveTo(349,98.4,346,101);
+    CUR.quadraticCurveTo(330,104.4,312,102.6); CUR.closePath(); CUR.fill();
+    CUR.strokeStyle='rgba(196,192,160,.42)'; CUR.lineWidth=.9;
+    CUR.beginPath(); CUR.moveTo(312,98.6); CUR.quadraticCurveTo(324,91.8,336,93.2); CUR.stroke();
+    CUR.restore();
+    tuft(311,99,'#5f7a4e'); tuft(346,99.5,'#5a7450');
+    /* 山涧细流（自寒林蜿蜒入江） */
+    CUR.save();
+    CUR.lineCap='round';
+    CUR.strokeStyle='rgba(130,172,160,.12)'; CUR.lineWidth=3.6;
+    CUR.beginPath(); CUR.moveTo(62,212);
+    CUR.bezierCurveTo(96,206,146,218,186,214);
+    CUR.bezierCurveTo(198,213,206,214,214,216); CUR.stroke();
+    const stream=CUR.createLinearGradient(60,206,214,220);
+    stream.addColorStop(0,'rgba(150,190,178,.68)'); stream.addColorStop(.55,'rgba(169,210,198,.72)'); stream.addColorStop(1,'rgba(143,184,172,.58)');
+    CUR.strokeStyle=stream; CUR.lineWidth=1.9;
+    CUR.beginPath(); CUR.moveTo(62,212);
+    CUR.bezierCurveTo(96,206,146,218,186,214);
+    CUR.bezierCurveTo(198,213,206,214,214,216); CUR.stroke();
+    /* 水光断续 */
+    CUR.strokeStyle='rgba(226,246,238,.44)'; CUR.lineWidth=.85;
+    [[66,92],[104,140],[152,192]].forEach(function(q){
+      const x0=q[0],x1=q[1];
+      const y0=211.4-(x0-62)*.03, y1=211.4-(x1-62)*.03;
+      CUR.beginPath(); CUR.moveTo(x0,y0);
+      CUR.quadraticCurveTo((x0+x1)/2,(y0+y1)/2+(x0>100?1.6:-1.2),x1,y1); CUR.stroke();
+    });
+    CUR.strokeStyle='rgba(220,242,234,.40)'; CUR.lineWidth=.9;
+    CUR.beginPath(); CUR.ellipse(198,216,9,1.6,0,0,Math.PI*2); CUR.stroke();
+    CUR.beginPath(); CUR.ellipse(210,218,7,1.4,0,0,Math.PI*2); CUR.stroke();
+    CUR.restore();
+    /* 江面 */
+    const wg=CUR.createLinearGradient(0,216,0,248);
+    wg.addColorStop(0,'#3f7d6c'); wg.addColorStop(.6,'#356e5f'); wg.addColorStop(1,'#2f6154');
+    CUR.fillStyle=wg; CUR.fillRect(0,216,W,32);
+    softGlow(250,228,180,'rgba(150,214,196,.14)');
+    for(let i=0;i<12;i++){
+      const x=hash(i*5.1)*W, y=220+hash(i*8.7)*20;
+      waterGlint(x,y,6+hash(i*3.1)*9,'rgba(255,255,255,'+(.12+hash(i*2.7)*.12)+')');
+    }
+    /* 霜覆地面 */
+    const shore=CUR.createLinearGradient(0,246,0,270);
+    shore.addColorStop(0,'#93907e'); shore.addColorStop(1,'#6a6858');
+    CUR.fillStyle=shore; CUR.fillRect(0,246,W,24);
+    CUR.save(); CUR.strokeStyle='rgba(214,220,206,.55)'; CUR.lineWidth=1.3;
+    CUR.beginPath(); CUR.moveTo(0,246.5); CUR.quadraticCurveTo(240,244.5,480,247); CUR.stroke(); CUR.restore();
+    for(let i=0;i<26;i++){
+      const x=hash(i*3.9)*W, y=250+hash(i*6.1)*18;
+      CUR.save(); CUR.globalAlpha=.5;
+      ellipseFill(x,y,1.4+hash(i*2.9)*1.6,.7+hash(i*1.9)*.6, i%3?'#7c7862':'#e8f0ea');
+      CUR.restore();
+    }
+  }
+}
+
+/* —— 动态层 —— */
+function drawDynamic(idx){
+  if(idx===0){
+    /* 峡口雾气流动 */
+    for(let i=0;i<3;i++){
+      const mx=((tFrame*.3+i*170)%(W+120))-60;
+      softGlow(mx,148+i*9,62,'rgba(232,240,234,.16)');
+    }
+    /* 江面波光 */
+    for(let i=0;i<8;i++){
+      if(Math.sin(tFrame*.05+i*1.7)>.3){
+        waterGlint(40+i*52,180+((i*29)%44),9+hash(i)*6,'rgba(255,255,255,.34)');
+      }
+    }
+    /* 隐天蔽日：点过右岸叠嶂后，巨峰夹峙遮去天光 */
+    if(sawDie){
+      CUR.save();
+      const dg=CUR.createLinearGradient(0,0,0,150);
+      dg.addColorStop(0,'rgba(24,40,36,.34)'); dg.addColorStop(1,'rgba(24,40,36,.10)');
+      CUR.fillStyle=dg; CUR.fillRect(0,0,W,144);
+      CUR.restore();
+      mount(150,132,120,132,'#2e3e3a','#243230','#3a4c46');
+      mount(330,134,130,140,'#2e3e3a','#243230','#3a4c46');
+      /* 曦月仅余微光 */
+      CUR.save(); CUR.globalAlpha=.22+.06*Math.sin(tFrame*.05);
+      softGlow(240,30,26,'rgba(240,232,200,.5)');
+      disc(240,30,9,'#f0e8c8'); CUR.restore();
+    }
+  }
+  if(idx===1){
+    /* 浊浪滔天（连绵起伏，波幅疏密自然） */
+    for(let r=0;r<5;r++){
+      const yy=124+r*24;
+      const amp0=2.6+hash(r*3.3)*2.4;
+      const spd=.05+hash(r*5.1)*.035;
+      const a=.24+hash(r*4.3)*.16;
+      const pts=[];
+      for(let x=-12;x<=W+12;x+=8){
+        const amp=amp0*(.5+.5*Math.sin(x*.019+r*2.2+hash(r)*6));
+        pts.push([x,yy+Math.sin(tFrame*spd+r*1.3+x*.052)*amp]);
+      }
+      CUR.save(); CUR.lineCap='round';
+      const waveLine=function(shift,color,width){
+        CUR.strokeStyle=color; CUR.lineWidth=width;
+        CUR.beginPath(); CUR.moveTo(pts[0][0],pts[0][1]+shift);
+        for(let i=1;i<pts.length-1;i++){
+          const xc=(pts[i][0]+pts[i+1][0])/2, yc=(pts[i][1]+pts[i+1][1])/2+shift;
+          CUR.quadraticCurveTo(pts[i][0],pts[i][1]+shift,xc,yc);
+        }
+        const lp=pts[pts.length-1];
+        CUR.lineTo(lp[0],lp[1]+shift); CUR.stroke();
+      };
+      waveLine(2.6,'rgba(30,60,50,'+(a*.50).toFixed(3)+')',1.6);
+      waveLine(0,'rgba(221,236,228,'+a.toFixed(3)+')',1.8+hash(r*2.7)*.6);
+      waveLine(-1.4,'rgba(246,252,248,'+(a*.52).toFixed(3)+')',.8);
+      /* 浪脊碎沫 */
+      for(let k=0;k<6;k++){
+        if(hash(r*11.3+k*2.1)>.52) continue;
+        const x=hash(r*13.1+k*7.7)*(W+24)-12;
+        const ampx=amp0*(.5+.5*Math.sin(x*.019+r*2.2+hash(r)*6));
+        const y=yy+Math.sin(tFrame*spd+r*1.3+x*.052)*ampx-1.1;
+        waterGlint(x+hash(k*5.3)*9,y,5+hash(k*3.1)*8,'rgba(255,255,255,.42)');
+      }
+      CUR.restore();
+    }
+    /* 浪尖飞沫 */
+    for(let i=0;i<6;i++){
+      if(Math.sin(tFrame*.11+i*2.3)>.6){
+        CUR.save(); CUR.globalAlpha=.7;
+        disc(30+i*76,136+((i*41)%90),1.3,'#f0f8f2');
+        disc(33+i*76,132+((i*41)%90),.8,'#e8f4ec');
+        CUR.restore();
+      }
+    }
+    /* 顺流飞舟：从左到右疾驰 */
+    if(boatOn){
+      const bx=boatX, by=150;
+      CUR.save();
+      CUR.fillStyle='#5a4026';
+      CUR.beginPath(); CUR.moveTo(bx-15,by); CUR.lineTo(bx+16,by);
+      CUR.quadraticCurveTo(bx+12,by+6,bx,by+6);
+      CUR.quadraticCurveTo(bx-12,by+6,bx-15,by); CUR.closePath(); CUR.fill();
+      CUR.fillStyle='#4a3420';
+      CUR.beginPath(); CUR.moveTo(bx-11,by+3.4); CUR.quadraticCurveTo(bx,by+7.2,bx+11,by+3.4);
+      CUR.quadraticCurveTo(bx,by+5.4,bx-11,by+3.4); CUR.fill();
+      CUR.strokeStyle='#4a3420'; CUR.lineWidth=1.6; CUR.lineCap='round';
+      CUR.beginPath(); CUR.moveTo(bx,by); CUR.lineTo(bx,by-16); CUR.stroke();
+      const bs=CUR.createLinearGradient(bx+2,by-15,bx+12,by-2);
+      bs.addColorStop(0,'#f4eedc'); bs.addColorStop(1,'#ddd5ba');
+      CUR.fillStyle=bs;
+      CUR.beginPath(); CUR.moveTo(bx+2,by-15);
+      CUR.quadraticCurveTo(bx+10,by-10,bx+11,by-2);
+      CUR.lineTo(bx+3,by-2); CUR.quadraticCurveTo(bx+2,by-9,bx+2,by-15);
+      CUR.closePath(); CUR.fill();
+      /* 船尾水痕 */
+      CUR.strokeStyle='rgba(255,255,255,.5)'; CUR.lineWidth=1.1;
+      CUR.beginPath(); CUR.moveTo(bx-30,by+2); CUR.quadraticCurveTo(bx-22,by+1.2,bx-15,by+2); CUR.stroke();
+      CUR.strokeStyle='rgba(255,255,255,.32)'; CUR.lineWidth=.9;
+      CUR.beginPath(); CUR.moveTo(bx-38,by+5); CUR.quadraticCurveTo(bx-30,by+4.2,bx-22,by+5); CUR.stroke();
+      CUR.strokeStyle='rgba(255,255,255,.25)';
+      CUR.beginPath(); CUR.moveTo(bx-46,by+1); CUR.quadraticCurveTo(bx-42,by+.2,bx-38,by+1); CUR.stroke();
+      CUR.restore();
+    }
+  }
+  if(idx===2){
+    /* 素湍奔流（白点下注） */
+    for(let i=0;i<10;i++){
+      const yy=64+((tFrame*2+i*13)%116);
+      CUR.save(); CUR.globalAlpha=i%2?.95:.7;
+      ellipseFill(99+(i%3)*4,yy,1.6,1.6,i%2?'#ffffff':'#e4f2ea');
+      CUR.restore();
+    }
+    /* 回清：潭口回旋波光 */
+    const sw=Math.sin(tFrame*.08);
+    CUR.save(); CUR.strokeStyle='rgba(255,255,255,.5)'; CUR.lineWidth=1.1; CUR.lineCap='round';
+    CUR.beginPath(); CUR.moveTo(150+sw*3,182);
+    CUR.quadraticCurveTo(161+sw*2,180.4,172+sw*3,182); CUR.stroke();
+    CUR.strokeStyle='rgba(255,255,255,.38)';
+    CUR.beginPath(); CUR.moveTo(160-sw*2,190);
+    CUR.quadraticCurveTo(168-sw,189,176-sw*2,190); CUR.stroke();
+    CUR.strokeStyle='rgba(255,255,255,.28)';
+    CUR.beginPath(); CUR.moveTo(170+sw*2,198);
+    CUR.quadraticCurveTo(176+sw,197.4,182+sw*2,198); CUR.stroke();
+    CUR.restore();
+    /* 绿潭倒影（山影树影，随波轻晃） */
+    CUR.save(); CUR.globalAlpha=.30;
+    CUR.strokeStyle='#2c4c42'; CUR.lineWidth=2.2; CUR.lineCap='round';
+    const wob=Math.sin(tFrame*.05)*2;
+    CUR.beginPath(); CUR.moveTo(240+wob,206); CUR.quadraticCurveTo(270+wob,203,300+wob,206); CUR.stroke();
+    CUR.beginPath(); CUR.moveTo(252-wob,214); CUR.quadraticCurveTo(274-wob,211.5,296-wob,214); CUR.stroke();
+    CUR.beginPath(); CUR.moveTo(264+wob,222); CUR.quadraticCurveTo(279+wob,220,294+wob,222); CUR.stroke();
+    CUR.strokeStyle='#24443c';
+    CUR.beginPath(); CUR.moveTo(330-wob,210); CUR.quadraticCurveTo(355-wob,207.5,380-wob,210); CUR.stroke();
+    CUR.beginPath(); CUR.moveTo(340+wob,218); CUR.quadraticCurveTo(357+wob,216,374+wob,218); CUR.stroke();
+    CUR.restore();
+  }
+  if(idx===3){
+    /* 悬泉飞漱 */
+    for(let i=0;i<12;i++){
+      const yy=50+((tFrame*2.4+i*9)%128);
+      CUR.save(); CUR.globalAlpha=i%2?.95:.72;
+      ellipseFill(112+(i%4)*3,yy,1.4,1.8,i%2?'#eef6f0':'#d8ece2');
+      CUR.restore();
+    }
+    /* 瀑底飞沫 */
+    CUR.save(); CUR.globalAlpha=.45+.2*Math.sin(tFrame*.1);
+    softGlow(118,182,20,'rgba(232,244,236,.85)');
+    CUR.restore();
+    /* 集字：清荣峻茂依次浮现 */
+    const CH=[['清',gotQing,300],['荣',gotRong,330],['峻',gotJun,360],['茂',gotMao,390]];
+    CH.forEach(([ch,got,x])=>{
+      if(!got) return;
+      CUR.save();
+      const bg=CUR.createLinearGradient(x-11,10,x+11,30);
+      bg.addColorStop(0,'rgba(52,40,20,.92)'); bg.addColorStop(1,'rgba(30,24,12,.88)');
+      CUR.fillStyle=bg; rrect(x-11,10,22,20,3); CUR.fill();
+      CUR.strokeStyle='#e8c060'; CUR.lineWidth=1; rrect(x-10.5,10.5,21,19,2.6); CUR.stroke();
+      CUR.fillStyle='#ffd870'; CUR.font='bold 13px "KaiTi","STKaiti",serif'; CUR.textAlign='center';
+      CUR.fillText(ch,x,25);
+      CUR.restore();
+    });
+    /* 四景俱足后，崖壁生辉 */
+    if(gotQing&&gotRong&&gotJun&&gotMao){
+      CUR.save(); CUR.globalAlpha=.06+.03*Math.sin(tFrame*.06);
+      softGlow(250,130,220,'rgba(255,233,160,.4)');
+      CUR.restore();
+    }
+  }
+  if(idx===4){
+    /* 晨雾浮动 */
+    for(let i=0;i<3;i++){
+      const mx=((tFrame*.22+i*190)%(W+140))-70;
+      softGlow(mx,130+i*26,72,'rgba(232,240,234,.20)');
+    }
+    /* 高猿（崖上偶动） */
+    const ab=(tFrame>>5)%2;
+    CUR.save(); CUR.translate(330,92-ab);
+    CUR.fillStyle='#2e2620';
+    CUR.beginPath(); CUR.ellipse(0,-6.2,4.3,5.4,0,0,6.2832); CUR.fill();       // 身体
+    CUR.beginPath(); CUR.arc(0,-12.6,3.0,0,6.2832); CUR.fill();                // 头
+    CUR.beginPath(); CUR.arc(-2.9,-14.2,1.15,0,6.2832); CUR.fill();            // 耳
+    CUR.beginPath(); CUR.arc(2.9,-14.2,1.15,0,6.2832); CUR.fill();
+    CUR.fillStyle='#3a3028';
+    CUR.beginPath(); CUR.ellipse(.9,-11.2,1.7,1.1,0,0,6.2832); CUR.fill();     // 面
+    CUR.strokeStyle='#241e18'; CUR.lineWidth=2.0; CUR.lineCap='round';
+    CUR.beginPath(); CUR.moveTo(-2.2,-7.4); CUR.quadraticCurveTo(-5.4,-6.2,-6.2,-3.6); CUR.stroke();  // 臂
+    CUR.beginPath(); CUR.moveTo(2.2,-7.4); CUR.quadraticCurveTo(5.2,-6.4,6.0,-3.8); CUR.stroke();
+    CUR.beginPath(); CUR.moveTo(-1.6,-2.0); CUR.quadraticCurveTo(-2.8,-1.0,-3.2,.2); CUR.stroke();   // 腿
+    CUR.beginPath(); CUR.moveTo(1.6,-2.0); CUR.quadraticCurveTo(2.8,-1.0,3.2,.2); CUR.stroke();
+    CUR.lineWidth=1.8;
+    CUR.beginPath(); CUR.moveTo(3.2,-3.2);
+    CUR.bezierCurveTo(6.2,-3.0,8.2,-1.4,7.2,.4); CUR.stroke();                 // 尾
+    CUR.restore();
+    /* 猿鸣声波涟漪：空谷传响（负 l 为延迟波，未到时不画） */
+    soundWaves.forEach(w=>{
+      if(w.l<0) return;
+      const rr=4+w.l*2.4;
+      g.globalAlpha=.5*(1-w.l/70);
+      g.strokeStyle='#f0ead0'; g.lineWidth=1;
+      g.beginPath(); g.ellipse(w.x,w.y,rr,rr*.5,0,0,Math.PI*2); g.stroke();
+      g.globalAlpha=1;
+    });
+    /* 点亮的标签 */
+    if(sawLin) drawTag(130,120,'林寒涧肃');
+    if(sawYuan) drawTag(330,64,'哀转久绝');
+    if(talkedFu) drawTag(390,196,'泪沾裳');
+  }
+}
+function drawTag(cx,cy,text){
+  CUR.save();
+  CUR.font='bold 9px "KaiTi","STKaiti",serif'; CUR.textAlign='center';
+  const w=Math.ceil(CUR.measureText(text).width)+10;
+  CUR.fillStyle='rgba(42,28,14,.88)'; rrect(cx-w/2,cy-7,w,12,3); CUR.fill();
+  CUR.strokeStyle='#e8c060'; CUR.lineWidth=.9; rrect(cx-w/2+.5,cy-6.5,w-1,11,2.4); CUR.stroke();
+  CUR.fillStyle='#ffd870'; CUR.fillText(text,cx,cy+2.5);
+  CUR.restore();
+}
+
+/* —— 离屏缓存 —— */
+const sceneCache=[];
+function buildCache(i){
+  const c=document.createElement('canvas'); c.width=W*2; c.height=H*2;
+  const x=c.getContext('2d'); x.scale(2,2); x.imageSmoothingEnabled=true;
+  sceneCache[i]=c; CUR=x; drawStatic(i); CUR=g;
+}
+[0,1,2,3,4].forEach(buildCache);
+
+/* 可交互金色光点 */
+function spark(cx,cy,r){
+  const p=.6+.4*Math.sin(tFrame*.14+cx);
+  g.save(); g.globalAlpha=p;
+  softGlow(cx,cy,r*4,'rgba(255,233,138,.55)');
+  disc(cx,cy,r,'#ffe98a');
+  disc(cx,cy,r*.55,'#fff6c0');
+  g.strokeStyle='rgba(255,246,192,.9)'; g.lineWidth=.8; g.lineCap='round';
+  g.beginPath();
+  g.moveTo(cx-r-2,cy); g.lineTo(cx+r+2,cy);
+  g.moveTo(cx,cy-r-2); g.lineTo(cx,cy+r+2);
+  g.stroke();
+  g.restore();
+}
+function sparkBox(b){ spark(b.x+b.w/2, b.y+b.h/2, 3); }
+
+/* 出口箭头 */
+function drawNavArrow(tipX,cy,dir){
+  const pu=.9+.1*Math.sin(tFrame*.1);
+  g.save();
+  g.globalAlpha=.16; softGlow(tipX,cy,16,'rgba(255,233,138,.7)');
+  g.globalAlpha=pu;
+  const L=15,Hh=8;
+  const baseX=dir>0?tipX-L:tipX+L;
+  const shX=dir>0?baseX-15:baseX-2;
+  g.fillStyle='#6e4413'; rrect(shX,cy-3,17,6,3); g.fill();
+  const shg=g.createLinearGradient(0,cy-2,0,cy+2);
+  shg.addColorStop(0,'#ffe07a'); shg.addColorStop(.5,'#f5b83d'); shg.addColorStop(1,'#d99a26');
+  g.fillStyle=shg; rrect(shX+1,cy-2,15,4,2); g.fill();
+  g.fillStyle='#6e4413';
+  g.beginPath(); g.moveTo(tipX,cy); g.lineTo(baseX,cy-Hh); g.lineTo(baseX,cy+Hh);
+  g.closePath(); g.fill();
+  g.fillStyle='#f5b83d';
+  g.beginPath(); g.moveTo(tipX-dir*1.6,cy); g.lineTo(baseX,cy-Hh+1.5); g.lineTo(baseX,cy+Hh-1.5);
+  g.closePath(); g.fill();
+  g.fillStyle='rgba(255,224,122,.95)';
+  g.beginPath(); g.moveTo(tipX-dir*3.4,cy); g.lineTo(baseX,cy-2.6); g.lineTo(baseX,cy+2.6);
+  g.closePath(); g.fill();
+  g.restore();
+}
+function drawExit(e){ drawNavArrow(e.x+2, e.y+(e.h>>1), 1); }
+function drawBackExit(e){ drawNavArrow(e.x+e.w-2, e.y+(e.h>>1), -1); }
+
+/* ================= 实体 ================= */
+const player={ x:120,y:236, tx:120,ty:236, dir:'d', frame:0, moving:false, speed:3.8 };
+let npcs=[];
+const NPC_SETS=[
+  [
+    {id:'yu', type:'yu', name:'郦道元', x:300,y:232, dir:'l', frame:0, talked:false,
+     lines:[
+       {who:'郦道元',type:'yu',text:'我著《水经注》四十卷，记尽天下河流一千余条。这三峡一段，虽未必亲至，却最费笔墨。'},
+       {who:'你',type:'ke',text:'先生一笔，胜似亲游。这连山叠嶂，果然气象万千！'}
+     ]}
+  ],
+  [
+    {id:'fu1', type:'fu', name:'船夫', x:400,y:238, dir:'l', frame:0, talked:false,
+     lines:[
+       {who:'船夫',type:'fu',text:'客官坐稳喽——夏水襄陵，沿溯阻绝！这会儿顺流而下，一日千里；想逆水回去？等水退吧！'},
+       {who:'你',type:'ke',orig:'虽乘奔御风，不以疾也。',text:'朝发白帝，暮到江陵……这船快得，连奔马长风都追不上啊。'}
+     ]}
+  ],
+  [],
+  [],
+  [
+    {id:'fu4', type:'fu', name:'渔夫', x:390,y:232, dir:'l', frame:0, talked:false,
+     lines:[
+       {who:'渔夫',type:'fu',text:'霜还没化，客官倒起得早。听——那高猿又叫了，一声声在这空谷里打转，听得人心里发凉哟。'},
+       {who:'渔夫',type:'fu',orig:'巴东三峡巫峡长，猿鸣三声泪沾裳。',text:'（摇橹唱起渔歌）巴东三峡巫峡长，猿鸣三声泪沾裳——客官，这就是我们渔者世代相传的歌。'},
+       {who:'你',type:'ke',text:'山雄、水疾、潭清、猿哀……先生笔下的三峡，今日总算看尽了。'}
+     ]}
+  ]
+];
+function initScene(idx){
+  npcs = NPC_SETS[idx].map(n=>Object.assign({},n));
+}
+
+/* 江雾 */
+let petals=[];
+let ripples=[];
+let soundWaves=[];
+const PETAL_PALETTES=[
+  ['#e8f0ea','#d8e4dc','#f0f4ec','#ccdcd2'],
+  ['#e8f2ec','#d0e4da','#f4faf4','#c0d8cc'],
+  ['#d8ecd8','#c0e0c8','#e8f4e4','#aed4b8'],
+  ['#c8d4b0','#b0c49a','#dce4c0','#9ab488'],
+  ['#eef2ee','#dce6e0','#f6f8f4','#c8d6ce']
+];
+function setPetals(n,pal){
+  while(petals.length<n) petals.push({x:rnd(0,W),y:rnd(0,H),s:rnd(1,2.4),vy:rnd(.2,.55),sw:rnd(0,6.28),p:pal[0]});
+  petals.length=n;
+  petals.forEach(p=>{ p.p=pal[(Math.random()*pal.length)|0]; });
+}
+const PETAL_COUNT=[3,4,3,3,4];
+
+/* ================= 游戏状态 ================= */
+let scene=0, started=false;
+let inDialog=false, dlgLines=[], dlgI=0, dlgNPC=null;
+let typing=false, dlgTimer=null, dlgFull='';
+let pendingExit=null, pendingBack=null, quizOpen=false, quizAfterDlg=false;
+
+/* —— 互动运行时状态 —— */
+let sawLian=false, sawDie=false;                           // 幕0 左岸连山→右岸叠嶂
+let sawJiang=false, sawZhou=false;                         // 幕1 江水→飞舟
+let sawTuan=false, sawTan=false;                           // 幕2 素湍→绿潭
+let gotQing=false, gotRong=false, gotJun=false, gotMao=false; // 幕3 清荣峻茂四景
+let sawLin=false, sawYuan=false, talkedFu=false;           // 幕4 寒林→高猿→渔歌
+let boatOn=false, boatX=-30;
+let litSet=new Set();
+
+/* —— 卷轴全文（句 id → 原文） —— */
+const FULLTEXT=[
+  {col:'p1', lines:[
+    ['s1','自三峡七百里中，两岸连山，略无阙处。']
+  ]},
+  {col:'p2', lines:[
+    ['s2','重岩叠嶂，隐天蔽日，自非亭午夜分，不见曦月。']
+  ]},
+  {col:'p3', lines:[
+    ['s3','至于夏水襄陵，沿溯阻绝。']
+  ]},
+  {col:'p4', lines:[
+    ['s4','或王命急宣，有时朝发白帝，暮到江陵，其间千二百里，虽乘奔御风，不以疾也。']
+  ]},
+  {col:'p5', lines:[
+    ['s5','春冬之时，则素湍绿潭，回清倒影。']
+  ]},
+  {col:'p6', lines:[
+    ['s6','绝巘多生怪柏，悬泉瀑布，飞漱其间，清荣峻茂，良多趣味。']
+  ]},
+  {col:'p7', lines:[
+    ['s7','每至晴初霜旦，林寒涧肃。']
+  ]},
+  {col:'p8', lines:[
+    ['s8','常有高猿长啸，属引凄异，空谷传响，哀转久绝。']
+  ]},
+  {col:'p9', lines:[
+    ['s9','故渔者歌曰：巴东三峡巫峡长，猿鸣三声泪沾裳。']
+  ]}
+];
+
+const dlgEl=document.getElementById('dialog');
+const dlgText=document.getElementById('dialog-text');
+const dlgOrig=document.getElementById('dialog-orig');
+const dlgName=document.getElementById('nameplate');
+const dlgArrow=document.getElementById('next-arrow');
+const qzBox=document.getElementById('quiz-opts');
+const hintEl=document.getElementById('hint');
+const hudEl=document.getElementById('hud');
+const noteEl=document.getElementById('note');
+let hintTimer=null, noteTimer=null;
+let objectiveText='';
+function setObjective(t){
+  objectiveText=t||'';
+  clearTimeout(hintTimer);
+  if(objectiveText){ hintEl.textContent=objectiveText; hintEl.classList.add('show'); }
+  else hintEl.classList.remove('show');
+}
+function hint(t,ms){
+  hintEl.textContent=t; hintEl.classList.add('show');
+  clearTimeout(hintTimer);
+  hintTimer=setTimeout(()=>{
+    if(objectiveText) hintEl.textContent=objectiveText;
+    else hintEl.classList.remove('show');
+  },ms||2600);
+}
+function cnt2(a,b){ return (a&&b?2:(a||b?1:0))+' / 2'; }
+function cntQRJM(){ return (gotQing?1:0)+(gotRong?1:0)+(gotJun?1:0)+(gotMao?1:0); }
+function setHudByScene(){
+  if(scene===0) setHud('自三峡七百里中，两岸连山，略无阙处。<span class="steps">望山 '+cnt2(sawLian,sawDie)+'</span>');
+  if(scene===1) setHud('至于夏水襄陵，沿溯阻绝。<span class="steps">夏水 '+cnt2(sawJiang,sawZhou)+'</span>');
+  if(scene===2) setHud('春冬之时，则素湍绿潭，回清倒影。<span class="steps">春冬 '+cnt2(sawTuan,sawTan)+'</span>');
+  if(scene===3) setHud('绝巘多生怪柏，悬泉瀑布，飞漱其间。<span class="steps">四景 '+cntQRJM()+' / 4</span>');
+  if(scene===4) setHud('每至晴初霜旦，林寒涧肃。<span class="steps">听猿 '+((sawLin?1:0)+(sawYuan?1:0)+(talkedFu?1:0))+' / 3</span>');
+}
+function setHud(html){ hudEl.innerHTML=html; hudEl.classList.add('show'); }
+function showNote(title,orig,text,ms){
+  noteEl.querySelector('.n-title').textContent=title||'';
+  noteEl.querySelector('.n-orig').textContent=orig||'';
+  noteEl.querySelector('.n-text').textContent=text||'';
+  noteEl.classList.add('show');
+  clearTimeout(noteTimer); // 常驻：直至点击下一目标被新卡片替换
+}
+function lit(id){ litSet.add(id); try{ PROG.lit(id); }catch(e){} }
+
+/* —— 知识卡小喇叭：朗读该卡原文 —— */
+(function(){
+  const btn=noteEl.querySelector('.n-say');
+  if(btn) btn.addEventListener('click',function(ev){
+    ev.stopPropagation();
+    try{
+      const o=noteEl.querySelector('.n-orig').textContent;
+      const ti=noteEl.querySelector('.n-title').textContent;
+      const tx=noteEl.querySelector('.n-text').textContent;
+      SAY(o||(ti+'。'+tx));
+    }catch(e){}
+  });
+})();
+
+const fade=document.getElementById('fade');
+function fadeOut(cb){ fade.classList.add('on'); setTimeout(cb,650); }
+function fadeIn(){ setTimeout(()=>fade.classList.remove('on'),120); }
+
+function goScene(idx, enterLines, fromRight){
+  fadeOut(()=>{
+    scene=idx;
+    noteEl.classList.remove('show'); // 转场收起知识卡
+    initScene(idx);
+    setPetals(PETAL_COUNT[idx], PETAL_PALETTES[idx]);
+    if(idx===0){ player.x=120; player.y=236; }
+    if(idx===1){ player.x=40; player.y=240; }
+    if(idx===2){ player.x=60; player.y=242; }
+    if(idx===3){ player.x=90; player.y=244; }
+    if(idx===4){ player.x=140; player.y=238; }
+    player.tx=player.x; player.ty=player.y; player.dir='d';
+    player.pendingHot=null; player.pendingNPC=null;
+    setHudByScene();
+    if(fromRight){ player.x=W-40; player.tx=player.x; player.dir='l'; }
+    fadeIn();
+    if(enterLines && enterLines.length) openDialog(enterLines,null);
+    else afterEnterHint();
+  });
+}
+
+/* ================= 对话框 ================= */
+function openDialog(lines,npc){
+  quizOpen=false; qzBox.classList.remove('show'); qzBox.innerHTML='';
+  dlgLines=lines; dlgI=0; dlgNPC=npc;
+  inDialog=true; dlgEl.classList.add('show');
+  showLine();
+}
+function showLine(){
+  const L=dlgLines[dlgI];
+  dlgName.textContent=L.who;
+  drawPortrait(L.type);
+  if(L.orig){ dlgOrig.textContent=L.orig; dlgOrig.classList.add('show'); }
+  else { dlgOrig.textContent=''; dlgOrig.classList.remove('show'); }
+  dlgFull=L.text;
+  typing=true; dlgArrow.classList.remove('show');
+  dlgText.textContent='';
+  let i=0;
+  clearInterval(dlgTimer);
+  dlgTimer=setInterval(()=>{
+    i++;
+    dlgText.textContent=dlgFull.slice(0,i);
+    if(i%2===0) blipSound();
+    if(i>=dlgFull.length){
+      clearInterval(dlgTimer); typing=false;
+      dlgArrow.classList.add('show');
+    }
+  },48);
+}
+function advanceDialog(){
+  if(quizOpen) return;
+  if(typing){
+    clearInterval(dlgTimer);
+    dlgText.textContent=dlgFull; typing=false;
+    dlgArrow.classList.add('show');
+    return;
+  }
+  dlgI++;
+  if(dlgI<dlgLines.length){ showLine(); return; }
+  dlgEl.classList.remove('show'); inDialog=false;
+  if(dlgNPC){
+    dlgNPC.talked=true;
+    if(dlgNPC.id==='fu4' && !talkedFu){
+      talkedFu=true; lit('s9'); chime(); setHudByScene();
+    }
+    if(dlgNPC.id==='yu'){ /* 引路闲谈，不推进状态 */ }
+    if(dlgNPC.id==='fu1'){ /* 船夫吆喝，不推进状态 */ }
+  }
+  const askQuiz=quizAfterDlg; quizAfterDlg=false;
+  dlgNPC=null;
+  afterEnterHint();
+  if(askQuiz) setTimeout(openExam,900);
+}
+
+let enterHintKey=-1;
+function afterEnterHint(){
+  if(inDialog) return;
+  if(scene===0) setObjective((sawLian&&sawDie)?'两岸形势已明，向右泛舟入峡 →':'先点左岸连山，再点右岸重岩叠嶂（'+cnt2(sawLian,sawDie)+'）');
+  if(scene===1) setObjective((sawJiang&&sawZhou)?'夏水之势已览，向右顺流而下 →':'点汹涌江水，再点白帝城下的顺流飞舟（'+cnt2(sawJiang,sawZhou)+'）');
+  if(scene===2) setObjective((sawTuan&&sawTan)?'春冬之景已赏，向右仰望绝巘 →':'点白色素湍，再点绿潭倒影（'+cnt2(sawTuan,sawTan)+'）');
+  if(scene===3) setObjective(cntQRJM()>=4?'清荣峻茂已集齐，向右入霜晨之林 →':'点遍崖间四景，拼出「清荣峻茂」（'+cntQRJM()+'/4）');
+  if(scene===4) setObjective(talkedFu?'':((sawLin&&sawYuan)?'再与渔夫对话，听一曲渔歌':'先点寒林，再点高猿（'+((sawLin?1:0)+(sawYuan?1:0))+'/2）'));
+}
+
+/* ================= 考察：点字成句 → 时序排序 → 清荣峻茂配对 ================= */
+const WORD_TARGET='虽乘奔御风不以疾也';
+const STEPS=['夏水襄陵','朝发白帝','素湍绿潭','清荣峻茂','晴初霜旦'];
+const SIMI_ORDER=['清','荣','峻','茂'];
+const SIMI_TAGS={'清':'水清','荣':'树荣','峻':'山峻','茂':'草茂'};
+const SIMI_POOL=['水清','树荣','山峻','草茂'];
+let examStage=0, wordIdx=0, virtueIdx=0, placeSel=null, placeLock=false, placeUI=null;
+
+function openExam(){
+  try{ PROG.examStart(); }catch(e){}
+  inDialog=true; quizOpen=true;
+  setObjective('');
+  examStage=0; wordIdx=0;
+  dlgEl.classList.add('show');
+  showWords();
+}
+function examHeader(title){
+  dlgName.textContent='道元考校';
+  drawPortrait('yu');
+  dlgOrig.textContent=''; dlgOrig.classList.remove('show');
+  dlgText.textContent=title;
+  dlgArrow.classList.remove('show');
+}
+/* —— 第一题：点字成句 —— */
+function showWords(){
+  examStage=0; wordIdx=0;
+  examHeader('点字成句（1 / 3）：依原文之序，逐一点击字块，拼出写夏水之疾的名句');
+  qzBox.innerHTML='';
+  qzBox.classList.add('show');
+  const q=document.createElement('div'); q.className='quiz-q';
+  q.innerHTML='「有时朝发白帝，暮到江陵，其间千二百里，<span class="blank-hint">……</span>」——共九字';
+  const ans=document.createElement('div'); ans.className='word-ans'; ans.textContent='· · · · · · · · ·';
+  const pool=document.createElement('div'); pool.className='word-pool';
+  let order=WORD_TARGET.split('').map((c,i)=>i);
+  do{
+    for(let i=order.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [order[i],order[j]]=[order[j],order[i]]; }
+  }while(order.every((v,i)=>v===i));
+  order.forEach(i=>{
+    const b=document.createElement('button');
+    b.className='wch'; b.textContent=WORD_TARGET[i]; b.dataset.i=i;
+    b.addEventListener('click', ev=>{
+      ev.stopPropagation();
+      if(b.disabled) return;
+      if(b.textContent===WORD_TARGET[wordIdx]){
+        b.classList.add('ok'); b.disabled=true;
+        wordIdx++;
+        const picked=WORD_TARGET.slice(0,wordIdx);
+        ans.textContent=picked+(wordIdx<WORD_TARGET.length?' '+'·'.repeat(WORD_TARGET.length-wordIdx).split('').join(' '):'');
+        chime();
+        if(wordIdx>=WORD_TARGET.length){
+          exp.textContent='✓ 虽乘奔御风，不以疾也——即使骑上飞奔的马、驾着长风，也没有行船之快。侧面一烘托，夏水之疾如在眼前。';
+          setTimeout(showVirtues,1500);
+        }
+      } else {
+        b.classList.remove('bad'); void b.offsetWidth; b.classList.add('bad');
+        blipSound(); exp.textContent='✗ 此字不是下一位，再想想。';
+        try{ PROG.wrong('word',WORD_TARGET,WORD_TARGET[i],WORD_TARGET[wordIdx]); }catch(e){}
+        setTimeout(()=>b.classList.remove('bad'),420);
+      }
+    });
+    pool.appendChild(b);
+  });
+  const exp=document.createElement('div'); exp.className='quiz-exp';
+  qzBox.appendChild(q); qzBox.appendChild(ans); qzBox.appendChild(pool); qzBox.appendChild(exp);
+}
+/* —— 第二题：时序排序 —— */
+function showVirtues(){
+  examStage=1; virtueIdx=0;
+  examHeader('时序排序（2 / 3）：三峡的时序之景，依原文先后，逐一点选');
+  qzBox.innerHTML='';
+  const q=document.createElement('div'); q.className='quiz-q';
+  q.innerHTML='已排 <span class="blank-hint" id="vprog">0 / 5</span>';
+  const pool=document.createElement('div'); pool.className='virtue-pool';
+  let order=STEPS.map((v,i)=>i);
+  do{
+    for(let i=order.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [order[i],order[j]]=[order[j],order[i]]; }
+  }while(order.every((v,i)=>v===i));
+  order.forEach(i=>{
+    const b=document.createElement('button');
+    b.textContent=STEPS[i];
+    b.addEventListener('click', ev=>{
+      ev.stopPropagation();
+      if(b.disabled) return;
+      if(i===virtueIdx){
+        b.classList.add('ok'); b.disabled=true;
+        virtueIdx++;
+        document.getElementById('vprog').textContent=virtueIdx+' / 5';
+        chime();
+        if(virtueIdx>=STEPS.length){
+          exp.textContent='✓ 夏水之疾→一日千里→春冬之趣→四景俱足→霜晨之肃——时序流转，正是全文的筋骨。';
+          setTimeout(showPlace,1600);
+        }
+      } else {
+        b.classList.remove('bad'); void b.offsetWidth; b.classList.add('bad');
+        blipSound(); exp.textContent='✗ 顺序不对——回忆文中先写什么、后写什么。';
+        try{ PROG.wrong('order',STEPS.join(''),STEPS[i],STEPS[virtueIdx]); }catch(e){}
+        setTimeout(()=>b.classList.remove('bad'),420);
+      }
+    });
+    pool.appendChild(b);
+  });
+  const exp=document.createElement('div'); exp.className='quiz-exp';
+  qzBox.appendChild(q); qzBox.appendChild(pool); qzBox.appendChild(exp);
+}
+/* —— 第三题：清荣峻茂配对 —— */
+function showPlace(){
+  examStage=2; placeSel=null; placeLock=false;
+  examHeader('清荣峻茂（3 / 3）：先点下方「所指牌」，再点对应的本体字');
+  qzBox.innerHTML='';
+  const row=document.createElement('div'); row.className='place-row';
+  const tagEls={};
+  SIMI_ORDER.forEach(f=>{
+    const cell=document.createElement('div'); cell.className='place-cell';
+    const b=document.createElement('button');
+    b.className='fslot'; b.dataset.f=f; b.textContent=f;
+    b.style.textAlign='center'; b.style.minWidth='72px';
+    b.addEventListener('click', ev=>{ ev.stopPropagation(); pickSlot(f,b); });
+    const tag=document.createElement('div'); tag.className='place-tag'; tag.textContent='＿＿';
+    tagEls[f]=tag;
+    cell.appendChild(b); cell.appendChild(tag);
+    row.appendChild(cell);
+  });
+  const pool=document.createElement('div'); pool.className='word-pool'; pool.style.justifyContent='center';
+  SIMI_POOL.forEach(t=>{
+    const b=document.createElement('button');
+    b.className='pcard'; b.textContent=t; b.style.textAlign='center';
+    b.addEventListener('click', ev=>{
+      ev.stopPropagation();
+      if(b.disabled||placeLock) return;
+      if(placeSel===b){ b.classList.remove('sel'); placeSel=null; return; }
+      pool.querySelectorAll('button').forEach(x=>x.classList.remove('sel'));
+      placeSel=b; b.classList.add('sel');
+    });
+    pool.appendChild(b);
+  });
+  const exp=document.createElement('div'); exp.className='quiz-exp';
+  qzBox.appendChild(row); qzBox.appendChild(pool); qzBox.appendChild(exp);
+  placeUI={tagEls,exp,pool,row};
+}
+function pickSlot(f,b){
+  if(b.disabled||placeLock) return;
+  if(!placeSel){
+    b.classList.remove('bad'); void b.offsetWidth; b.classList.add('bad');
+    placeUI.exp.textContent='先点下方的一张所指牌，再点本体字。';
+    setTimeout(()=>b.classList.remove('bad'),420);
+    return;
+  }
+  placeLock=true;
+  if(placeSel.textContent===SIMI_TAGS[f]){
+    b.classList.add('ok'); b.disabled=true;
+    placeSel.classList.remove('sel'); placeSel.classList.add('ok'); placeSel.disabled=true;
+    placeUI.tagEls[f].textContent=SIMI_TAGS[f];
+    placeUI.tagEls[f].classList.add('done');
+    chime(); placeSel=null; placeLock=false;
+    if(SIMI_ORDER.every(x=>placeUI.tagEls[x].classList.contains('done'))){
+      placeUI.exp.textContent='✓ 水清、树荣、山峻、草茂——四字各得其所，「良多趣味」正在其中。';
+      setTimeout(finishExam,1500);
+    }
+  } else {
+    b.classList.remove('bad'); void b.offsetWidth; b.classList.add('bad');
+    placeSel.classList.remove('bad'); void placeSel.offsetWidth; placeSel.classList.add('bad');
+    blipSound(); placeUI.exp.textContent='✗ 配错了——「清荣峻茂」各指水、树、山、草中的哪一个？再想想。';
+    try{ PROG.wrong('match','清荣峻茂配对',placeSel.textContent,SIMI_TAGS[f]); }catch(e){}
+    setTimeout(()=>{
+      b.classList.remove('bad');
+      if(placeSel){ placeSel.classList.remove('bad'); placeSel.classList.remove('sel'); placeSel=null; }
+      placeLock=false;
+    },560);
+  }
+}
+function finishExam(){
+  try{ PROG.finish(); }catch(e){}
+  qzBox.classList.remove('show'); qzBox.innerHTML='';
+  dlgEl.classList.remove('show');
+  inDialog=false; quizOpen=false;
+  chime();
+  setTimeout(showScroll,900);
+}
+
+function showScroll(){
+  setObjective('');
+  sealSound();
+  const box=document.getElementById('scroll-inner');
+  box.innerHTML='';
+  const head=document.createElement('div');
+  head.className='s-col head'; head.textContent='三峡';
+  box.appendChild(head);
+  const PER=21;
+  let cur=null, cnt=0, delay=0;
+  const newCol=()=>{ cur=document.createElement('div'); cur.className='s-col'; box.appendChild(cur); cnt=0; delay++; };
+  const pushCh=(ch,isLit)=>{
+    if(cnt>=PER || !cur) newCol();
+    cur.style.animationDelay=(.1*delay)+'s';
+    if(isLit){ const s=document.createElement('span'); s.className='lit'; s.textContent=ch; cur.appendChild(s); }
+    else cur.appendChild(document.createTextNode(ch));
+    cnt++;
+  };
+  FULLTEXT.forEach(pg=>pg.lines.forEach(([id,text])=>{
+    for(const ch of text) pushCh(ch, litSet.has(id));
+  }));
+  const sealCol=document.createElement('div');
+  sealCol.className='s-seal';
+  sealCol.innerHTML='<div class="seal">道元地理</div>'+
+    '<div style="margin-top:7px;font-size:.55rem;letter-spacing:.22rem;color:rgba(120,40,30,.85)">北魏 · 郦道元</div>';
+  box.appendChild(sealCol);
+  const seal=sealCol.querySelector('.seal');
+  setTimeout(()=>seal.classList.add('stamp'), 100*delay+500);
+  document.getElementById('scroll').classList.add('show');
+}
+
+/* —— 卷轴：朗读全文 / 离开即停 —— */
+(function(){
+  const btn=document.getElementById('scroll-say');
+  if(!btn) return;
+  let on=false;
+  function reset(){ on=false; btn.textContent='🔊 朗读全文'; }
+  btn.addEventListener('click',function(){
+    try{
+      if(on){ reset(); SAYSTOP(); return; }
+      const txt=FULLTEXT.reduce((a,pg)=>a+pg.lines.map(x=>x[1]).join(''),'');
+      on=true; btn.textContent='■ 停止朗读'; SAY(txt);
+      if('speechSynthesis' in window){
+        const ss0=window.speechSynthesis;
+        const rs=function(){ setTimeout(function(){
+          /* 分句模式：句间有 150~300ms 空窗，500ms 后仍空闲才算全文读完 */
+          if(ss0.speaking||ss0.pending)return;
+          reset(); ss0.removeEventListener('end',rs);
+        },500); };
+        ss0.addEventListener('end',rs);
+      }
+    }catch(e){ reset(); }
+  });
+  window.addEventListener('pagehide',function(){ try{ SAYSTOP(); }catch(e){} });
+})();
+
+/* ================= 输入 ================= */
+function toWorld(e){
+  const r=cv.getBoundingClientRect();
+  return {
+    x:(e.clientX-r.left)/r.width*W,
+    y:(e.clientY-r.top)/r.height*H
+  };
+}
+function inBox(p,b){ return p.x>b.x-b.w/2 && p.x<b.x+b.w/2 && p.y>b.y-b.h/2 && p.y<b.y+b.h/2; }
+function exitLocked(){
+  if(scene===0) return !(sawLian&&sawDie);
+  if(scene===1) return !(sawJiang&&sawZhou);
+  if(scene===2) return !(sawTuan&&sawTan);
+  if(scene===3) return cntQRJM()<4;
+  return false;
+}
+
+/* —— 热点行为 —— */
+function doLian(){
+  if(!sawLian){
+    sawLian=true; chime(); setHudByScene();
+    showNote('略无阙处','自三峡七百里中，两岸连山，略无阙处。','在七百里三峡之中，两岸高山连绵，没有一点中断的地方。阙：通「缺」，缺口。',4200);
+    lit('s1');
+    if(sawDie) afterEnterHint();
+  } else showNote('左岸连山','两岸连山，略无阙处','连山依旧，望不到尽头。',1800);
+}
+function doDie(){
+  if(!sawDie){
+    sawDie=true; chime(); setHudByScene();
+    showNote('隐天蔽日','重岩叠嶂，隐天蔽日，自非亭午夜分，不见曦月。','层层叠叠的岩石山峰，把天空和太阳都遮住了。不到正午或半夜，连日月都看不见。曦：日光。',4600);
+    lit('s2');
+    if(sawLian) afterEnterHint();
+  } else showNote('右岸叠嶂','隐天蔽日','山影沉沉，天光更暗了。',1800);
+}
+function doJiang(){
+  if(!sawJiang){
+    sawJiang=true; chime(); setHudByScene();
+    showNote('夏水襄陵','至于夏水襄陵，沿溯阻绝。','到了夏天，江水暴涨漫上山陵，顺流而下和逆流而上的船只，都被阻断。襄：漫上。',4200);
+    lit('s3');
+    if(sawZhou) afterEnterHint();
+  } else showNote('汹涌江水','夏水襄陵，沿溯阻绝','浊浪排空，水声如雷。',1800);
+}
+function doZhou(){
+  if(!sawZhou){
+    sawZhou=true; chime(); setHudByScene();
+    boatOn=true; boatX=-30;
+    showNote('朝发白帝','有时朝发白帝，暮到江陵，其间千二百里。','有时王命急需传达，早晨从白帝城出发，傍晚就到江陵——一千二百里水路，一日即至！',4200);
+    lit('s4');
+    if(sawJiang) afterEnterHint();
+  } else {
+    boatOn=true; boatX=-30;
+    showNote('顺流飞舟','朝发白帝，暮到江陵','又是一叶飞舟，顺流直下。',1800);
+  }
+}
+function doTuan(){
+  if(!sawTuan){
+    sawTuan=true; chime(); setHudByScene();
+    showNote('素湍回清','春冬之时，则素湍绿潭，回清倒影。','春冬时节，雪白的急流打着回旋，清波粼粼。素：白色。湍：急流。',4000);
+    if(sawTan) lit('s5');
+    if(sawTan) afterEnterHint();
+  } else showNote('素湍','素湍绿潭，回清倒影','白浪翻卷，清波回旋。',1800);
+}
+function doTan(){
+  if(!sawTan){
+    sawTan=true; chime(); setHudByScene();
+    showNote('绿潭倒影','则素湍绿潭，回清倒影。','碧绿的深潭，映着山影树影，随波轻轻晃动。',3600);
+    if(sawTuan) lit('s5');
+    if(sawTuan) afterEnterHint();
+  } else showNote('绿潭','回清倒影','潭水碧透，倒影如画。',1800);
+}
+/* 幕3 四景收集（点击即触发） */
+function doQRJM(k){
+  if(k==='qing'){
+    if(gotQing){ showNote('悬泉','悬泉瀑布','飞流依旧，水声淙淙。',1800); return; }
+    gotQing=true; chime();
+    showNote('悬泉飞漱','悬泉瀑布，飞漱其间。','山泉从崖顶悬空飞泻，冲荡在岩石之间——「清」，说的是这水。',4200);
+  }
+  if(k==='rong'){
+    if(gotRong){ showNote('怪柏','绝巘多生怪柏','虬枝盘曲，苍劲如故。',1800); return; }
+    gotRong=true; chime();
+    showNote('绝巘怪柏','绝巘多生怪柏。','极高的山峰上，生长着奇形怪状的柏树——「荣」，说的是这树，欣欣向荣。',4200);
+  }
+  if(k==='jun'){
+    if(gotJun){ showNote('绝巘','清荣峻茂','群峰峭拔，直指苍穹。',1800); return; }
+    gotJun=true; chime();
+    showNote('绝巘摩云','绝巘多生怪柏。','山峰陡峭，直插云霄——「峻」，说的是这山，高峻挺拔。',4000);
+  }
+  if(k==='mao'){
+    if(gotMao){ showNote('茂草','清荣峻茂','崖缝青青，生机不减。',1800); return; }
+    gotMao=true; chime();
+    showNote('崖间茂草','清荣峻茂，良多趣味。','崖缝草木丰茂，生机盎然——「茂」，说的是这草。',4000);
+  }
+  setHudByScene();
+  if(gotQing&&gotRong&&gotJun&&gotMao){
+    lit('s6');
+    showNote('清荣峻茂','清荣峻茂，良多趣味。','水清、树荣、山峻、草茂——四字写尽春冬之景，实在是趣味无穷！',5200);
+  }
+  afterEnterHint();
+}
+function doLin(){
+  if(!sawLin){
+    sawLin=true; chime(); setHudByScene();
+    showNote('林寒涧肃','每至晴初霜旦，林寒涧肃。','每逢雨后初晴或落霜的早晨，树林清寒，山涧肃穆。霜旦：落霜的早晨。',4200);
+    lit('s7');
+    if(sawYuan) afterEnterHint();
+  } else showNote('寒林','林寒涧肃','霜叶无声，寒气侵衣。',1800);
+}
+function doYuan(){
+  if(!sawYuan){
+    sawYuan=true; chime(); yuanCry(); setHudByScene();
+    soundWaves.push({x:APE_BOX.x,y:APE_BOX.y,l:0});
+    soundWaves.push({x:APE_BOX.x,y:APE_BOX.y,l:-16});
+    soundWaves.push({x:APE_BOX.x,y:APE_BOX.y,l:-32});
+    showNote('高猿长啸','常有高猿长啸，属引凄异，空谷传响，哀转久绝。','高处的猿猴长声啼叫，接连不断，凄凉怪异；空谷里回声荡漾，久久才消失。属引：连续不断。',4600);
+    lit('s8');
+    if(sawLin) afterEnterHint();
+  } else {
+    yuanCry();
+    soundWaves.push({x:APE_BOX.x,y:APE_BOX.y,l:0});
+    showNote('高猿','空谷传响，哀转久绝','猿声又起，满谷回荡。',1800);
+  }
+}
+
+cv.addEventListener('click', e=>{
+  if(!started) return;
+  const p=toWorld(e);
+  if(inDialog){ advanceDialog(); return; }
+  ripples.push({x:p.x,y:p.y,l:0});
+
+  // NPC 命中
+  for(const n of npcs){
+    if(Math.abs(p.x-n.x)<15 && p.y<n.y+4 && p.y>n.y-40){
+      if(scene===4 && n.id==='fu4'){
+        if(!(sawLin&&sawYuan)){ hint('先点寒林、再点高猿，最后来听渔歌',2600); return; }
+        if(!talkedFu) quizAfterDlg=true;
+      }
+      const side = player.x<n.x ? -1 : 1;
+      player.tx = n.x + side*16;
+      player.ty = n.y;
+      player.pendingNPC=n; player.pendingHot=null;
+      return;
+    }
+  }
+  // 幕0：左岸连山 / 右岸叠嶂
+  if(scene===0){
+    if(inBox(p,LSHAN_BOX)){ player.tx=110; player.ty=214; player.dir='u'; player.pendingHot=doLian; player.pendingNPC=null; return; }
+    if(inBox(p,RSHAN_BOX)){ player.tx=370; player.ty=216; player.dir='u'; player.pendingHot=doDie; player.pendingNPC=null; return; }
+  }
+  // 幕1：江水 / 飞舟
+  if(scene===1){
+    if(inBox(p,JIANG_BOX)){ player.tx=250; player.ty=230; player.pendingHot=doJiang; player.pendingNPC=null; return; }
+    if(inBox(p,ZHOU_BOX)){ player.tx=110; player.ty=228; player.dir='u'; player.pendingHot=doZhou; player.pendingNPC=null; return; }
+  }
+  // 幕2：素湍 / 绿潭
+  if(scene===2){
+    if(inBox(p,TUAN_BOX)){ player.tx=150; player.ty=232; player.dir='u'; player.pendingHot=doTuan; player.pendingNPC=null; return; }
+    if(inBox(p,TAN_BOX)){ player.tx=300; player.ty=236; player.pendingHot=doTan; player.pendingNPC=null; return; }
+  }
+  // 幕3：四景收集（点击即触发，人物向崖下挪步助兴）
+  if(scene===3 && cntQRJM()<4){
+    const boxes=[[QUAN_BOX,'qing'],[GUAI_BOX,'rong'],[YAN_BOX,'jun'],[CAO_BOX,'mao']];
+    for(let i=0;i<4;i++){
+      if(inBox(p,boxes[i][0])){
+        player.tx=clamp(boxes[i][0].x,20,460); player.ty=244;
+        player.pendingHot=null; player.pendingNPC=null;
+        doQRJM(boxes[i][1]);
+        return;
+      }
+    }
+  }
+  // 幕4：寒林 / 高猿
+  if(scene===4){
+    if(inBox(p,HANLIN_BOX)){ player.tx=130; player.ty=222; player.dir='u'; player.pendingHot=doLin; player.pendingNPC=null; return; }
+    if(inBox(p,APE_BOX)){ player.tx=330; player.ty=224; player.dir='u'; player.pendingHot=doYuan; player.pendingNPC=null; return; }
+  }
+  // 返回出口（可随时返回上一幕）
+  const bx=BACK_EXITS[scene];
+  if(bx && p.x<bx.w+42 && p.y>bx.y && p.y<bx.y+bx.h){
+    player.tx=8; player.ty=clamp(p.y,180,250); pendingBack=bx;
+    player.pendingHot=null; player.pendingNPC=null; return;
+  }
+  // 出口
+  const ex=EXITS[scene];
+  if(ex && !exitLocked()){
+    if(p.x>ex.x-40 && p.y>ex.y && p.y<ex.y+ex.h){
+      player.tx=470; player.ty=clamp(p.y,WALKY[scene].a,WALKY[scene].b); pendingExit=ex;
+      player.pendingHot=null; return;
+    }
+  } else if(ex && exitLocked() && p.x>ex.x-40 && p.y>ex.y && p.y<ex.y+ex.h){
+    player.tx=ex.x-30; player.ty=clamp(p.y,180,250);
+    if(scene===0) hint('两山未看遍——先点左岸连山，再点右岸叠嶂',2400);
+    else if(scene===1) hint('夏水未览尽——先点汹涌江水，再点顺流飞舟',2400);
+    else if(scene===2) hint('春冬之景未赏全——先点素湍，再点绿潭',2600);
+    else if(scene===3) hint('清荣峻茂未集齐（'+cntQRJM()+'/4）——点遍崖间四景',2600);
+  }
+  // 走路
+  player.tx=clamp(p.x,8,472);
+  player.ty=clamp(p.y,WALKY[scene].a,WALKY[scene].b);
+  player.pendingNPC=null; player.pendingHot=null;
+});
+// 点击对话框区域也可推进
+dlgEl.addEventListener('click', e=>{
+  if(inDialog && !quizOpen) advanceDialog();
+});
+
+/* ================= 主循环 ================= */
+function update(){
+  if(started && (!inDialog)){
+    const dx=player.tx-player.x, dy=player.ty-player.y;
+    const d=Math.hypot(dx,dy);
+    if(d>1.2){
+      player.moving=true;
+      const st=Math.min(player.speed,d); player.x+=dx/d*st; player.y+=dy/d*st;
+      if(Math.abs(dx)>Math.abs(dy)) player.dir=dx>0?'r':'l';
+      else player.dir=dy>0?'d':'u';
+      player.frame++;
+    } else {
+      player.moving=false; player.frame++;
+      if(player.pendingHot){
+        const fn=player.pendingHot; player.pendingHot=null; fn();
+      }
+      if(player.pendingNPC){
+        const n=player.pendingNPC;
+        player.dir = player.x<n.x?'r':'l';
+        n.dir = n.x<player.x?'l':'r';
+        const copy=n.lines.map(l=>({...l}));
+        openDialog(copy,n);
+        player.pendingNPC=null;
+      }
+      if(pendingBack){
+        pendingBack=null;
+        goScene(scene-1, null, true);
+      }
+            if(pendingExit){
+        pendingExit=null;
+        if(scene===0) goScene(1,[
+          {who:'旁白',type:'narrator',text:'小舟驶入峡中。时值盛夏，江水暴涨，漫上山陵——眼前浊浪滔天，惊心动魄！'}
+        ]);
+        else if(scene===1) goScene(2,[
+          {who:'旁白',type:'narrator',text:'顺流直下，一日千里。待到春冬之时，江水忽然换了一副面孔——雪白的急流，碧绿的深潭。'}
+        ]);
+        else if(scene===2) goScene(3,[
+          {who:'郦道元',type:'yu',text:'抬头看！极高的山峰上怪柏横生，悬泉瀑布飞漱其间。这崖间四景，且随我一一点来。'}
+        ]);
+        else if(scene===3) goScene(4,[
+          {who:'旁白',type:'narrator',text:'清荣峻茂，四景俱足。天色将明，寒霜未消，林间一阵萧瑟——听，是什么声音在空谷里回荡？'}
+        ]);
+      }
+    }
+  } else { player.moving=false; player.frame++; }
+
+  npcs.forEach(n=>{ n.frame++; });
+
+  if(boatOn){ boatX+=5; if(boatX>W+40) boatOn=false; }
+
+  ripples.forEach(r=>r.l++);
+  ripples=ripples.filter(r=>r.l<24);
+  soundWaves.forEach(w=>w.l++);
+  soundWaves=soundWaves.filter(w=>w.l<70);
+  petals.forEach(p=>{
+    p.sw+=.03; p.y+=p.vy; p.x+=Math.sin(p.sw)*.5;
+    if(p.y>H+4){ p.y=-4; p.x=rnd(0,W); }
+  });
+}
+
+/* 各幕未访热点闪光 */
+function drawSanxiaHot(){
+  if(scene===0){
+    if(!sawLian) sparkBox(LSHAN_BOX);
+    if(!sawDie) sparkBox(RSHAN_BOX);
+  }
+  if(scene===1){
+    if(!sawJiang) sparkBox(JIANG_BOX);
+    if(!sawZhou) sparkBox(ZHOU_BOX);
+  }
+  if(scene===2){
+    if(!sawTuan) sparkBox(TUAN_BOX);
+    if(!sawTan) sparkBox(TAN_BOX);
+  }
+  if(scene===3){
+    if(!gotQing) sparkBox(QUAN_BOX);
+    if(!gotRong) sparkBox(GUAI_BOX);
+    if(!gotJun) sparkBox(YAN_BOX);
+    if(!gotMao) sparkBox(CAO_BOX);
+  }
+  if(scene===4){
+    if(!sawLin) sparkBox(HANLIN_BOX);
+    if(!sawYuan) sparkBox(APE_BOX);
+  }
+}
+
+function render(){
+  g.clearRect(0,0,W,H);
+  g.drawImage(sceneCache[scene],0,0,W,H);
+  CUR=g; drawDynamic(scene);
+
+  drawSanxiaHot();
+
+  const ex=EXITS[scene];
+  if(ex && !exitLocked()) drawExit(ex);
+  const bxe=BACK_EXITS[scene];
+  if(bxe) drawBackExit(bxe);
+
+  npcs.forEach(n=>{
+    drawHuman(n.x,n.y,{type:n.type,dir:n.dir,frame:n.frame,moving:false});
+    if(!n.talked){
+      const yy=n.y-38+Math.sin((tFrame+n.x)*.12)*2;
+      g.save(); g.globalAlpha=1;
+      softGlow(n.x,yy+5,9,'rgba(255,217,77,.35)');
+      g.fillStyle='#ffd94d'; rrect(n.x-1.6,yy,3.2,7,1.6); g.fill();
+      disc(n.x,yy+9.6,1.7,'#ffd94d');
+      g.fillStyle='rgba(255,248,208,.85)';
+      g.beginPath(); g.ellipse(n.x-.8,yy+1.6,.9,2.4,0,0,6.2832); g.fill();
+      g.restore();
+    }
+  });
+
+  // 玩家（你：青衫幞头书生）
+  drawHuman(player.x,player.y,{type:'ke',dir:player.dir,frame:player.frame,moving:player.moving});
+
+  // 点击涟漪反馈
+  ripples.forEach(r=>{
+    const rr=3+r.l*.9;
+    g.globalAlpha=.55*(1-r.l/24);
+    g.strokeStyle='#fff6c8'; g.lineWidth=1;
+    g.beginPath(); g.ellipse(r.x,r.y,rr,rr*.55,0,0,Math.PI*2); g.stroke();
+    g.globalAlpha=1;
+  });
+  // 江雾（最上层）
+  petals.forEach(p=>{
+    const fl=(Math.sin(p.sw)+1)/2;
+    const rw=Math.max(.5,p.s*(.35+.65*fl)), rh=Math.max(.5,p.s*1.6);
+    g.save(); g.globalAlpha=.85; g.fillStyle=p.p;
+    g.translate(p.x,p.y); g.rotate(p.sw*.4);
+    g.beginPath(); g.ellipse(0,0,rw,rh,0,0,Math.PI*2); g.fill();
+    g.restore();
+  });
+}
+
+let __loopIv=null;
+function loop(){ try{ tFrame++; update(); render(); }catch(e){ console.error('LOOP_ERR:',e.message); } }
+
+/* ================= 启动 ================= */
+function beginJourney(){
+  started=true;
+  initScene(0); setPetals(PETAL_COUNT[0], PETAL_PALETTES[0]);
+  setHudByScene();
+  if(!__loopIv){ __loopIv=setInterval(loop,33); }
+  chime();
+  openDialog([
+    {who:'旁白',type:'narrator',text:'北魏年间，地理学家郦道元为《水经》作注，笔下江河纵横千里。今日你我泛舟江上，随他的笔墨入峡——看山、看水、听猿。'},
+    {who:'郦道元',type:'yu',orig:'自三峡七百里中，两岸连山，略无阙处。',text:'客官请看——这两岸连山七百里，竟无一处缺口！先点左岸连山，再点右岸重岩叠嶂，看这山是怎样遮天蔽日的。'}
+  ],null);
+}
+document.getElementById('start').addEventListener('click', ()=>{
+  audioInit();
+  if(actx.state==='suspended') actx.resume();
+  if(!musicOn){ musicOn=true; mIdx=0; schedMusic(); document.getElementById('music').textContent='♫'; }
+  const t=document.getElementById('title');
+  t.style.opacity=0;
+  setTimeout(()=>{
+    t.style.display='none';
+    document.getElementById('prologue').classList.add('show');
+  },800);
+});
+document.getElementById('unroll').addEventListener('click', ()=>{
+  chime();
+  const p=document.getElementById('prologue');
+  p.style.transition='opacity .6s'; p.style.opacity=0;
+  setTimeout(()=>{ p.classList.remove('show'); beginJourney(); },600);
+});
+// 初始静态画面
+initScene(0); setPetals(PETAL_COUNT[0], PETAL_PALETTES[0]);
+(function staticLoop(){ if(!started){ g.drawImage(sceneCache[0],0,0,W,H); CUR=g; drawDynamic(0); requestAnimationFrame(staticLoop);} })();
+
+/* 调试入口（仅 ?debug=1 时可用，正式游玩无影响） */
+if(location.search.indexOf('debug=1')>=0){
+  window.__test={
+    go(n){
+      if(!started){ started=true; document.getElementById('title').style.display='none'; }
+      if(!window.__loopOn){ window.__loopOn=true; if(!__loopIv){ __loopIv=setInterval(loop,33); } }
+      goScene(n);
+    },
+    unlock(){
+      sawLian=sawDie=sawJiang=sawZhou=sawTuan=sawTan=true;
+      gotQing=gotRong=gotJun=gotMao=true;
+      sawLin=sawYuan=talkedFu=true;
+      ['s1','s2','s3','s4','s5','s6','s7','s8','s9'].forEach(lit);
+      npcs.forEach(n=>n.talked=true);
+    },
+    dlg(n){ for(let i=0;i<(n||1);i++) dlgEl.click(); },
+    exam(){ openExam(); },
+    examAuto(){
+      if(examStage===0){
+        let guard=0;
+        while(wordIdx<WORD_TARGET.length && guard++<40){
+          const ch=WORD_TARGET[wordIdx];
+          const b=[...qzBox.querySelectorAll('button.wch')].find(x=>!x.disabled&&+x.dataset.i===wordIdx);
+          if(!b) break;
+          b.click();
+        }
+        return 'w'+wordIdx;
+      }
+      if(examStage===1){
+        STEPS.forEach(v=>{
+          const b=[...qzBox.querySelectorAll('button')].find(x=>!x.disabled&&x.textContent===v);
+          if(b) b.click();
+        });
+        return 'v'+virtueIdx;
+      }
+      if(examStage===2){
+        SIMI_ORDER.forEach(f=>{
+          const tag=SIMI_TAGS[f];
+          const tb=[...qzBox.querySelectorAll('button.pcard')].find(x=>!x.disabled&&x.textContent===tag);
+          if(tb) tb.click();
+          const fb=[...qzBox.querySelectorAll('button.fslot')].find(x=>x.dataset.f===f&&!x.disabled);
+          if(fb) fb.click();
+        });
+        return 'p'+SIMI_ORDER.filter(f=>placeUI.tagEls[f].classList.contains('done')).length;
+      }
+      return 'none';
+    },
+    scroll(){ showScroll(); },
+    state:()=>({scene,
+      s0:[sawLian,sawDie], s1:[sawJiang,sawZhou], s2:[sawTuan,sawTan],
+      s3:[gotQing,gotRong,gotJun,gotMao], s4:[sawLin,sawYuan,talkedFu],
+      inDialog, quizOpen, examStage, wordIdx, virtueIdx, lit:[...litSet].sort()})
+  };
+}
+
+</script>
+<script>
+/* ===== 文脉意象收集系统 · 获得仪式（独立运行时，包装 PROG.finish，不改原游戏逻辑） ===== */
+(function(){
+  if(window.__YIN_RT__) return; window.__YIN_RT__=true;
+  var PID='sx';
+  var REG=[
+    {key:'yue',char:'月',rarity:'逸品',rc:'#6fc6ff',glow:'rgba(111,198,255,.4)',pieces:['cts'],
+     from:'记承天寺夜游',quote:'庭下如积水空明',
+     mean:'同一轮月，闲人眼里的空明与自适；竹柏之影原来是月色。'},
+    {key:'shui',char:'水',rarity:'神品',rc:'#ff9d3c',glow:'rgba(255,157,60,.45)',pieces:['xst','sx'],
+     from:'小石潭记 · 三峡',quote:'水尤清冽 · 素湍绿潭',
+     mean:'水有两副面孔——小石潭清寒幽悄，三峡水或奔腾或澄碧。'},
+    {key:'lian',char:'莲',rarity:'极品',rc:'#b48aff',glow:'rgba(180,138,255,.42)',pieces:['als'],
+     from:'爱莲说',quote:'出淤泥而不染，濯清涟而不妖',
+     mean:'莲即君子：身处浊世而不自染。'},
+    {key:'taoyuan',char:'桃源',rarity:'神品',rc:'#ff9d3c',glow:'rgba(255,157,60,.45)',pieces:['thy'],
+     from:'桃花源记',quote:'芳草鲜美，落英缤纷',
+     mean:'桃花源头是中国人心里的理想乡；菊与桃花皆指向归隐。'},
+    {key:'shan',char:'山',rarity:'极品',rc:'#b48aff',glow:'rgba(180,138,255,.42)',pieces:['lsm','sx'],
+     from:'陋室铭 · 三峡',quote:'山不在高，有仙则名',
+     mean:'山不在高而在德，亦可壁立千仞藏日月。'},
+    {key:'yuansheng',char:'猿声',rarity:'孤品',rc:'#ff5a4e',glow:'rgba(255,90,78,.45)',pieces:['sx'],
+     from:'三峡',quote:'巴东三峡巫峡长，猿鸣三声泪沾裳',
+     mean:'三声猿鸣，是行旅之愁，也是山水文里最早的「声音风景」。'}
+  ];
+
+  /* ---------- 存储：gushi_v1.yin = {key:获得时间戳} ---------- */
+  var KEY='gushi_v1';
+  function load(){ try{ var d=JSON.parse(localStorage.getItem(KEY)); return d&&d.v===1?d:{v:1,p:{}}; }catch(e){ return {v:1,p:{}}; } }
+  function save(d){ try{ localStorage.setItem(KEY,JSON.stringify(d)); }catch(e){} }
+
+  var queue=[], batch=[], idx=0, showing=false, timers=[];
+
+  function awardByPiece(pid){
+    var d=load();
+    if(!d.yin||typeof d.yin!=='object') d.yin={};
+    var fresh=[];
+    REG.forEach(function(it){
+      if(it.pieces.indexOf(pid)>=0 && !d.yin[it.key]){
+        d.yin[it.key]=Date.now(); fresh.push(it);
+      }
+    });
+    if(!fresh.length) return;
+    save(d);
+    fresh.forEach(function(it){ queue.push(it); });
+    if(!showing){ schedule(); }
+  }
+  window.__yinAward=awardByPiece; /* 测试入口 */
+
+  /* ---------- 音效：三段递进（光韵汇聚 → 玉振五声 → 钟磬大成） ---------- */
+  var AC=null;
+  function ac(){
+    if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+    if(AC&&AC.state==='suspended'){ try{ AC.resume(); }catch(e){} }
+    return AC;
+  }
+  function tone(f,t0,dur,type,vol,slideTo){
+    var c=ac(); if(!c) return;
+    var t=c.currentTime+t0, o=c.createOscillator(), g=c.createGain();
+    o.type=type;
+    o.frequency.setValueAtTime(f,t);
+    if(slideTo) o.frequency.exponentialRampToValueAtTime(slideTo,t+dur);
+    g.gain.setValueAtTime(.0001,t);
+    g.gain.exponentialRampToValueAtTime(vol,t+.035);
+    g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.connect(g); g.connect(c.destination);
+    o.start(t); o.stop(t+dur+.03);
+  }
+  function sfxSeq(){
+    try{
+      /* 一、光韵汇聚：双声部上行微光 */
+      tone(300,0,1.05,'sine',.045,900);
+      tone(450,.06,.95,'triangle',.022,1200);
+      /* 二、玉振五声（宫商角徵羽） */
+      var ns=[523.25,587.33,659.25,783.99,1046.5];
+      ns.forEach(function(f,i){ tone(f,.55+i*.1,.42,'triangle',.07); });
+      /* 三、钟磬大成 */
+      tone(1318.5,1.15,2.0,'sine',.085);
+      tone(1975.5,1.15,1.5,'sine',.03);
+      tone(196,1.12,.55,'sine',.06);
+    }catch(e){}
+  }
+  function sfxTick(){ try{ tone(880,0,.12,'triangle',.08); tone(1320,.05,.16,'sine',.045); }catch(e){} }
+
+  /* ---------- 样式 ---------- */
+  var CSS='#yin-layer{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;'+
+    'background:radial-gradient(circle at 50% 42%,rgba(62,44,16,.6) 0%,rgba(12,9,5,.92) 80%);'+
+    'font-family:"KaiTi","STKaiti","楷体",serif;-webkit-user-select:none;user-select:none;}'+
+    '#yin-layer.show{display:flex;animation:yrBg .5s ease both;}'+
+    '@keyframes yrBg{from{opacity:0}to{opacity:1}}'+
+    '.yr-rays{position:absolute;width:780px;height:780px;left:50%;top:46%;transform:translate(-50%,-50%);border-radius:50%;pointer-events:none;'+
+    'background:repeating-conic-gradient(rgba(255,210,120,.16) 0deg 7deg,rgba(255,210,120,0) 7deg 60deg);'+
+    'opacity:0;transition:opacity .9s ease;}'+
+    '.yr-stage.in .yr-rays{opacity:1;animation:yrSpin 18s linear infinite;}'+
+    '@keyframes yrSpin{to{transform:translate(-50%,-50%) rotate(360deg)}}'+
+    '.yr-card{position:relative;width:min(380px,90vw);border-radius:14px;padding:24px 26px 20px;text-align:center;'+
+    'background:linear-gradient(165deg,#2e2543 0%,#1e1931 55%,#261b14 100%);'+
+    'border:1px solid rgba(255,210,120,.55);box-shadow:0 0 0 1px rgba(80,55,20,.55),0 0 50px var(--rcglow),inset 0 0 34px rgba(255,210,120,.08);'+
+    'transform:scale(.55) rotate(-3deg);opacity:0;}'+
+    '.yr-stage.in .yr-card{animation:yrPop .6s cubic-bezier(.2,1.45,.34,1) .5s both;}'+
+    '@keyframes yrPop{60%{transform:scale(1.06) rotate(1.2deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}'+
+    '.yr-card.out{animation:yrOut .4s ease both;}'+
+    '@keyframes yrOut{to{transform:scale(.72) translateY(-26px);opacity:0}}'+
+    '.yr-ribbon{font-size:.78rem;letter-spacing:.5em;color:#caa86a;padding-left:.5em;margin-bottom:8px;}'+
+    '.yr-rare{position:absolute;top:13px;right:13px;font-size:.7rem;letter-spacing:.22em;padding:3px 10px;border-radius:20px;'+
+    'color:#1a1208;background:var(--rc);box-shadow:0 0 14px var(--rc);font-weight:bold;}'+
+    '.yr-charwrap{position:relative;display:inline-block;margin:2px 0 4px;}'+
+    '.yr-char{font-size:5.4rem;line-height:1.1;color:#f6d98b;text-shadow:0 0 26px var(--rcglow),0 3px 0 #7a5415,0 6px 14px rgba(0,0,0,.5);'+
+    'display:inline-block;transform:scale(1.7) rotate(-10deg);opacity:0;}'+
+    '.yr-yinseal{position:absolute;right:-14px;bottom:2px;width:30px;height:30px;border-radius:4px;background:#a8412e;color:#fbeeda;'+
+    'font-size:1rem;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 1.5px rgba(251,238,218,.4);'+
+    'transform:rotate(-6deg) scale(1.6);opacity:0;}'+
+    '.yr-line{height:1px;width:70%;margin:8px auto 10px;background:linear-gradient(90deg,transparent,rgba(230,196,110,.7),transparent);}'+
+    '.yr-name{font-size:1.4rem;letter-spacing:.3em;color:#f3e3b8;padding-left:.3em;}'+
+    '.yr-from{font-size:.82rem;letter-spacing:.16em;color:#b79b66;margin-top:5px;}'+
+    '.yr-quote{font-size:1.02rem;letter-spacing:.12em;color:#fdf3d8;margin:12px 6px 8px;line-height:1.7;}'+
+    '.yr-mean{font-size:.86rem;letter-spacing:.06em;color:#c9b489;line-height:1.85;margin:0 4px;}'+
+    '.yr-dots{margin-top:12px;height:10px;}'+
+    '.yr-dots i{display:inline-block;width:7px;height:7px;border-radius:50%;margin:0 4px;background:rgba(230,196,110,.3);}'+
+    '.yr-dots i.on{background:#e8c06a;box-shadow:0 0 8px rgba(232,192,106,.8);}'+
+    '.yr-btn{margin-top:14px;font-family:inherit;font-size:1rem;letter-spacing:.34em;padding:9px 30px;border-radius:24px;cursor:pointer;'+
+    'background:linear-gradient(180deg,#ecc872,#c8922f);color:#241708;border:1px solid #8a6220;'+
+    'opacity:0;pointer-events:none;}'+
+    '.yr-skip{margin-top:10px;font-size:.8rem;letter-spacing:.3em;color:#a08a5e;cursor:pointer;}'+
+    '.yr-skip:hover{color:#d8c08a;}'+
+    '.yr-stage.s3 .yr-btn{pointer-events:auto;animation:yrFade .4s both,yrPulse 1.7s ease-in-out .4s infinite;}'+
+    '.yr-stage.s3 .yr-skip{animation:yrFade .5s both;}'+
+    '@keyframes yrPulse{0%,100%{box-shadow:0 0 10px rgba(255,190,90,.35)}50%{box-shadow:0 0 26px rgba(255,190,90,.9)}}'+
+    '@keyframes yrFade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}'+
+    '.yr-stage.s2 .yr-ribbon{animation:yrFade .5s .15s both;}'+
+    '.yr-stage.s2 .yr-rare{animation:yrFade .4s .6s both;}'+
+    '.yr-stage.s2 .yr-char{animation:yrStamp .5s cubic-bezier(.2,1.5,.4,1) both;}'+
+    '.yr-stage.s2 .yr-yinseal{animation:yrStamp .4s cubic-bezier(.2,1.5,.4,1) .22s both;}'+
+    '@keyframes yrStamp{to{opacity:1;transform:scale(1) rotate(-6deg)}}'+
+    '.yr-stage.s2 .yr-char{animation-name:yrStampChar;}'+
+    '@keyframes yrStampChar{to{opacity:1;transform:scale(1) rotate(0)}}'+
+    '.yr-stage.s2 .yr-line{animation:yrFade .5s .25s both;}'+
+    '.yr-stage.s2 .yr-name{animation:yrFade .5s .35s both;}'+
+    '.yr-stage.s2 .yr-from{animation:yrFade .5s .5s both;}'+
+    '.yr-stage.s2 .yr-quote{animation:yrFade .55s .65s both;}'+
+    '.yr-stage.s2 .yr-mean{animation:yrFade .55s .8s both;}'+
+    '.yr-stage.s2 .yr-dots{animation:yrFade .5s 1s both;}'+
+    '.yr-summary{display:none;}'+
+    '.yr-card.sum .yr-body{display:none;}'+
+    '.yr-card.sum .yr-summary{display:block;}'+
+    '.yr-sum-seal{width:58px;height:58px;border-radius:7px;background:#a8412e;color:#fbeeda;font-size:1.9rem;margin:6px auto 12px;'+
+    'display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 2px rgba(251,238,218,.4);transform:rotate(-4deg);}'+
+    '.yr-sum-title{font-size:1.5rem;letter-spacing:.32em;color:#f3e3b8;padding-left:.32em;}'+
+    '.yr-sum-list{margin:14px 0 4px;}'+
+    '.yr-sum-list span{display:inline-block;margin:4px 5px;padding:4px 14px;border-radius:18px;font-size:1.05rem;letter-spacing:.12em;'+
+    'background:rgba(232,192,106,.14);border:1px solid rgba(232,192,106,.5);color:#f6d98b;}'+
+    '.yr-sum-tip{font-size:.8rem;letter-spacing:.14em;color:#a08a5e;line-height:1.8;margin-bottom:6px;}'+
+    '@media (max-width:420px){.yr-char{font-size:4.4rem}.yr-card{padding:20px 18px 16px}.yr-rays{width:600px;height:600px}}';
+
+  var HTML='<div class="yr-rays"></div><div class="yr-stage" id="yrStage"><div class="yr-card" id="yrCard">'+
+    '<div class="yr-body">'+
+      '<div class="yr-ribbon">文 脉 意 象 · 新 觉</div>'+
+      '<div class="yr-rare" id="yrRare"></div>'+
+      '<div class="yr-charwrap"><span class="yr-char" id="yrChar"></span><span class="yr-yinseal">藏</span></div>'+
+      '<div class="yr-line"></div>'+
+      '<div class="yr-name" id="yrName"></div>'+
+      '<div class="yr-from" id="yrFrom"></div>'+
+      '<div class="yr-quote" id="yrQuote"></div>'+
+      '<div class="yr-mean" id="yrMean"></div>'+
+      '<div class="yr-dots" id="yrDots"></div>'+
+      '<button class="yr-btn" id="yrBtn" type="button">收 入 图 鉴</button>'+
+      '<div class="yr-skip" id="yrSkip">继续品读</div>'+
+    '</div>'+
+    '<div class="yr-summary">'+
+      '<div class="yr-sum-seal">藏</div>'+
+      '<div class="yr-sum-title">意象已入图鉴</div>'+
+      '<div class="yr-sum-list" id="yrSumList"></div>'+
+      '<div class="yr-sum-tip">可随时往「文脉图鉴」重温原句与内涵</div>'+
+      '<button class="yr-btn" id="yrGoBook" type="button">前 往 文 脉 图 鉴</button>'+
+      '<div class="yr-skip" id="yrClose">继续品读</div>'+
+    '</div></div></div>';
+
+  var layer, stage, card, elts;
+  function buildUI(){
+    var st=document.createElement('style'); st.textContent=CSS; document.head.appendChild(st);
+    layer=document.createElement('div'); layer.id='yin-layer'; layer.innerHTML=HTML;
+    document.body.appendChild(layer);
+    stage=document.getElementById('yrStage'); card=document.getElementById('yrCard');
+    elts={
+      rare:document.getElementById('yrRare'),char:document.getElementById('yrChar'),
+      name:document.getElementById('yrName'),from:document.getElementById('yrFrom'),
+      quote:document.getElementById('yrQuote'),mean:document.getElementById('yrMean'),
+      dots:document.getElementById('yrDots'),btn:document.getElementById('yrBtn'),
+      skip:document.getElementById('yrSkip'),sumList:document.getElementById('yrSumList'),
+      goBook:document.getElementById('yrGoBook'),close:document.getElementById('yrClose')
+    };
+    elts.btn.addEventListener('click',onConfirm);
+    elts.skip.addEventListener('click',onConfirm);
+    elts.goBook.addEventListener('click',function(){ sfxTick(); setTimeout(function(){ location.href='wenmai.html'; },160); });
+    elts.close.addEventListener('click',hide);
+    document.addEventListener('keydown',function(e){
+      if(!showing||e.key!=='Enter')return;
+      if(card.classList.contains('sum')) elts.goBook.click(); else onConfirm();
+    });
+  }
+
+  function later(fn,ms){ var id=setTimeout(fn,ms); timers.push(id); }
+  function clearTimers(){ timers.forEach(clearTimeout); timers=[]; }
+
+  function schedule(){
+    if(!document.body){ document.addEventListener('DOMContentLoaded',schedule); return; }
+    if(!layer) buildUI();
+    showing=true; batch=queue.slice(); idx=0;
+    later(function(){ present(); },2300); /* 等结局卷轴展开、印章落定后再启仪式 */
+  }
+
+  function present(){
+    var it=batch[idx];
+    card.classList.remove('out','sum');
+    stage.classList.remove('in','s2','s3');
+    elts.rare.textContent=it.rarity;
+    card.style.setProperty('--rc',it.rc);
+    card.style.setProperty('--rcglow',it.glow);
+    elts.char.textContent=it.char;
+    elts.char.style.fontSize=it.char.length>1?'4.2rem':'';
+    elts.name.textContent=it.char+'　意象';
+    elts.from.textContent='出自《'+it.from+'》';
+    elts.quote.textContent='「'+it.quote+'」';
+    elts.mean.textContent=it.mean;
+    elts.dots.innerHTML='';
+    for(var i=0;i<batch.length;i++){ var d=document.createElement('i'); if(i===idx)d.className='on'; elts.dots.appendChild(d); }
+    layer.classList.add('show');
+    sfxSeq();
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ stage.classList.add('in'); }); });
+    later(function(){ stage.classList.add('s2'); },1150);
+    later(function(){ stage.classList.add('s3'); },2300);
+  }
+
+  function onConfirm(){
+    if(!stage.classList.contains('s3')||card.classList.contains('sum'))return;
+    sfxTick(); clearTimers();
+    card.classList.add('out');
+    later(function(){
+      idx++;
+      if(idx<batch.length) present(); else showSummary();
+    },420);
+  }
+
+  function showSummary(){
+    stage.classList.add('s3');
+    card.classList.add('sum');
+    elts.sumList.innerHTML='';
+    batch.forEach(function(it){
+      var s=document.createElement('span'); s.textContent=it.char+'　'+it.rarity;
+      elts.sumList.appendChild(s);
+    });
+  }
+
+  function hide(){
+    clearTimers();
+    if(layer) layer.classList.remove('show');
+    if(card) card.classList.remove('sum','out');
+    if(stage) stage.classList.remove('in','s2','s3');
+    showing=false; queue=[]; batch=[]; idx=0;
+  }
+
+  /* ---------- 挂钩游戏完成：包装 PROG.finish（原逻辑照常执行） ---------- */
+  function hook(){
+    if(!window.PROG||typeof window.PROG.finish!=='function'||PROG.__yinHooked) return !!PROG.__yinHooked;
+    var orig=PROG.finish;
+    PROG.finish=function(){
+      try{ orig.apply(this,arguments); }catch(e){}
+      try{ awardByPiece(PID); }catch(e){}
+    };
+    PROG.__yinHooked=true;
+    return true;
+  }
+  function tryHook(){ if(hook())return true; var n=0; var iv=setInterval(function(){ n++; if(hook()||n>40)clearInterval(iv); },200); return false; }
+  if(document.body) tryHook(); else document.addEventListener('DOMContentLoaded',tryHook);
+})();
+</script>
+</body>
+</html>

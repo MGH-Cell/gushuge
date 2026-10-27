@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='9' fill='%239c3222'/%3E%3Ctext x='32' y='45' font-size='38' text-anchor='middle' fill='%23fdeed6' font-family='serif'%3E鉴%3C/text%3E%3C/svg%3E">
+<title>文鉴堂 · 古书阁</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    min-height:100%;
+    background:radial-gradient(ellipse at 50% -10%, #3a2a1a 0%, #221710 46%, #140d07 100%);
+    background-attachment:fixed;
+    font-family:"KaiTi","STKaiti","楷体",serif; color:#3a2a18;
+    padding:26px 10px 44px;
+  }
+  #app {
+    position:relative; width:min(1020px,96vw); margin:0 auto;
+    background:linear-gradient(180deg,#f8f0dc,#ede0c0);
+    border:2px solid #8a5a32; border-radius:10px;
+    box-shadow:0 22px 70px rgba(0,0,0,.62), inset 0 0 0 1px rgba(138,90,50,.30), inset 0 0 42px rgba(166,124,62,.14);
+    padding:24px 30px 38px;
+  }
+  #app::before { content:''; position:absolute; inset:6px; border:1px solid rgba(138,90,50,.32); border-radius:6px; pointer-events:none; }
+
+  /* 顶栏 */
+  .topbar { position:relative; padding:2px 4px 0; }
+  .back-shelf {
+    position:absolute; left:2px; top:0; height:38px; padding:0 15px;
+    display:flex; align-items:center; gap:6px; text-decoration:none;
+    color:#f3dca0; background:linear-gradient(180deg,#8a5a34,#6e4522);
+    border:1px solid #caa24e; border-radius:19px;
+    font-family:inherit; font-size:.92rem; letter-spacing:.18rem;
+    box-shadow:0 2px 6px rgba(60,36,14,.45), inset 0 1px 0 rgba(255,236,180,.35);
+    cursor:pointer; z-index:5;
+  }
+  .back-shelf:hover { background:linear-gradient(180deg,#9c6a3c,#7d502a); }
+  .title-wrap { text-align:center; padding:6px 0 2px; }
+  h1 { display:inline-flex; align-items:center; gap:14px; font-size:2.3rem; letter-spacing:.42rem; color:#432810; font-weight:normal; }
+  .seal {
+    flex:0 0 auto; width:44px; height:44px; border-radius:5px;
+    background:linear-gradient(160deg,#c44936,#9c3222); color:#fdeed6; font-size:1.32rem; letter-spacing:0;
+    display:inline-flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 7px rgba(120,40,25,.45), inset 0 0 0 2px rgba(253,238,214,.35);
+    transform:rotate(-6deg);
+  }
+  .subtitle { text-align:center; color:#8a6238; font-size:.98rem; letter-spacing:.28rem; margin-top:9px; }
+
+  /* 篇目页签 */
+  .tabs { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin:20px 0 4px; }
+  .tab {
+    font-family:inherit; cursor:pointer; font-size:.94rem; letter-spacing:.12rem;
+    padding:7px 15px; border-radius:16px; color:#6e4522;
+    background:linear-gradient(180deg,#fbf3dc,#eeddb8);
+    border:1px solid #caa24e;
+    box-shadow:inset 0 1px 0 rgba(255,250,230,.7), 0 1px 3px rgba(90,60,25,.16);
+    transition:all .22s ease;
+  }
+  .tab:hover { border-color:#a8412e; color:#9c3222; }
+  .tab.on {
+    color:#f3dca0; background:linear-gradient(180deg,#a8412e,#8a3120); border-color:#8a3120;
+    box-shadow:0 2px 7px rgba(120,40,25,.4), inset 0 1px 0 rgba(255,220,180,.25);
+  }
+
+  /* 篇头 */
+  .piece-head { display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap; margin:22px 0 10px; }
+  .p-title { font-size:1.7rem; letter-spacing:.24rem; color:#432810; }
+  .p-who { font-size:.9rem; color:#8a6238; letter-spacing:.14rem; padding-bottom:5px; }
+  .p-stat { margin-left:auto; font-size:.9rem; color:#6b4a2a; letter-spacing:.1rem; padding-bottom:5px; }
+  .p-stat b { color:#9c3222; font-size:1.16rem; padding:0 .12em; }
+
+  /* 进度条 */
+  .bar { height:7px; border-radius:4px; background:rgba(138,90,50,.18); overflow:hidden; margin-bottom:12px; }
+  .bar i { display:block; height:100%; width:0; border-radius:4px;
+    background:linear-gradient(90deg,#c4912e,#e3b64d); transition:width .45s ease; }
+
+  /* 工具栏 */
+  .tools { display:flex; gap:9px; flex-wrap:wrap; margin:14px 0 6px; }
+  .btn {
+    font-family:inherit; cursor:pointer; font-size:.9rem; letter-spacing:.16rem;
+    color:#f3dca0; background:linear-gradient(180deg,#8a5a34,#6e4522);
+    border:1px solid #caa24e; border-radius:17px; padding:7px 17px;
+    box-shadow:0 2px 6px rgba(60,36,14,.35), inset 0 1px 0 rgba(255,236,180,.3);
+  }
+  .btn:hover { background:linear-gradient(180deg,#9c6a3c,#7d502a); }
+  .btn.ghost { color:#6e4522; background:transparent; border:1px solid #8a5a32; box-shadow:none; }
+  .btn.ghost:hover { background:rgba(138,90,50,.1); }
+  .btn.on { color:#fdeed6; background:linear-gradient(180deg,#c44936,#9c3222); border-color:#9c3222; }
+
+  /* 句卡 */
+  .list { margin-top:12px; }
+  .sent {
+    border-top:1px solid rgba(138,90,50,.22);
+    transition:background .25s ease;
+  }
+  .sent:last-child { border-bottom:1px solid rgba(138,90,50,.22); }
+  .sent.got { background:linear-gradient(90deg, rgba(196,145,46,.10), rgba(196,145,46,0)); }
+  .sent-head {
+    display:flex; align-items:flex-start; gap:12px; padding:13px 8px 13px 4px;
+    cursor:pointer; user-select:none;
+  }
+  .sent-head:hover { background:rgba(138,90,50,.05); }
+  .s-num {
+    flex:0 0 auto; width:26px; height:26px; margin-top:2px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:.82rem; color:#8a6238; border:1px solid rgba(138,90,50,.45);
+    background:rgba(255,250,235,.7);
+  }
+  .sent.got .s-num { color:#fdeed6; background:linear-gradient(160deg,#c4912e,#a8791c); border-color:#a8791c; }
+  .s-text { flex:1 1 auto; font-size:1.16rem; line-height:1.95; letter-spacing:.06em; color:#2e2418; }
+  .s-tag {
+    flex:0 0 auto; margin-top:4px; font-size:.74rem; letter-spacing:.1rem;
+    padding:2px 8px; border-radius:9px; border:1px solid;
+  }
+  .s-tag.k义 { color:#8a6238; border-color:#b08a4e; background:rgba(176,138,62,.12); }
+  .s-tag.k译 { color:#7a4d1c; border-color:#c4912e; background:rgba(196,145,46,.13); }
+  .s-tag.k析 { color:#9c3222; border-color:#b03926; background:rgba(196,57,34,.09); }
+  .s-tag.k容 { color:#5c6a4a; border-color:#7d8a62; background:rgba(125,138,98,.13); }
+  .s-caret { flex:0 0 auto; margin-top:5px; color:#a8865c; font-size:.8rem; transition:transform .25s ease; }
+  .sent.open .s-caret { transform:rotate(90deg); }
+
+  .sent-body { display:none; padding:0 10px 15px 42px; }
+  .sent.open .sent-body { display:block; }
+  .row { display:flex; gap:12px; font-size:.95rem; line-height:1.9; color:#4a3620; margin-top:6px; }
+  .row .lab {
+    flex:0 0 3.6em; color:#8a6238; letter-spacing:.16rem; font-size:.86rem; line-height:2.1;
+  }
+  .row .txt { flex:1 1 auto; }
+  .row .txt b { color:#9c3222; font-weight:normal; }
+  .acts { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .mini {
+    font-family:inherit; cursor:pointer; font-size:.82rem; letter-spacing:.14rem;
+    padding:4px 13px; border-radius:13px; color:#6e4522;
+    background:rgba(255,250,235,.65); border:1px solid #a5793f;
+  }
+  .mini:hover { border-color:#a8412e; color:#9c3222; }
+  .mini.got { color:#fdeed6; background:linear-gradient(160deg,#c4912e,#a8791c); border-color:#a8791c; }
+  /* 盲测：遮住注释与译文，点一下揭开 */
+  .blind .row .txt { filter:blur(5px); cursor:pointer; transition:filter .28s ease; }
+  .blind .row .txt:hover { filter:blur(3px); }
+  .blind .row .txt.show { filter:none; }
+
+  .legend { margin-top:18px; font-size:.82rem; color:#8a6238; letter-spacing:.08rem; line-height:1.9;
+    border-top:1px dashed rgba(138,90,50,.35); padding-top:12px; }
+  .legend b { color:#6b4a2a; font-weight:normal; }
+
+  @media (max-width:640px) {
+    #app { padding:18px 14px 28px; }
+    h1 { font-size:1.9rem; letter-spacing:.24rem; }
+    .back-shelf { position:static; margin-bottom:12px; display:inline-flex; }
+    .s-text { font-size:1.04rem; }
+    .sent-body { padding-left:12px; }
+    .row { font-size:.9rem; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="topbar">
+    <a class="back-shelf" href="index.html">← 古书阁</a>
+    <div class="title-wrap">
+      <h1>文 鉴 堂<span class="seal">鉴</span></h1>
+      <div class="subtitle">逐句注译 · 点句对照 · 考其所得</div>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="piece-head">
+    <span class="p-title" id="pTitle">小石潭记</span>
+    <span class="p-who" id="pWho">唐 · 柳宗元</span>
+    <span class="p-stat">已通译 <b id="pDone">0</b> / <span id="pAll">0</span> 句</span>
+  </div>
+  <div class="bar"><i id="pBar"></i></div>
+
+  <div class="tools">
+    <button class="btn ghost" type="button" id="btnAll">全部展开</button>
+    <button class="btn ghost" type="button" id="btnBlind">盲测：遮注译</button>
+    <button class="btn" type="button" id="btnSay">🔊 朗读本篇</button>
+    <button class="btn ghost" type="button" id="btnStop">停止朗读</button>
+  </div>
+
+  <div class="list" id="list"></div>
+
+  <div class="legend">
+    <b>用法</b>：点任意一句看注释、白话译文与语法考点；读通之后点「已通译」记入学情。<br>
+    <b>四类考点</b>：<span class="s-tag k义">义</span> 词义理解 ·
+    <span class="s-tag k译">译</span> 句子翻译 ·
+    <span class="s-tag k析">析</span> 赏析鉴赏 ·
+    <span class="s-tag k容">容</span> 内容理解<br>
+    <b>提示</b>：完篇者可去 <a href="baitifang.html" style="color:#9c3222">百题坊</a> 验选字句读，或在 <a href="mine.html" style="color:#9c3222">我的书案</a> 看五维学情。
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ============================================================
+ * 文鉴堂 —— 七篇逐句注译
+ * 数据契约 key=gushi_v1：{..., wj:{xst:[已通译句序号,...],...}}
+ * 每句 tag：义=词义理解 / 译=句子翻译 / 析=赏析鉴赏 / 容=内容理解
+ * ============================================================ */
+const WJ = {
+  xst: { name:'小石潭记', who:'唐 · 柳宗元', url:'xiaoshitan.html', list:[
+    {s:'从小丘西行百二十步，', k:'义', z:'西：名词作状语，向西。步：古代长度单位。', t:'从小丘向西走一百二十步。', g:'名词作状语：「西行」即向西走。'},
+    {s:'隔篁竹，闻水声，如鸣珮环，', k:'析', z:'篁竹（huáng zhú）：竹林。珮环：玉制饰物，系于衣带。', t:'隔着竹林，听到流水声，像玉佩玉环相碰的声音。', g:'比喻：以声写水，未见其形先闻其声。'},
+    {s:'心乐之。', k:'义', z:'乐：意动用法，以……为乐。之：指水声。', t:'心里很喜欢这声音。', g:'意动用法「乐之」：认为它使人快乐。'},
+    {s:'伐竹取道，下见小潭，水尤清冽。', k:'译', z:'取道：开辟道路。下：名词作状语，向下。尤：格外。冽（liè）：寒凉。', t:'砍倒竹子开辟道路，向下看见一个小潭，潭水格外清凉。', g:'「下」名词作状语；「清冽」写水之寒。'},
+    {s:'全石以为底，近岸，', k:'义', z:'全石：整块石头。以为：以（之）为，把……作为。', t:'潭以整块石头作底，靠近岸边。', g:'省略介词宾语：「以（之）为底」。'},
+    {s:'卷石底以出，为坻，为屿，为嵁，为岩。', k:'义', z:'卷（quán）：翻卷。坻（chí）：水中高地。屿：小岛。嵁（kān）：不平的岩石。', t:'石底向上翻卷露出水面，成为坻、屿、嵁、岩各种形状。', g:'「以」连词，相当于「而」，表顺承。'},
+    {s:'青树翠蔓，蒙络摇缀，参差披拂。', k:'析', z:'蒙络：覆盖缠绕。摇缀：摇动下垂。参差（cēn cī）：长短不齐。披拂：随风飘动。', t:'青葱的树、翠绿的藤蔓，遮掩缠绕，摇动下垂，参差不齐，随风飘拂。', g:'四字短句连用，静中见生机。'},
+    {s:'潭中鱼可百许头，皆若空游无所依，', k:'析', z:'可：大约。许：表约数。空：名词作状语，在空中。', t:'潭中鱼大约一百来条，都好像在空中游动，没有什么依托。', g:'侧面描写：以鱼之「空游」写水之清澈；「空」名作状。'},
+    {s:'日光下澈，影布石上。', k:'译', z:'澈：穿透。布：映照。', t:'阳光直照到水底，鱼的影子映在石上。', g:'「下」名词作状语；光影相衬。'},
+    {s:'佁然不动，俶尔远逝，往来翕忽，似与游者相乐。', k:'析', z:'佁然（yǐ）：静止不动。俶尔（chù）：忽然。翕忽（xī）：轻快敏捷。', t:'鱼影静止不动，忽然又向远处游去，往来轻快敏捷，好像和游人互相取乐。', g:'拟人移情：鱼乐即人乐。'},
+    {s:'潭西南而望，斗折蛇行，明灭可见。', k:'义', z:'斗：名词作状语，像北斗星那样。蛇：像蛇爬行那样。明灭：忽明忽暗。', t:'向小潭西南望去，溪水像北斗星那样曲折、像蛇那样蜿蜒，时隐时现。', g:'双重名词作状语：「斗折蛇行」。'},
+    {s:'其岸势犬牙差互，不可知其源。', k:'义', z:'犬牙：名词作状语，像狗牙那样。差互（cī hù）：交错不齐。', t:'溪岸的形状像狗牙那样交错，看不出溪水的源头。', g:'名词作状语「犬牙」；与上句同为比喻。'},
+    {s:'坐潭上，四面竹树环合，寂寥无人，凄神寒骨，悄怆幽邃。', k:'析', z:'环合：环绕合抱。凄、寒：使动用法，使……凄凉、使……寒冷。悄怆（qiǎo chuàng）：忧伤。邃：深。', t:'坐在潭边，四面竹树环绕，寂静无人，使人感到心神凄凉、寒气透骨，幽静深远，弥漫着忧伤气息。', g:'使动用法「凄神寒骨」；由景入情，暗写贬谪心境。'},
+    {s:'以其境过清，不可久居，乃记之而去。', k:'析', z:'以：因为。清：冷清。居：停留。乃：于是。', t:'因为这里环境过于冷清，不能久留，于是记下这景色就离开了。', g:'「以」表原因；景语即情语，结句含无尽怅然。'},
+    {s:'同游者：吴武陵，龚古，余弟宗玄。', k:'容', z:'同游者：一同游览的人。余：我。', t:'一同游览的人有吴武陵、龚古，还有我的弟弟宗玄。', g:'补记笔法，如游记落款。'},
+    {s:'隶而从者，崔氏二小生，曰恕己，曰奉壹。', k:'容', z:'隶：跟随。小生：年轻人。', t:'跟随而来的还有崔家两个年轻人，一个叫恕己，一个叫奉壹。', g:'「隶而从」即作为随从跟着。'}
+  ]},
+
+  thy: { name:'桃花源记', who:'东晋 · 陶渊明', url:'taohuayuan.html', list:[
+    {s:'晋太元中，武陵人捕鱼为业。', k:'容', z:'太元：东晋孝武帝年号。武陵：郡名，在今湖南常德一带。为业：作为职业。', t:'东晋太元年间，武陵郡有个以捕鱼为业的人。', g:'开篇点明时间、地点、人物，用史传笔法使故事似真。'},
+    {s:'缘溪行，忘路之远近。', k:'义', z:'缘：沿着，顺着。', t:'他沿着溪水往前走，忘记了路程的远近。', g:'「缘」一词多义：此处为「沿着」。'},
+    {s:'忽逢桃花林，夹岸数百步，中无杂树，', k:'析', z:'夹岸：夹着溪流的两岸。步：古代长度单位。', t:'忽然遇到一片桃花林，桃树夹着溪流两岸，长达几百步，中间没有别的树。', g:'奇景突起，为下文「异之」张本。'},
+    {s:'芳草鲜美，落英缤纷。', k:'义', z:'鲜美：鲜嫩美丽（古今异义）。落英：落花。缤纷：繁多而纷乱。', t:'芳草鲜嫩美丽，落花纷纷飘落。', g:'古今异义「鲜美」，今义指味道好。'},
+    {s:'渔人甚异之，复前行，欲穷其林。', k:'义', z:'异：意动用法，对……感到惊异。穷：尽，走完。', t:'渔人对此十分惊异，又向前走，想走到桃林的尽头。', g:'意动用法「异之」；「穷」为动词，走尽。'},
+    {s:'林尽水源，便得一山，山有小口，仿佛若有光。', k:'译', z:'林尽水源：桃林在溪水发源处到了尽头。仿佛：隐隐约约。', t:'桃林在溪水发源的地方就到了尽头，便出现一座山，山上有个小洞口，隐隐约约好像有光。', g:'「仿佛」「若」同义连用，写隐约之感。'},
+    {s:'便舍船，从口入。', k:'义', z:'舍（shě）：舍弃，离开。', t:'渔人就离开小船，从洞口进去。', g:'「舍」多音多义：此处读shě，舍弃。'},
+    {s:'初极狭，才通人。', k:'译', z:'才：仅仅，只。通人：容一人通过。', t:'起初洞口很狭窄，仅容一个人通过。', g:'「才」作副词，表「仅仅」。'},
+    {s:'复行数十步，豁然开朗。', k:'析', z:'豁然开朗：由狭窄幽暗忽然变得开阔明亮。', t:'又走了几十步，眼前突然开阔明亮。', g:'成语「豁然开朗」的出处；由幽入明的转折。'},
+    {s:'土地平旷，屋舍俨然，有良田、美池、桑竹之属。', k:'译', z:'俨然：整齐的样子。属（shǔ）：类。', t:'这里土地平坦开阔，房屋整整齐齐，有肥沃的田地、美丽的池塘和桑树竹子之类。', g:'「之属」即这一类；总写桃源环境。'},
+    {s:'阡陌交通，鸡犬相闻。', k:'义', z:'阡陌（qiān mò）：田间小路。交通：交错相通（古今异义）。', t:'田间小路交错相通，鸡鸣狗吠之声彼此都能听到。', g:'古今异义「交通」，今指运输事业。'},
+    {s:'其中往来种作，男女衣着，悉如外人。', k:'译', z:'种作：耕种劳作。悉：全，都。外人：桃花源以外的人。', t:'里面的人来来往往耕种劳作，男女的穿戴，全都像桃花源外的人。', g:'「悉」副词，表全部。'},
+    {s:'黄发垂髫，并怡然自乐。', k:'析', z:'黄发：指老人。垂髫（tiáo）：指小孩。并：都。怡然：喜悦的样子。', t:'老人和小孩都安适愉快，自得其乐。', g:'借代：以发色、发式代老人小孩；写太平之乐。'},
+    {s:'见渔人，乃大惊，问所从来。具答之。', k:'译', z:'乃：于是，竟然。所从来：从哪里来。具：详细。', t:'村里人看见渔人，竟然大吃一惊，问他从哪里来。渔人详细地回答了他们。', g:'省略主语「村人」；「具」作状语。'},
+    {s:'便要还家，设酒杀鸡作食。', k:'义', z:'要（yāo）：通「邀」，邀请。', t:'他们就邀请渔人到自己家中，摆酒杀鸡做饭款待他。', g:'通假字：「要」通「邀」，读yāo。'},
+    {s:'村中闻有此人，咸来问讯。', k:'义', z:'咸：全，都。问讯：打听消息。', t:'村里人听说来了这么一个人，都来打听消息。', g:'「咸」副词，表全都。'},
+    {s:'自云先世避秦时乱，率妻子邑人来此绝境，不复出焉，遂与外人间隔。', k:'义', z:'先世：祖先。妻子：妻子儿女（古今异义）。邑人：同乡人。绝境：与世隔绝之地（古今异义）。间隔（jiàn gé）：隔绝。', t:'他们自称祖先为躲避秦时战乱，带领妻子儿女和乡邻来到这与世隔绝的地方，不再出去，于是与外面的人断绝了来往。', g:'古今异义「妻子」「绝境」；「间隔」读jiàn gé。'},
+    {s:'问今是何世，乃不知有汉，无论魏晋。', k:'义', z:'乃：竟然。无论：不要说，更不必说（古今异义）。', t:'他们问现在是什么朝代，竟然不知道有过汉朝，更不必说魏晋了。', g:'古今异义「无论」；「乃」表出乎意料。'},
+    {s:'此人一一为具言所闻，皆叹惋。', k:'译', z:'为（wèi）：对，向。具言：详细说出。叹惋：感叹惋惜。', t:'渔人把自己听到的事一一详细地告诉了他们，他们听后都感叹惋惜。', g:'「为」介词读wèi；「所闻」为名词性短语。'},
+    {s:'余人各复延至其家，皆出酒食。停数日，辞去。', k:'译', z:'延：邀请。辞去：告辞离开。', t:'其余的人各自又把他请到家中，都拿出酒饭招待。渔人停留几天后告辞离开。', g:'「延」一词多义：此处为邀请。'},
+    {s:'此中人语云：「不足为外人道也。」', k:'义', z:'语（yù）：告诉。不足：不值得。为（wèi）：向。', t:'村里人嘱咐他说：「这里的情况不值得对外面的人说啊。」', g:'「语」读yù；「为」读wèi。'},
+    {s:'既出，得其船，便扶向路，处处志之。', k:'义', z:'既：已经。扶：沿着，顺着。向：从前的，原来的。志：名词作动词，做记号。', t:'渔人出来以后，找到他的船，就顺着旧路回去，处处做了记号。', g:'名词作动词「志」；「向路」即旧路。'},
+    {s:'及郡下，诣太守，说如此。太守即遣人随其往，寻向所志，遂迷，不复得路。', k:'译', z:'及：到。诣（yì）：拜访。如此：像这样。遂：终于，竟然。', t:'到了郡城，他去拜见太守，报告了这件事。太守立即派人跟着他前往，寻找先前所做的记号，竟然迷了路，再也找不到原路。', g:'「遂」一词多义：此处为「竟然」。'},
+    {s:'南阳刘子骥，高尚士也，闻之，欣然规往。未果，寻病终。后遂无问津者。', k:'析', z:'高尚士：志向高洁的读书人。规往：打算前往。未果：没有实现。寻：随即，不久。问津：问路，指探访。', t:'南阳人刘子骥，是个志向高洁的隐士，听说此事，高兴地打算前往。计划未有结果，不久因病去世。此后就再没有探寻桃花源的人了。', g:'虚写一笔收束，桃源遂成不可复寻之境。'}
+  ]},
+
+  lsm: { name:'陋室铭', who:'唐 · 刘禹锡', url:'loushiming.html', list:[
+    {s:'山不在高，有仙则名。水不在深，有龙则灵。', k:'义', z:'名：名词作动词，出名。灵：名词作动词，显出灵异。则：就。', t:'山不在于高，有了仙人就出名；水不在于深，有了龙就显得有灵气。', g:'名词作动词「名」「灵」；以山水起兴，引出陋室。'},
+    {s:'斯是陋室，惟吾德馨。', k:'析', z:'斯：这。惟：只。德馨（xīn）：品德高尚；馨，香气。', t:'这是简陋的屋子，只因我的品德高尚（就不觉得简陋了）。', g:'主旨句，托物言志；「德馨」为全篇之眼。'},
+    {s:'苔痕上阶绿，草色入帘青。', k:'义', z:'上：名词作动词，长上。入：名词作动词，映入。', t:'苔痕长到台阶上，一片碧绿；草色映入竹帘，满目青翠。', g:'「上」「入」名词作动词；对偶工整。'},
+    {s:'谈笑有鸿儒，往来无白丁。', k:'析', z:'鸿儒：博学的人。白丁：平民，此指没有学问的人。', t:'谈笑的都是博学之士，往来的没有无学之人。', g:'借代与对偶，写室中之人雅。'},
+    {s:'可以调素琴，阅金经。', k:'译', z:'调（tiáo）：弹奏。素琴：不加装饰的琴。金经：用金泥书写的佛经。', t:'可以弹奏不加装饰的琴，阅读用金泥书写的佛经。', g:'「调」读tiáo；素琴金经，写生活之雅。'},
+    {s:'无丝竹之乱耳，无案牍之劳形。', k:'义', z:'丝竹：借代音乐。之：结构助词，取消句子独立性。案牍（dú）：官府文书。劳：使动用法，使……劳累。', t:'没有嘈杂的音乐扰乱心境，没有官府公文使身体劳累。', g:'使动用法「劳形」；「之」用于主谓之间。'},
+    {s:'南阳诸葛庐，西蜀子云亭。', k:'析', z:'诸葛庐：诸葛亮隐居南阳时的草庐。子云亭：扬雄（字子云）在成都的亭子。', t:'如同南阳诸葛亮的草庐、西蜀扬子云的亭子。', g:'用典自比，以古贤之陋室证吾室不陋。'},
+    {s:'孔子云：何陋之有？', k:'义', z:'何陋之有：宾语前置，即「有何陋」。之：宾语前置的标志。', t:'孔子说：有什么简陋的呢？', g:'宾语前置「何陋之有」；引经作结，反问有力。'}
+  ]},
+
+  als: { name:'爱莲说', who:'北宋 · 周敦颐', url:'ailianshuo.html', list:[
+    {s:'水陆草木之花，可爱者甚蕃。', k:'析', z:'蕃（fán）：多。', t:'水上、陆地上各种草本木本的花，值得喜爱的很多。', g:'总起一句，为下文三花并提作铺垫。'},
+    {s:'晋陶渊明独爱菊。', k:'容', z:'独：唯独。', t:'晋代的陶渊明唯独喜爱菊花。', g:'举菊为陪衬：菊为隐逸之象征。'},
+    {s:'自李唐来，世人甚爱牡丹。', k:'义', z:'李唐：唐朝，因皇帝姓李。', t:'从唐朝以来，世上的人非常喜爱牡丹。', g:'「李唐」以姓氏代朝代；牡丹喻富贵。'},
+    {s:'予独爱莲之出淤泥而不染，濯清涟而不妖，', k:'义', z:'予（yú）：我。之：取消句子独立性。染：沾染污秽。濯（zhuó）：洗。清涟：清澈的水波。妖：妖艳。', t:'我唯独喜爱莲花从淤泥中长出却不沾染污秽，经清水洗涤却不显得妖艳。', g:'「之」取消独立性；托物言志，莲即君子。'},
+    {s:'中通外直，不蔓不枝，', k:'义', z:'蔓：名词作动词，生藤蔓。枝：名词作动词，长枝节。', t:'（莲茎）内里贯通，外表笔直，不横生藤蔓，不旁生枝茎。', g:'名词作动词「蔓」「枝」。'},
+    {s:'香远益清，亭亭净植，', k:'译', z:'益：更加。亭亭：耸立的样子。植：竖立。', t:'香气传得越远越清芬，洁净地挺立在那里。', g:'「益」作副词，表更加。'},
+    {s:'可远观而不可亵玩焉。', k:'译', z:'亵（xiè）：亲近而不庄重。玩：玩弄。焉：语气词。', t:'可以在远处观赏，却不能靠近轻慢地玩弄。', g:'「而」表转折；写君子可敬不可狎。'},
+    {s:'予谓菊，花之隐逸者也；牡丹，花之富贵者也；莲，花之君子者也。', k:'析', z:'谓：认为。隐逸：隐居的人。', t:'我认为菊花是花中的隐士，牡丹是花中的富贵者，莲花是花中的君子。', g:'判断句「……者也」；排比层递，点明三种人格。'},
+    {s:'噫！菊之爱，陶后鲜有闻。', k:'义', z:'鲜（xiǎn）：少。闻：听到。', t:'唉！对于菊花的喜爱，陶渊明以后很少听到了。', g:'「鲜」多音，此处读xiǎn，意为少。'},
+    {s:'莲之爱，同予者何人？牡丹之爱，宜乎众矣。', k:'析', z:'同予者：像我一样的人。宜乎：当然。', t:'对于莲花的喜爱，像我一样的还有什么人呢？对于牡丹的喜爱，当然人很多了。', g:'反问与感叹作结，讽世之趋富。'}
+  ]},
+
+  cts: { name:'记承天寺夜游', who:'北宋 · 苏轼', url:'chengtiansi.html', list:[
+    {s:'元丰六年十月十二日夜，解衣欲睡，月色入户，欣然起行。', k:'容', z:'元丰六年：1083年，苏轼贬居黄州。户：门。欣然：高兴的样子。', t:'元丰六年十月十二日夜晚，我解开衣服正打算睡觉，恰好月光照进门里，便高兴地起来走动。', g:'叙事简洁，时、地、人、事一句交代。'},
+    {s:'念无与为乐者，遂至承天寺寻张怀民。', k:'译', z:'念：考虑，想到。无与为乐者：没有可以共同游乐的人。遂：于是。', t:'想到没有可以共同游乐的人，于是到承天寺去找张怀民。', g:'「念」一词多义：此处为「想到」。'},
+    {s:'怀民亦未寝，相与步于中庭。', k:'义', z:'寝：睡觉。相与：共同，一起。中庭：院子里。', t:'张怀民也没有睡，我们便一起在院子里散步。', g:'「相与」古今异义，此处为「一起」。'},
+    {s:'庭下如积水空明，水中藻、荇交横，盖竹柏影也。', k:'析', z:'空明：形容水的澄澈。藻荇（zǎo xìng）：水生植物。盖：大概是。', t:'庭院中的月光像积水一样澄澈透明，水中的水藻、荇菜交错纵横，原来是竹子和柏树的影子。', g:'两个比喻：月光→积水，竹柏影→藻荇；以实写虚。'},
+    {s:'何夜无月？何处无竹柏？但少闲人如吾两人者耳。', k:'析', z:'但：只是。闲人：清闲的人，含贬谪的自嘲与自赏。耳：罢了。', t:'哪一夜没有月光？哪里没有竹子和柏树？只是缺少像我们两个这样的闲人罢了。', g:'反问加议论，点明「闲」字，苦中作乐。'}
+  ]},
+
+  sx: { name:'三峡', who:'北魏 · 郦道元', url:'sanxia.html', list:[
+    {s:'自三峡七百里中，两岸连山，略无阙处。', k:'义', z:'自：在。略无：毫无。阙（quē）：通「缺」，空隙。', t:'在三峡七百里中，两岸都是连绵的高山，几乎没有中断的地方。', g:'通假字「阙」通「缺」，读quē。'},
+    {s:'重岩叠嶂，隐天蔽日，自非亭午夜分，不见曦月。', k:'义', z:'嶂：像屏障一样的山峰。自非：如果不是。亭午：正午。夜分：半夜。曦（xī）：日光，此指太阳。', t:'层层的悬崖、排排的峭壁，遮蔽天空，挡住太阳；如果不是正午和半夜，就看不见太阳和月亮。', g:'「自非」即如果不是；互文见义。'},
+    {s:'至于夏水襄陵，沿溯阻绝。', k:'义', z:'襄：漫上。陵：山陵。沿：顺流而下。溯（sù）：逆流而上。', t:'到了夏天江水漫上山陵的时候，上行和下行的航道都被阻断。', g:'「沿」「溯」反义对举，写水势之盛。'},
+    {s:'或王命急宣，有时朝发白帝，暮到江陵，其间千二百里，虽乘奔御风，不以疾也。', k:'析', z:'或：有时。宣：宣布，传达。朝（zhāo）：早晨。奔：动词作名词，飞奔的马。御风：驾着疾风。以：认为。疾：快。', t:'有时皇帝的命令要紧急传达，早晨从白帝城出发，傍晚就到了江陵，中间相距一千二百里，即使骑着飞奔的马、驾着疾风，也没有这样快。', g:'「奔」动词作名词；夸张与对比写夏水之急。'},
+    {s:'春冬之时，则素湍绿潭，回清倒影。', k:'析', z:'素湍（tuān）：白色的急流。回清：回旋的清波。', t:'春冬季节，白色的急流、碧绿的深潭，回旋的清波倒映着各种景物的影子。', g:'色彩对照、动静相生，八字写尽春冬。'},
+    {s:'绝巘多生怪柏，悬泉瀑布，飞漱其间，清荣峻茂，良多趣味。', k:'析', z:'绝巘（yǎn）：极高的山峰。漱（shù）：冲荡。清荣峻茂：水清、树荣、山高、草盛。良：甚，很。', t:'极高的山峰上生长着许多奇形怪状的柏树，悬泉瀑布在其中飞泻冲荡；水清、树荣、山高、草盛，实在很有趣味。', g:'四字短句，一字一景，收束春冬之景。'},
+    {s:'每至晴初霜旦，林寒涧肃。', k:'译', z:'晴初：天刚放晴。霜旦：下霜的早晨。肃：寂静。', t:'每到天刚放晴的日子或下霜的早晨，树林和山涧显出一片清凉寂静。', g:'「寒」「肃」形容词写氛围，转入秋景。'},
+    {s:'常有高猿长啸，属引凄异，空谷传响，哀转久绝。', k:'义', z:'属（zhǔ）：连接。引：延长。凄异：凄凉怪异。哀转（zhuǎn）：声音悲哀婉转。绝：消失。', t:'常有高处的猿猴拉长声音鸣叫，声音连续不断，十分凄凉怪异；空荡的山谷传来回声，悲哀婉转，很久才消失。', g:'「属引」即连续不断；听觉写景，渲染凄清。'},
+    {s:'故渔者歌曰：巴东三峡巫峡长，猿鸣三声泪沾裳。', k:'析', z:'故：所以。裳（cháng）：下衣。', t:'所以渔夫唱道：「巴东三峡巫峡长，猿鸣三声泪沾裳。」', g:'引民歌作结，以悲声收束全篇，余韵悠长。'}
+  ]},
+
+  dxx: { name:'答谢中书书', who:'南朝 · 陶弘景', url:'dazhongshushu.html', list:[
+    {s:'山川之美，古来共谈。', k:'析', z:'共谈：共同谈论、共同赞赏。', t:'山川的美丽，自古以来就是人们共同赞叹的。', g:'总起一提，笼罩全篇，气度从容。'},
+    {s:'高峰入云，清流见底。', k:'义', z:'入：耸入。见（xiàn）：同「现」，显现，此指看清。', t:'高高的山峰耸入云端，清澈的溪流可以看见水底。', g:'对偶；「见」通「现」，读xiàn。'},
+    {s:'两岸石壁，五色交辉。', k:'译', z:'五色：形容色彩繁多。交辉：交相辉映。', t:'两岸的石壁，五彩斑斓，交相辉映。', g:'色彩描写，静态生辉。'},
+    {s:'青林翠竹，四时俱备。', k:'译', z:'四时：四季。俱：全，都。', t:'青葱的树林、翠绿的竹子，四季都有。', g:'「俱」副词，表全备。'},
+    {s:'晓雾将歇，猿鸟乱鸣；夕日欲颓，沉鳞竞跃。', k:'析', z:'歇：消散。乱鸣：此起彼伏地鸣叫。颓：坠落。沉鳞：潜游水中的鱼。竞跃：争相跳跃。', t:'清晨的薄雾将要消散，猿猴和鸟儿此起彼伏地鸣叫；傍晚的太阳快要落山，潜游水中的鱼争相跃出水面。', g:'借代「沉鳞」；晨昏相对、动静相生。'},
+    {s:'实是欲界之仙都。', k:'析', z:'实：确实。欲界：佛教指人间。仙都：仙人居处。', t:'这里实在是人间仙境啊。', g:'由景入议，一赞收束，抬高境界。'},
+    {s:'自康乐以来，未复有能与其奇者。', k:'义', z:'康乐：谢灵运，封康乐公。与（yù）：参与，此指欣赏。奇：指奇美的山川。', t:'自从谢灵运以来，就再也没有能欣赏这奇丽景色的人了。', g:'「与」读yù，参与、欣赏；以谢灵运自许。'}
+  ]}
+};
+
+/* ============================ 朗读 ============================ */
+const SAY_FIX={'屋舍':'屋社','卷石底':'全石底','差互':'疵互','语云':'玉云','为外人':'谓外人','为具':'谓具','便要':'便邀','鲜有闻':'显有闻','斗折':'陡折','篁':'皇','冽':'列','坻':'池','嵁':'堪','佁':'以','俶':'怵','翕':'息','悄':'巧','怆':'创','髫':'条','诣':'易','骥':'寄','蕃':'繁','濯':'浊','亵':'屑','予':'余','荇':'幸','阙':'缺','溯':'素','巘':'演','属':'主','裳':'常','曦':'西','朝':'招','牍':'渎','调素琴':'条素琴','明灭可见':'明灭可建','下见':'下建','心乐':'心勒','相乐':'相勒','翠蔓':'翠腕','珮':'佩','为':'唯','种作':'众作','重岩':'虫岩'};
+const SAY_ENGINE=(function(){
+  let bestVoice=null;
+  function pickVoice(){
+    try{
+      const vs=window.speechSynthesis.getVoices()||[];
+      let best=null,bs=-99;
+      for(const v of vs){
+        if(!/zh|Chinese|cmn/i.test(v.lang+v.name))continue;
+        const t=v.name||''; let s=0;
+        if(/online|natural|neural|google/i.test(t))s+=12;
+        if(/云希|云健|云扬|晓晓|晓伊|晓秋|Yunxi|Yunjian|Yunyang|Xiaoxiao|Xiaoyi|Xiaoyou/i.test(t))s+=8;
+        if(/zh-CN|zh_CN|cmn-Hans/i.test(v.lang))s+=2;
+        if(/Huihui|Kangkang|Zhiyu|Yaoyao|Desktop/i.test(t))s-=6;
+        if(s>bs){bs=s;best=v;}
+      }
+      if(best)bestVoice=best;
+    }catch(e){}
+  }
+  try{ pickVoice(); window.speechSynthesis.addEventListener('voiceschanged',pickVoice); }catch(e){}
+  let seq=0, kick=null;
+  function clearKick(){ if(kick){ clearTimeout(kick); kick=null; } }
+  function run(ss,my,items){
+    let i=0;
+    function go(){
+      if(my!==seq||i>=items.length)return;
+      const it=items[i++];
+      const u=new SpeechSynthesisUtterance(it.t);
+      u.lang='zh-CN'; u.rate=it.rate; u.pitch=it.pitch; u.volume=1;
+      if(bestVoice)u.voice=bestVoice;
+      let done=false, started=false, timer=null;
+      function guard(){
+        if(done||my!==seq)return;
+        done=true; clearTimeout(timer);
+        if(!started){ try{ ss.cancel(); }catch(e){} kick=setTimeout(go,300); }
+        else kick=setTimeout(go,it.pause);
+      }
+      timer=setTimeout(guard,4000);
+      u.onstart=function(){ started=true; clearTimeout(timer); timer=setTimeout(guard,Math.max(12000,it.t.length*620)); };
+      u.onend=function(){ if(done)return; done=true; clearTimeout(timer); kick=setTimeout(go,it.pause); };
+      u.onerror=function(){ if(done)return; done=true; clearTimeout(timer); kick=setTimeout(go,260); };
+      try{ ss.resume(); }catch(e){}
+      ss.speak(u);
+    }
+    kick=setTimeout(go,120);
+  }
+  function say(text){
+    try{
+      if(!('speechSynthesis' in window))return;
+      const ss=window.speechSynthesis, my=++seq;
+      clearKick(); ss.cancel();
+      let s=String(text).replace(/\s+/g,'');
+      if(!s)return;
+      for(const k in SAY_FIX)s=s.split(k).join(SAY_FIX[k]);
+      if(!bestVoice)pickVoice();
+      const parts=s.match(/[^。！？；，、：,.!?;:]+[。！？；，、：,.!?;:]?/g)||[s];
+      /* 逗号短句并入整句，朗读更连贯 */
+      const groups=[]; let buf='';
+      for(const p1 of parts){
+        const p2=p1.trim(); if(!p2)continue;
+        buf+=p2;
+        if(/[。！？；!?;]$/.test(p2)){ groups.push(buf); buf=''; }
+      }
+      if(buf)groups.push(buf);
+      const items=[];
+      for(const p0 of groups){
+        const p=p0.trim(); if(!p)continue;
+        const end=p.slice(-1), core=p.replace(/[。！？；，、：,.!?;:]+$/,'');
+        let rate=1.02, pitch=1;
+        if(/[？?]/.test(end)){ pitch=1.1; rate=1.0; }
+        else if(/[！!]/.test(end)){ pitch=.94; rate=.98; }
+        else if(/[。；;]/.test(end)){ pitch=.985; rate=.98; }
+        if(/[也矣焉耳哉]$/.test(core))rate-=.03;
+        const pause=/[。！？；;!?]/.test(end)?140:(/[，、：,:]/.test(end)?60:40);
+        items.push({t:p,rate:rate,pitch:pitch,pause:pause});
+        if(items.length>=80)break;
+      }
+      run(ss,my,items);
+    }catch(e){}
+  }
+  function stop(){ seq++; clearKick(); try{ if('speechSynthesis' in window)window.speechSynthesis.cancel(); }catch(e){} }
+  return {say:say,stop:stop};
+})();
+function SAY(t){ SAY_ENGINE.say(t); }
+window.addEventListener('pagehide',function(){ SAY_ENGINE.stop(); });
+
+/* 音效 */
+let AC=null;
+function tone(freq,dur,type,vol,when){
+  try{
+    if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();
+    const t=AC.currentTime+(when||0), o=AC.createOscillator(), gn=AC.createGain();
+    o.type=type||'sine'; o.frequency.value=freq;
+    gn.gain.setValueAtTime(vol||.08,t);
+    gn.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.connect(gn); gn.connect(AC.destination); o.start(t); o.stop(t+dur);
+  }catch(e){}
+}
+function chime(){ tone(659.25,.22,'triangle',.08); tone(880,.4,'triangle',.06,.09); }
+
+/* ============================ 进度存取 ============================ */
+const KEY='gushi_v1';
+function loadData(){
+  let d=null;
+  try{ d=JSON.parse(localStorage.getItem(KEY)); }catch(e){ d=null; }
+  if(!d||d.v!==1||!d.p) d={v:1,p:{}};
+  if(!d.wj||typeof d.wj!=='object') d.wj={};
+  return d;
+}
+function saveData(d){ try{ localStorage.setItem(KEY,JSON.stringify(d)); }catch(e){} }
+let DATA=loadData();
+function gotOf(pid){
+  if(!Array.isArray(DATA.wj[pid])) DATA.wj[pid]=[];
+  return DATA.wj[pid];
+}
+function isGot(pid,i){ return gotOf(pid).indexOf(i)>=0; }
+function toggleGot(pid,i){
+  const a=gotOf(pid), k=a.indexOf(i);
+  if(k>=0)a.splice(k,1); else a.push(i);
+  saveData(DATA);
+  return k<0;
+}
+function trk(ev,v){
+  try{
+    const t=localStorage.getItem('gushi_token');
+    if(!t)return;
+    fetch('/api/track',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({token:t,ev:ev,k:'',v:v||0,t:Date.now(),
+        blob:(function(){ try{ return JSON.parse(localStorage.getItem(KEY)); }catch(e){ return null; } })()})});
+  }catch(e){}
+}
+
+/* ============================ 渲染 ============================ */
+let CUR='xst';
+const el=function(tag,cls,text){ const e=document.createElement(tag); if(cls)e.className=cls; if(text!=null)e.textContent=text; return e; };
+let allOpen=false;
+
+function renderTabs(){
+  const box=document.getElementById('tabs');
+  box.textContent='';
+  Object.keys(WJ).forEach(function(pid){
+    const b=el('button','tab'+(pid===CUR?' on':''),WJ[pid].name);
+    b.type='button';
+    b.addEventListener('click',function(){
+      if(CUR===pid)return;
+      CUR=pid; SAY_ENGINE.stop(); allOpen=false;
+      renderTabs(); renderPiece();
+    });
+    box.appendChild(b);
+  });
+}
+
+function renderPiece(){
+  const p=WJ[CUR], list=document.getElementById('list');
+  document.getElementById('pTitle').textContent=p.name;
+  document.getElementById('pWho').textContent=p.who;
+  document.getElementById('pAll').textContent=p.list.length;
+  list.textContent='';
+  list.classList.remove('blind');
+  document.getElementById('btnBlind').classList.remove('on');
+  document.getElementById('btnBlind').textContent='盲测：遮注译';
+  document.getElementById('btnAll').textContent='全部展开';
+
+  p.list.forEach(function(it,i){
+    const got=isGot(CUR,i);
+    const row=el('div','sent'+(got?' got':''));
+    const head=el('div','sent-head');
+    head.appendChild(el('span','s-num',''+(i+1)));
+    head.appendChild(el('span','s-text',it.s));
+    const tag=el('span','s-tag k'+it.k,it.k); head.appendChild(tag);
+    head.appendChild(el('span','s-caret','▸'));
+    row.appendChild(head);
+
+    const body=el('div','sent-body');
+    const r1=el('div','row'); r1.appendChild(el('span','lab','注释')); r1.appendChild(el('span','txt',it.z));
+    const r2=el('div','row'); r2.appendChild(el('span','lab','译文')); r2.appendChild(el('span','txt',it.t));
+    const r3=el('div','row'); r3.appendChild(el('span','lab','考点')); r3.appendChild(el('span','txt',it.g));
+    body.appendChild(r1); body.appendChild(r2); body.appendChild(r3);
+
+    const acts=el('div','acts');
+    const speak=el('button','mini','🔊 读这句'); speak.type='button';
+    speak.addEventListener('click',function(e){ e.stopPropagation(); SAY(it.s); });
+    const mk=el('button','mini'+(got?' got':''),got?'✓ 已通译':'标记已通译'); mk.type='button';
+    mk.addEventListener('click',function(e){
+      e.stopPropagation();
+      const now=toggleGot(CUR,i);
+      row.classList.toggle('got',now);
+      mk.classList.toggle('got',now);
+      mk.textContent=now?'✓ 已通译':'标记已通译';
+      if(now){ chime(); trk('wj',i+1); }
+      renderProgress();
+    });
+    acts.appendChild(speak); acts.appendChild(mk);
+    body.appendChild(acts);
+    row.appendChild(body);
+
+    head.addEventListener('click',function(){ row.classList.toggle('open'); });
+    list.appendChild(row);
+  });
+  renderProgress();
+}
+
+function renderProgress(){
+  const p=WJ[CUR], got=gotOf(CUR).filter(function(i){ return i<p.list.length; });
+  document.getElementById('pDone').textContent=got.length;
+  document.getElementById('pBar').style.width=(p.list.length?Math.round(got.length*100/p.list.length):0)+'%';
+}
+
+/* 工具栏 */
+document.getElementById('btnAll').addEventListener('click',function(){
+  allOpen=!allOpen;
+  const rows=document.querySelectorAll('#list .sent');
+  for(let i=0;i<rows.length;i++) rows[i].classList.toggle('open',allOpen);
+  this.textContent=allOpen?'全部收起':'全部展开';
+});
+document.getElementById('btnBlind').addEventListener('click',function(){
+  const list=document.getElementById('list');
+  const on=list.classList.toggle('blind');
+  this.classList.toggle('on',on);
+  this.textContent=on?'盲测中：点文字揭开':'盲测：遮注译';
+  if(on){
+    const rows=list.querySelectorAll('.row .txt');
+    for(let i=0;i<rows.length;i++) rows[i].classList.remove('show');
+  }
+});
+/* 盲测下点注释/译文揭开 */
+document.getElementById('list').addEventListener('click',function(e){
+  const list=document.getElementById('list');
+  if(!list.classList.contains('blind'))return;
+  const t=e.target.closest ? e.target.closest('.row .txt') : null;
+  if(t){ t.classList.toggle('show'); }
+},true);
+document.getElementById('btnSay').addEventListener('click',function(){
+  const p=WJ[CUR];
+  SAY(p.list.map(function(it){ return it.s; }).join(''));
+});
+document.getElementById('btnStop').addEventListener('click',function(){ SAY_ENGINE.stop(); });
+
+renderTabs();
+renderPiece();
+</script>
+</body>
+</html>

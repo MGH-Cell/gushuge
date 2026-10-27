@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='9' fill='%239c3222'/%3E%3Ctext x='32' y='45' font-size='40' text-anchor='middle' fill='%23fdeed6' font-family='serif'%3E榜%3C/text%3E%3C/svg%3E">
+<title>学分榜 · 古书阁</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    min-height:100%;
+    background:
+      radial-gradient(ellipse at 50% -10%, #3a2a1a 0%, #221710 46%, #140d07 100%);
+    background-attachment:fixed;
+    font-family:"KaiTi","STKaiti","楷体",serif;
+    color:#3a2a18;
+    padding:26px 10px 40px;
+  }
+
+  /* ===== 宣纸大堂 ===== */
+  #app {
+    position:relative;
+    width:min(920px,96vw);
+    margin:0 auto;
+    background:linear-gradient(180deg,#f8f0dc,#ede0c0);
+    border:2px solid #8a5a32;
+    border-radius:10px;
+    box-shadow:0 22px 70px rgba(0,0,0,.62), inset 0 0 0 1px rgba(138,90,50,.30), inset 0 0 42px rgba(166,124,62,.14);
+    padding:24px 30px 34px;
+  }
+  #app::before {
+    content:''; position:absolute; inset:6px;
+    border:1px solid rgba(138,90,50,.32); border-radius:6px;
+    pointer-events:none;
+  }
+
+  /* ===== 顶栏 ===== */
+  .topbar { position:relative; padding:2px 4px 0; }
+  .back-shelf {
+    position:absolute; left:2px; top:0;
+    height:38px; padding:0 15px;
+    display:flex; align-items:center; gap:6px;
+    text-decoration:none;
+    color:#f3dca0; background:linear-gradient(180deg,#8a5a34,#6e4522);
+    border:1px solid #caa24e; border-radius:19px;
+    font-family:inherit; font-size:.92rem; letter-spacing:.18rem;
+    box-shadow:0 2px 6px rgba(60,36,14,.45), inset 0 1px 0 rgba(255,236,180,.35);
+    cursor:pointer; z-index:5;
+  }
+  .back-shelf:hover { background:linear-gradient(180deg,#9c6a3c,#7d502a); }
+  .me-card {
+    position:absolute; right:2px; top:0;
+    height:38px; display:flex; align-items:center; gap:9px;
+    color:#5a3c20; font-size:.9rem; letter-spacing:.1rem;
+    background:linear-gradient(180deg,#f6ecd2,#e6d7b2);
+    border:1px solid #8a5a32; border-radius:19px;
+    padding:0 15px; box-shadow:0 2px 6px rgba(60,36,14,.3);
+    z-index:5;
+  }
+  .me-card b { color:#432810; }
+  .me-card .score { color:#9a7420; }
+  .title-wrap { text-align:center; padding:6px 0 2px; }
+  h1 {
+    display:inline-flex; align-items:center; gap:14px;
+    font-size:2.35rem; letter-spacing:.42rem; color:#432810;
+    font-weight:normal;
+  }
+  .seal {
+    flex:0 0 auto;
+    width:44px; height:44px; border-radius:5px;
+    background:linear-gradient(160deg,#c44936,#9c3222);
+    color:#fdeed6; font-size:1.32rem; letter-spacing:0;
+    display:inline-flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 7px rgba(120,40,25,.45), inset 0 0 0 2px rgba(253,238,214,.35);
+    transform:rotate(-6deg);
+  }
+  .subtitle {
+    text-align:center; color:#8a6238; font-size:1rem; letter-spacing:.3rem;
+    margin-top:9px;
+  }
+
+  /* ===== 排行榜表 ===== */
+  .section-head {
+    display:flex; align-items:center; justify-content:space-between;
+    margin:26px 0 12px; gap:10px; flex-wrap:wrap;
+  }
+  .section-head h2 {
+    font-size:1.3rem; font-weight:normal; letter-spacing:.3rem; color:#432810;
+  }
+  .section-head h2::before {
+    content:'◆'; color:#caa24e; font-size:.8rem; margin-right:10px; vertical-align:2px;
+  }
+  .rule {
+    color:#8a6238; font-size:.84rem; letter-spacing:.06rem;
+  }
+  table.board {
+    width:100%; border-collapse:separate; border-spacing:0 6px;
+  }
+  table.board th {
+    font-weight:normal; color:#8a6238; font-size:.88rem; letter-spacing:.14rem;
+    padding:4px 10px; text-align:left;
+    border-bottom:1px solid rgba(138,90,50,.45);
+  }
+  table.board td {
+    background:linear-gradient(180deg,#fbf3dc,#efdfba);
+    border-top:1px solid #c9a96a; border-bottom:1px solid #c9a96a;
+    padding:9px 10px; font-size:1rem; letter-spacing:.05rem;
+  }
+  table.board tr td:first-child { border-left:1px solid #c9a96a; border-radius:8px 0 0 8px; }
+  table.board tr td:last-child { border-right:1px solid #c9a96a; border-radius:0 8px 8px 0; }
+  table.board tr.me td {
+    background:linear-gradient(180deg,#fdf3d2,#f6e2ac);
+    border-color:#c4912e;
+    box-shadow:inset 0 0 0 1px rgba(202,162,78,.5);
+  }
+  .rank {
+    display:inline-flex; align-items:center; justify-content:center;
+    min-width:30px; height:30px; border-radius:15px;
+    color:#6e4522; font-size:1rem;
+  }
+  .rank.r1 { background:linear-gradient(160deg,#f6dd96,#c89a3e); color:#4a2e10; font-weight:bold; box-shadow:0 1px 4px rgba(150,100,20,.4); }
+  .rank.r2 { background:linear-gradient(160deg,#e8e2d8,#b0a696); color:#3d3428; font-weight:bold; }
+  .rank.r3 { background:linear-gradient(160deg,#e0a97e,#a9693c); color:#4a2a12; font-weight:bold; }
+  .b-name { color:#432810; font-weight:bold; }
+  .b-score { color:#9c3222; font-size:1.14rem; font-weight:bold; }
+  .dim { color:#a08158; font-size:.88rem; }
+  .empty-note {
+    text-align:center; color:#8a6238; letter-spacing:.14rem;
+    padding:26px 0 18px; line-height:2;
+    background:rgba(202,162,78,.1); border:1px dashed rgba(154,116,32,.5);
+    border-radius:8px;
+  }
+
+  /* ===== 时间线 ===== */
+  .timeline { margin-top:4px; position:relative; padding-left:24px; }
+  .timeline::before {
+    content:''; position:absolute; left:7px; top:6px; bottom:6px;
+    width:2px; background:linear-gradient(180deg,#c4912e,#8a5a32 70%,rgba(138,90,50,.15));
+    border-radius:2px;
+  }
+  .tl-item { position:relative; padding:6px 0 10px; }
+  .tl-item::before {
+    content:''; position:absolute; left:-22px; top:13px;
+    width:9px; height:9px; border-radius:5px;
+    background:#c44936; box-shadow:0 0 0 2px rgba(253,238,214,.9), 0 0 0 3px rgba(156,50,34,.35);
+  }
+  .tl-item.good::before { background:#c4912e; box-shadow:0 0 0 2px rgba(253,238,214,.9), 0 0 0 3px rgba(154,116,32,.35); }
+  .tl-item.bad::before { background:#8a8478; box-shadow:0 0 0 2px rgba(253,238,214,.9), 0 0 0 3px rgba(110,105,95,.3); }
+  .tl-head { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .tl-txt { font-size:1.02rem; color:#3a2a18; letter-spacing:.05rem; }
+  .tl-txt b { color:#9c3222; }
+  .tl-piece { color:#8a6238; font-size:.88rem; }
+  .tl-time { color:#a08158; font-size:.82rem; margin-left:auto; letter-spacing:.04rem; }
+  .guest-note {
+    text-align:center; color:#6b4a2a; letter-spacing:.14rem; line-height:2;
+    background:rgba(176,57,38,.06); border:1px dashed rgba(156,50,34,.45);
+    border-radius:8px; padding:22px 16px; font-size:1.02rem;
+  }
+  .guest-note a {
+    color:#9c3222; font-weight:bold; text-decoration:underline; text-underline-offset:3px; cursor:pointer;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="topbar">
+    <a class="back-shelf" href="index.html">← 书阁</a>
+    <div class="me-card" id="meCard" style="display:none"></div>
+    <div class="title-wrap">
+      <h1><span class="seal">榜</span>学分金榜</h1>
+      <div class="subtitle">勤学者上 · 与同窗共勉</div>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <h2>学分排行</h2>
+    <span class="rule">学分 = 完卷×100 ＋ 完美卷×50 ＋ 百题答对×5 ＋ 错题掌握×8</span>
+  </div>
+  <div id="boardBox"><div class="empty-note">榜单加载中……</div></div>
+
+  <div class="section-head">
+    <h2>我的学习足迹</h2>
+    <span class="rule">点亮一句 · 闯关答题 · 百题坊笔墨，皆记于此</span>
+  </div>
+  <div id="histBox"></div>
+</div>
+
+<script>
+'use strict';
+const PIECE_NAME={xst:'小石潭记',thy:'桃花源记',lsm:'陋室铭',als:'爱莲说',cts:'记承天寺夜游',sx:'三峡'};
+const EV_TXT={
+  'lit':'点亮了一句原文','examStart':'开始了一场闯关','wrong':'答错一题','finish':'完成了一篇全文闯关',
+  'btf-answered':'百题坊作答','btf-mastered':'攻克了一道错题'
+};
+
+function esc(s){ return String(s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
+function fmtT(ms){
+  if(!ms) return '—';
+  const d=new Date(ms), p=n=>(n<10?'0':'')+n;
+  return (d.getMonth()+1)+'月'+d.getDate()+'日 '+p(d.getHours())+':'+p(d.getMinutes());
+}
+function getToken(){ try{ return localStorage.getItem('gushi_token'); }catch(e){ return null; } }
+
+function renderMe(u,score){
+  const el=document.getElementById('meCard');
+  if(!u){ el.style.display='none'; return; }
+  el.style.display='flex';
+  el.innerHTML='<b>书生·'+esc(u)+'</b><span class="score">学分 '+(score==null?'…':score)+'</span>';
+}
+
+/* ===== 排行榜 ===== */
+async function loadBoard(){
+  const box=document.getElementById('boardBox');
+  try{
+    const res=await fetch('/api/board');
+    const data=await res.json();
+    if(!data.ok) throw 0;
+    const rows=data.rows||[];
+    if(!rows.length){
+      box.innerHTML='<div class="empty-note">金榜尚虚 · 首位落笔者，名扬书阁<br>（登记入阁并开始学习即可上榜）</div>';
+      return;
+    }
+    const me=getToken();
+    let myU=null;
+    if(me){
+      try{
+        const m=await (await fetch('/api/me?token='+encodeURIComponent(me))).json();
+        if(m.ok){ myU=m.u; renderMe(m.u,m.score); }
+      }catch(e){}
+    }
+    let html='<table class="board"><thead><tr>'+
+      '<th style="width:52px">名次</th><th>书生</th><th>学分</th><th>已读卷</th><th>完美卷</th><th>百题答对</th><th>错题掌握</th><th>最近活跃</th>'+
+      '</tr></thead><tbody>';
+    rows.forEach((r,i)=>{
+      const cls=i===0?'r1':i===1?'r2':i===2?'r3':'';
+      const isMe=myU&&r.u===myU;
+      html+='<tr'+(isMe?' class="me"':'')+'>'+
+        '<td><span class="rank '+cls+'">'+(i<3?['状','榜','探'][i]:i+1)+'</span></td>'+
+        '<td class="b-name">'+esc(r.u)+(isMe?' <span class="dim">(我)</span>':'')+'</td>'+
+        '<td class="b-score">'+r.score+'</td>'+
+        '<td>'+r.done+'</td>'+
+        '<td>'+(r.perfect?'<span style="color:#9a7420">'+r.perfect+'</span>':'0')+'</td>'+
+        '<td>'+r.btfRight+'</td>'+
+        '<td>'+r.btfMastered+'</td>'+
+        '<td class="dim">'+fmtT(r.last)+'</td>'+
+        '</tr>';
+    });
+    html+='</tbody></table>';
+    if(myU&&!rows.some(r=>r.u===myU)){
+      html+='<div class="empty-note" style="margin-top:10px;padding:12px">你尚未上榜 · 学习任意一卷后即可名扬金榜</div>';
+    }
+    box.innerHTML=html;
+  }catch(e){
+    box.innerHTML='<div class="empty-note">学分金榜为书阁联机版功能<br><span class="dim">线上单机版未开启此榜 · 学习进度仍完整保存在各设备浏览器中</span></div>';
+  }
+}
+
+/* ===== 学习时间线 ===== */
+async function loadHistory(){
+  const box=document.getElementById('histBox');
+  const t=getToken();
+  if(!t){
+    box.innerHTML='<div class="guest-note">游客尚未落款 · <a href="index.html">回书阁登记入阁</a>后，可在此查看你的学习足迹</div>';
+    return;
+  }
+  try{
+    const res=await fetch('/api/history?token='+encodeURIComponent(t));
+    const data=await res.json();
+    if(!data.ok||!(data.rows||[]).length){
+      box.innerHTML='<div class="empty-note">足迹尚空白 · 去点亮第一句古文吧</div>';
+      return;
+    }
+    let html='<div class="timeline">';
+    data.rows.slice(0,60).forEach(r=>{
+      const piece=PIECE_NAME[r.k]||'';
+      const cls=r.ev==='finish'||r.ev==='btf-mastered'?'good':r.ev==='wrong'?'bad':'';
+      let txt=EV_TXT[r.ev]||r.ev;
+      if(r.ev==='lit'&&r.v) txt='点亮原文（第 '+r.v+' 句）';
+      if(r.ev==='btf-answered') txt+=r.v?' · 答对':' · 答错';
+      html+='<div class="tl-item '+cls+'">'+
+        '<div class="tl-head">'+
+          '<span class="tl-txt"><b>'+esc(data.u)+'</b> '+esc(txt)+'</span>'+
+          (piece?'<span class="tl-piece">《'+piece+'》</span>':'')+
+          '<span class="tl-time">'+fmtT(r.t)+'</span>'+
+        '</div>'+
+      '</div>';
+    });
+    html+='</div>';
+    box.innerHTML=html;
+  }catch(e){
+    box.innerHTML='<div class="empty-note">古书阁后端未启 · 足迹暂不可见</div>';
+  }
+}
+
+loadBoard();
+loadHistory();
+</script>
+</body>
+</html>
